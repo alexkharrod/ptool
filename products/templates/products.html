@@ -6,23 +6,32 @@
     <h1>Products List</h1>
 
     <!-- Search and Filter Section -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <form method="get" class="d-flex gap-3">
-                <div class="flex-grow-1">
+    <div class="row mb-3">
+        <div class="col-md-10">
+            <form method="get" class="d-flex flex-wrap gap-2">
+                <div class="flex-grow-1" style="min-width: 220px;">
                     <input type="text"
                            name="search"
                            class="form-control"
-                           placeholder="Search by SKU, Name, or Category"
+                           placeholder="Search SKU, Name, Category, or Vendor"
                            value="{{ search_query }}">
                 </div>
-                <div class="w-auto">
+                <div style="min-width: 140px;">
                     <select name="status" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
-                        <option value="{{ value }}"
-                            {% if status_filter == value %}selected{% endif %}>
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
                             {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="min-width: 140px;">
+                    <select name="category" class="form-select">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.code }}" {% if category_filter == cat.code %}selected{% endif %}>
+                            {{ cat.code }}
                         </option>
                         {% endfor %}
                     </select>
@@ -31,25 +40,30 @@
                 <a href="{% url 'products' %}" class="btn btn-secondary">Reset</a>
             </form>
         </div>
-        <div class="col-md-4 text-end">
+        <div class="col-md-2 text-end">
             <a href="{% url 'add_product' %}" class="btn btn-success">Add New SKU</a>
         </div>
     </div>
+    <div class="mb-3">
+        <a href="{% url 'categories' %}" class="text-muted small">
+            <i class="bi bi-tags me-1"></i>Manage Categories
+        </a>
+    </div>
 
-    <table class="table">
+    <table class="table table-hover">
         <thead>
             <tr>
-                <th scope="col">SKU</th>
-                <th scope="col">Name</th>
-                <th scope="col">Category</th>
-                <th scope="col">Price List</th>
-                <th scope="col">Product List</th>
-                <th scope="col">HTS</th>
-                <th scope="col">NPDS</th>
-                <th scope="col">QB SKU</th>
-                <th scope="col">Published</th>
-                <th scope="col">Status</th>
-                <th scope="col">Actions</th>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price List</th>
+                <th>Product List</th>
+                <th>HTS</th>
+                <th>NPDS</th>
+                <th>QB SKU</th>
+                <th>Published</th>
+                <th>Status</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -86,19 +100,19 @@
         <ul class="pagination justify-content-center">
             {% if products.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                <a class="page-link" href="?page={{ products.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">
                     &laquo; Previous
                 </a>
             </li>
             {% endif %}
             {% for num in products.paginator.page_range %}
             <li class="page-item {% if products.number == num %}active{% endif %}">
-                <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">{{ num }}</a>
             </li>
             {% endfor %}
             {% if products.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.next_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                <a class="page-link" href="?page={{ products.next_page_number }}&search={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">
                     Next &raquo;
                 </a>
             </li>

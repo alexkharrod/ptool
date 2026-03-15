@@ -1,9 +1,23 @@
 from django import forms
 
-from .models import Product  # Import the Product model
+from .models import Product, Category
 
 
 class CreateProductForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Build category choices dynamically so newly added categories appear immediately
+        choices = [("", "---------")] + [
+            (c.code, c.code) for c in Category.objects.order_by("code")
+        ]
+        self.fields["category"] = forms.ChoiceField(
+            choices=choices,
+            required=True,
+            label="Category",
+            widget=forms.Select(attrs={"class": "form-select"}),
+        )
+
     class Meta:
         model = Product
         fields = [

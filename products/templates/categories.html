@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Manage Categories</h1>
+        <a href="{% url 'products' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Products
+        </a>
+    </div>
+
+    <!-- Add new category -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Add New Category</h5>
+            {% if error %}
+            <div class="alert alert-danger py-2">{{ error }}</div>
+            {% endif %}
+            {% if request.GET.error %}
+            <div class="alert alert-danger py-2">{{ request.GET.error }}</div>
+            {% endif %}
+            <form method="post" class="d-flex gap-2">
+                {% csrf_token %}
+                <input type="text"
+                       name="code"
+                       class="form-control"
+                       placeholder="Category code (e.g. DW)"
+                       maxlength="20"
+                       style="text-transform: uppercase;"
+                       required>
+                <button type="submit" class="btn btn-success text-nowrap">
+                    <i class="bi bi-plus-circle me-1"></i>Add
+                </button>
+            </form>
+            <small class="text-muted mt-1 d-block">Codes are stored in uppercase automatically.</small>
+        </div>
+    </div>
+
+    <!-- Existing categories -->
+    <div class="card">
+        <div class="card-header">
+            <strong>{{ categories|length }} Categories</strong>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for cat in categories %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">{{ cat.code }}</span>
+                <form method="post" action="{% url 'delete_category' cat.pk %}"
+                      onsubmit="return confirm('Delete category {{ cat.code }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">No categories yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

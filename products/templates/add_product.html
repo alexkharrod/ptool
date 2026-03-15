@@ -20,7 +20,12 @@
             </div>
             <div class="col-md-4">
                 <label for="id_category" class="form-label">Category</label>
-                {{ form.category|add_class:"form-control" }}
+                <div class="input-group">
+                    {{ form.category }}
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Add new category">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -186,5 +191,51 @@
     </form>
 </div>
 
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">Add Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cat-modal-error" class="alert alert-danger py-2 d-none"></div>
+                <label for="new-cat-code" class="form-label">Category Code</label>
+                <input type="text" id="new-cat-code" class="form-control" placeholder="e.g. DW" maxlength="20" style="text-transform:uppercase;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success btn-sm" id="save-cat-btn">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
 
+<script>
+document.getElementById('save-cat-btn').addEventListener('click', function () {
+    const code = document.getElementById('new-cat-code').value.trim().toUpperCase();
+    const errorDiv = document.getElementById('cat-modal-error');
+    if (!code) { errorDiv.textContent = 'Please enter a code.'; errorDiv.classList.remove('d-none'); return; }
+    fetch("{% url 'add_category_ajax' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: 'code=' + encodeURIComponent(code)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const sel = document.getElementById('id_category');
+            const opt = new Option(data.code, data.code, true, true);
+            sel.add(opt);
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            document.getElementById('new-cat-code').value = '';
+            errorDiv.classList.add('d-none');
+        } else {
+            errorDiv.textContent = data.error;
+            errorDiv.classList.remove('d-none');
+        }
+    });
+});
+</script>
 {% endblock %}

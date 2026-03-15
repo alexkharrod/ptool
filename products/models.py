@@ -37,7 +37,17 @@ def compress_image(image_field, max_width=800, quality=72):
     return output.read()
 
 
-# Create your models here.
+class Category(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name_plural = "categories"
+
+    def __str__(self):
+        return self.code
+
+
 class Product(models.Model):
     STATUS_CHOICES = [
         ("Open", "Open"),

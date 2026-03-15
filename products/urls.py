@@ -9,4 +9,8 @@ urlpatterns = [
     path("edit/<int:pk>/", views.edit_product, name="edit_product"),
     path("view/<int:pk>/", views.view_product, name="view_product"),
     path("npds/<int:product_id>/pdf/", views.npds, name="npds"),
+    # Category management
+    path("categories/", views.categories, name="categories"),
+    path("categories/<int:pk>/delete/", views.delete_category, name="delete_category"),
+    path("categories/add-ajax/", views.add_category_ajax, name="add_category_ajax"),
 ]
