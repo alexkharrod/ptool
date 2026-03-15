@@ -1,8 +1,16 @@
 import os
 from io import BytesIO
 
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import models
+
+
+def validate_image_size(image):
+    """Reject uploads larger than 10 MB."""
+    max_mb = 10
+    if image.size > max_mb * 1024 * 1024:
+        raise ValidationError(f"Image file too large — maximum size is {max_mb} MB.")
 
 
 def compress_image(image_field, max_width=800, quality=72):
@@ -41,7 +49,7 @@ class Product(models.Model):
     name = models.CharField(max_length=150)
     category = models.CharField(max_length=50)
     image_url = models.CharField(max_length=200, blank=True)
-    image = models.ImageField(upload_to="products/", null=True, blank=True)
+    image = models.ImageField(upload_to="products/", null=True, blank=True, validators=[validate_image_size])
     moq = models.IntegerField()
     package = models.CharField(max_length=50)
     production_time = models.CharField(max_length=50)

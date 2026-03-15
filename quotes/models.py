@@ -2,8 +2,16 @@ import os
 from io import BytesIO
 
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import models
+
+
+def validate_image_size(image):
+    """Reject uploads larger than 10 MB."""
+    max_mb = 10
+    if image.size > max_mb * 1024 * 1024:
+        raise ValidationError(f"Image file too large — maximum size is {max_mb} MB.")
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.timezone import now
@@ -41,7 +49,7 @@ class Quote(models.Model):
     image_url = models.CharField(
         max_length=2083, default="", blank=True
     )
-    image = models.ImageField(upload_to="quotes/", null=True, blank=True)
+    image = models.ImageField(upload_to="quotes/", null=True, blank=True, validators=[validate_image_size])
     moq = models.IntegerField(default=0)
     package = models.CharField(max_length=50, default="White Box")
     production_time = models.CharField(max_length=50, default="MUST BE SPECIFIED")

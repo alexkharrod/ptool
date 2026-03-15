@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "quotes",
     "scouting",
     "widget_tweaks",
+    "axes",
 ]
 
 # Add Cloudinary if configured
@@ -70,6 +71,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",  # must be last
 ]
 
 ROOT_URLCONF = "mysite.urls"
@@ -139,3 +141,27 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ─── Misc ────────────────────────────────────────────────────────────────────
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── HTTPS / Production security ─────────────────────────────────────────────
+# Only enforce HTTPS-related headers in production (DEBUG=False).
+# Railway terminates SSL at its proxy, so we trust the forwarded headers.
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000        # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ─── django-axes (login rate limiting) ───────────────────────────────────────
+# Lock out an IP after 5 failed login attempts within 1 hour.
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1          # hours
+AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+AXES_RESET_ON_SUCCESS = True   # clear failure count on successful login
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]

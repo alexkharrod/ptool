@@ -110,7 +110,7 @@ def quote_pdf(request, quote_id):
     import urllib.request
     from weasyprint import HTML  # lazy import — avoids crash if system libs missing at startup
 
-    quote = Quote.objects.get(id=quote_id)
+    quote = get_object_or_404(Quote, id=quote_id)
 
     encoded_image = ""
     if quote.image:

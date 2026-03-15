@@ -57,3 +57,4 @@ weasyprint==63.1
 webencodings==0.5.1
 zope.interface==7.2
 zopfli==0.2.3.post1
+django-axes==7.0.1

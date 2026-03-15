@@ -1,8 +1,16 @@
 import os
 from io import BytesIO
 
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import models
+
+
+def validate_image_size(image):
+    """Reject uploads larger than 10 MB."""
+    max_mb = 10
+    if image.size > max_mb * 1024 * 1024:
+        raise ValidationError(f"Image file too large — maximum size is {max_mb} MB.")
 
 
 def compress_image(image_field, max_width=800, quality=72):
@@ -58,7 +66,7 @@ class Prospect(models.Model):
     notes = models.TextField(max_length=500, blank=True)
 
     # Image (stored in media/scouting/)
-    image = models.ImageField(upload_to="scouting/", null=True, blank=True)
+    image = models.ImageField(upload_to="scouting/", null=True, blank=True, validators=[validate_image_size])
 
     # Status & tracking
     status = models.CharField(

@@ -1,9 +1,2 @@
-from django.shortcuts import render
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-
-def logout_view(request):
-    logout(request)
-    return redirect("home")  # 
-
-# Create your views here.
+# Logout is handled by Django's built-in LogoutView in mysite/urls.py.
+# No custom views needed here.
