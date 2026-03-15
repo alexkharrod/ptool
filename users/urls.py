@@ -1,8 +1,4 @@
 from django.urls import path
 
-from . import views
-
-# urls for logout app
-urlpatterns = [
-    path("logout/", views.logout_view, name="logout"),
-]
+# Logout is handled by Django's built-in LogoutView in mysite/urls.py
+urlpatterns = []
