@@ -8,7 +8,7 @@
 
 set -e
 
-PTOOL_DIR="$HOME/PythonProjects/django_ptool/ptool"
+PTOOL_DIR="$HOME/pythonprojects/ptool"
 BACKUP_DIR="$HOME/Library/CloudStorage/Dropbox/LogoIncluded/DB Backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/ptool_backup_$TIMESTAMP.sql.gz"
