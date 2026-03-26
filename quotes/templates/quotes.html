@@ -50,7 +50,7 @@
 
         {% for quote in quotes.object_list %} {# Iterate over paginated objects #}
             <tr>
-                <td>{{ quote.quote_num }}</td>
+                <td>{{ quote.display_name }}</td>
                 <td>{{ quote.name }}</td>
                 <td>{{ quote.sales_rep }}</td>
                 <td>{{ quote.customer_name }}</td>

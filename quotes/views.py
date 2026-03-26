@@ -128,14 +128,14 @@ def quote_pdf(request, quote_id):
             with open(image_path, "rb") as img_file:
                 encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
 
+    pdf_filename = f"{quote.display_name}.pdf"
+
     context = {"quote": quote, "encoded_image": encoded_image}
 
     html_string = render_to_string("quote_pdf.html", context)
 
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'attachment; filename="quote_{quote.quote_num}.pdf"'
-    )
+    response["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
 
     HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(
         response, presentational_hints=True
