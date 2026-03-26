@@ -165,6 +165,13 @@
 </nav>
 
 <script>
+  // Auto-clear status filter when typing a search term
+  document.getElementById('search-input').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+      document.getElementById('status-filter').value = 'all';
+    }
+  });
+
   const selectAll = document.getElementById('select-all');
   const bulkBar = document.getElementById('bulk-bar');
   const countLabel = document.getElementById('selected-count');

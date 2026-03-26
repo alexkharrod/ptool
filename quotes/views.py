@@ -68,9 +68,8 @@ def edit_quote(request, pk):
 @login_required
 def quotes(request):
     search_query = request.GET.get("search", "")
-    status_filter = request.GET.get("status", "Open")
-    if not status_filter:
-        status_filter = "Open"
+    # Default to Open when browsing; search across all statuses when text search is active
+    status_filter = request.GET.get("status", "Open" if not search_query else "all")
 
     sort = request.GET.get("sort", "date_created")
     direction = request.GET.get("dir", "desc")

@@ -11,13 +11,14 @@
             <form method="get" class="d-flex gap-3">
                 <div class="flex-grow-1">
                     <input type="text"
+                           id="search-input"
                            name="search"
                            class="form-control"
                            placeholder="Search by SKU, Name, or Category"
                            value="{{ search_query }}">
                 </div>
                 <div class="w-auto">
-                    <select name="status" class="form-select">
+                    <select name="status" id="status-select" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
                         <option value="{{ value }}"
@@ -157,6 +158,13 @@
 </div>
 
 <script>
+  // Auto-clear status filter when typing a search term
+  document.getElementById('search-input').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+      document.getElementById('status-select').value = '';
+    }
+  });
+
   // Bulk select logic
   const selectAll = document.getElementById('select-all');
   const bulkBar = document.getElementById('bulk-bar');
