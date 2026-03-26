@@ -151,6 +151,7 @@
                 </form>
                 <div class="d-flex gap-2">
                     <a href="{% url 'quotes' %}" class="btn btn-secondary">Back to Quotes</a>
+                    <a href="{% url 'create_quote' %}?customer_name={{ quote.customer_name|urlencode }}&sales_rep={{ quote.sales_rep|urlencode }}" class="btn btn-outline-success">New Quote — Same Customer</a>
                     <a href="{% url 'quote_pdf' quote.id %}" class="btn btn-primary">Download PDF</a>
                 </div>
             </div>

@@ -142,7 +142,14 @@ def create_quote(request):
             new_suffix = "0001"
         auto_generated_quote_num = f"{date_prefix}{new_suffix}"
 
-        form = CreateQuoteForm(initial={"quote_num": auto_generated_quote_num})
+        initial = {"quote_num": auto_generated_quote_num}
+        # Pre-populate customer/rep if coming from "New quote for same customer" button
+        if request.GET.get("customer_name"):
+            initial["customer_name"] = request.GET["customer_name"]
+        if request.GET.get("sales_rep"):
+            initial["sales_rep"] = request.GET["sales_rep"]
+
+        form = CreateQuoteForm(initial=initial)
 
     return render(request, "create_quote.html", {"form": form})
 
