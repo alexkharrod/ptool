@@ -37,6 +37,15 @@ def products(request):
     search_query = request.GET.get("search", "")
     status_filter = request.GET.get("status", "Open")
 
+    sort = request.GET.get("sort", "sku")
+    direction = request.GET.get("dir", "asc")
+
+    allowed_sorts = {"sku", "name", "category", "status"}
+    if sort not in allowed_sorts:
+        sort = "sku"
+    if direction not in ("asc", "desc"):
+        direction = "asc"
+
     queryset = Product.objects.all()
 
     if status_filter:
@@ -49,7 +58,8 @@ def products(request):
             | Q(category__icontains=search_query)
         )
 
-    queryset = queryset.order_by("sku")
+    order_field = f"-{sort}" if direction == "desc" else sort
+    queryset = queryset.order_by(order_field)
 
     paginator = Paginator(queryset, 25)
     page_number = request.GET.get("page")
@@ -60,6 +70,8 @@ def products(request):
         "search_query": search_query,
         "status_filter": status_filter,
         "status_choices": Product.STATUS_CHOICES,
+        "sort": sort,
+        "dir": direction,
     }
 
     return render(request, "products.html", context)

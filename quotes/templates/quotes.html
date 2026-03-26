@@ -35,15 +35,41 @@
   </div>
 </div>
 <h1>Quotes</h1>
+
+{% with base_params="search="|add:search_query|add:"&status="|add:selected_status %}
 <table class="table">
     <thead>
       <tr>
-        <th scope="col">Quote #</th>
-        <th scope="col">Name</th>
-        <th scope="col">Rep</th>
-        <th scope="col">Customer</th>
-        <th scope="col">Date Created</th>
-        <th scope="col">Status</th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=quote_num&dir={% if sort == 'quote_num' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Quote # {% if sort == 'quote_num' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=name&dir={% if sort == 'name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Name {% if sort == 'name' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=sales_rep&dir={% if sort == 'sales_rep' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Rep {% if sort == 'sales_rep' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=customer_name&dir={% if sort == 'customer_name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Customer {% if sort == 'customer_name' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=date_created&dir={% if sort == 'date_created' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Date Created {% if sort == 'date_created' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=status&dir={% if sort == 'status' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Status {% if sort == 'status' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -71,22 +97,21 @@
         {% endfor %}
 
 
-   
-     
     </tbody>
   </table>
+{% endwith %}
 
 <!-- Pagination Controls -->
 <nav aria-label="Page navigation">
     <ul class="pagination justify-content-center">
         {% if quotes.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1&search={{ search_query }}&status={{ selected_status }}" aria-label="First">
+                <a class="page-link" href="?page=1&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="First">
                     <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.previous_page_number }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Previous">
+                <a class="page-link" href="?page={{ quotes.previous_page_number }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -101,12 +126,12 @@
 
         {% if quotes.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.next_page_number }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Next">
+                <a class="page-link" href="?page={{ quotes.next_page_number }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.paginator.num_pages }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Last">
+                <a class="page-link" href="?page={{ quotes.paginator.num_pages }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Last">
                     <span aria-hidden="true">&raquo;&raquo;</span>
                 </a>
             </li>

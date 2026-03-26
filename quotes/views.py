@@ -41,6 +41,15 @@ def quotes(request):
     if not status_filter:
         status_filter = "Open"
 
+    sort = request.GET.get("sort", "date_created")
+    direction = request.GET.get("dir", "desc")
+
+    allowed_sorts = {"quote_num", "name", "sales_rep", "customer_name", "date_created", "status"}
+    if sort not in allowed_sorts:
+        sort = "quote_num"
+    if direction not in ("asc", "desc"):
+        direction = "asc"
+
     queryset = Quote.objects.all()
 
     if status_filter != "all":
@@ -55,7 +64,8 @@ def quotes(request):
             | Q(sales_rep__icontains=search_query)
         )
 
-    queryset = queryset.order_by("quote_num")
+    order_field = f"-{sort}" if direction == "desc" else sort
+    queryset = queryset.order_by(order_field)
 
     statuses = Quote.objects.values_list("status", flat=True).distinct().order_by("status")
 
@@ -68,6 +78,8 @@ def quotes(request):
         "search_query": search_query,
         "statuses": statuses,
         "selected_status": status_filter,
+        "sort": sort,
+        "dir": direction,
     }
 
     return render(request, "quotes.html", context)
