@@ -37,9 +37,27 @@
 <h1>Quotes</h1>
 
 {% with base_params="search="|add:search_query|add:"&status="|add:selected_status %}
+<form method="post" action="{% url 'bulk_update_quotes' %}" id="bulk-form">
+  {% csrf_token %}
+  <input type="hidden" name="return_params" value="{{ base_params }}&sort={{ sort }}&dir={{ dir }}">
+
+  <!-- Bulk action bar (shown when rows are checked) -->
+  <div class="d-flex align-items-center gap-2 mb-2" id="bulk-bar" style="display:none;">
+    <span id="selected-count" class="text-muted small">0 selected</span>
+    <select name="bulk_status" class="form-select form-select-sm w-auto">
+      <option value="Open">Open</option>
+      <option value="Added">Added</option>
+      <option value="Closed">Closed</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-warning">Update Selected</button>
+  </div>
+
 <table class="table">
     <thead>
       <tr>
+        <th scope="col" style="width:36px;">
+          <input type="checkbox" id="select-all" class="form-check-input" title="Select all">
+        </th>
         <th scope="col">
           <a href="?{{ base_params }}&sort=quote_num&dir={% if sort == 'quote_num' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
             Quote # {% if sort == 'quote_num' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
@@ -74,8 +92,11 @@
     </thead>
     <tbody>
 
-        {% for quote in quotes.object_list %} {# Iterate over paginated objects #}
+        {% for quote in quotes.object_list %}
             <tr>
+                <td>
+                  <input type="checkbox" name="quote_ids" value="{{ quote.id }}" class="form-check-input row-check">
+                </td>
                 <td>{{ quote.display_name }}</td>
                 <td>{{ quote.name }}</td>
                 <td>{{ quote.sales_rep }}</td>
@@ -99,6 +120,7 @@
 
     </tbody>
   </table>
+</form>
 {% endwith %}
 
 <!-- Pagination Controls -->
@@ -141,5 +163,27 @@
         {% endif %}
     </ul>
 </nav>
+
+<script>
+  const selectAll = document.getElementById('select-all');
+  const bulkBar = document.getElementById('bulk-bar');
+  const countLabel = document.getElementById('selected-count');
+
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const total = document.querySelectorAll('.row-check').length;
+    countLabel.textContent = checked.length + ' selected';
+    bulkBar.style.display = checked.length > 0 ? 'flex' : 'none';
+    selectAll.indeterminate = checked.length > 0 && checked.length < total;
+    selectAll.checked = total > 0 && checked.length === total;
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    updateBulkBar();
+  });
+
+  document.querySelectorAll('.row-check').forEach(cb => cb.addEventListener('change', updateBulkBar));
+</script>
 
 {% endblock %}

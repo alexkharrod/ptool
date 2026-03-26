@@ -18,7 +18,38 @@ from .models import Quote
 @login_required
 def view_quote(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
-    return render(request, "view_quote.html", {"quote": quote})
+    return render(request, "view_quote.html", {"quote": quote, "status_choices": Quote.STATUS_CHOICES})
+
+
+@login_required
+def update_quote_status(request, pk):
+    if request.method == "POST":
+        quote = get_object_or_404(Quote, pk=pk)
+        new_status = request.POST.get("status")
+        valid_statuses = [s[0] for s in Quote.STATUS_CHOICES]
+        if new_status in valid_statuses:
+            quote.status = new_status
+            quote.save()
+            messages.success(request, f"Status updated to {new_status}.")
+        else:
+            messages.error(request, "Invalid status.")
+    return redirect("view_quote", pk=pk)
+
+
+@login_required
+def bulk_update_quotes(request):
+    if request.method == "POST":
+        quote_ids = request.POST.getlist("quote_ids")
+        new_status = request.POST.get("bulk_status")
+        valid_statuses = [s[0] for s in Quote.STATUS_CHOICES]
+        if new_status in valid_statuses and quote_ids:
+            updated = Quote.objects.filter(pk__in=quote_ids).update(status=new_status)
+            messages.success(request, f"{updated} quote(s) updated to {new_status}.")
+        else:
+            messages.error(request, "Please select quotes and a valid status.")
+    # Preserve current query params when redirecting back
+    params = request.POST.get("return_params", "")
+    return redirect(f"/quotes/quotes/?{params}")
 
 
 @login_required
