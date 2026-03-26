@@ -35,22 +35,69 @@
   </div>
 </div>
 <h1>Quotes</h1>
+
+{% with base_params="search="|add:search_query|add:"&status="|add:selected_status %}
+<form method="post" action="{% url 'bulk_update_quotes' %}" id="bulk-form">
+  {% csrf_token %}
+  <input type="hidden" name="return_params" value="{{ base_params }}&sort={{ sort }}&dir={{ dir }}">
+
+  <!-- Bulk action bar (shown when rows are checked) -->
+  <div class="d-flex align-items-center gap-2 mb-2" id="bulk-bar" style="display:none;">
+    <span id="selected-count" class="text-muted small">0 selected</span>
+    <select name="bulk_status" class="form-select form-select-sm w-auto">
+      <option value="Open">Open</option>
+      <option value="Added">Added</option>
+      <option value="Closed">Closed</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-warning">Update Selected</button>
+  </div>
+
 <table class="table">
     <thead>
       <tr>
-        <th scope="col">Quote #</th>
-        <th scope="col">Name</th>
-        <th scope="col">Rep</th>
-        <th scope="col">Customer</th>
-        <th scope="col">Date Created</th>
-        <th scope="col">Status</th>
+        <th scope="col" style="width:36px;">
+          <input type="checkbox" id="select-all" class="form-check-input" title="Select all">
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=quote_num&dir={% if sort == 'quote_num' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Quote # {% if sort == 'quote_num' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=name&dir={% if sort == 'name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Name {% if sort == 'name' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=sales_rep&dir={% if sort == 'sales_rep' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Rep {% if sort == 'sales_rep' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=customer_name&dir={% if sort == 'customer_name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Customer {% if sort == 'customer_name' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=date_created&dir={% if sort == 'date_created' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Date Created {% if sort == 'date_created' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
+        <th scope="col">
+          <a href="?{{ base_params }}&sort=status&dir={% if sort == 'status' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Status {% if sort == 'status' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+          </a>
+        </th>
       </tr>
     </thead>
     <tbody>
 
-        {% for quote in quotes.object_list %} {# Iterate over paginated objects #}
+        {% for quote in quotes.object_list %}
             <tr>
-                <td>{{ quote.quote_num }}</td>
+                <td>
+                  <input type="checkbox" name="quote_ids" value="{{ quote.id }}" class="form-check-input row-check">
+                </td>
+                <td>{{ quote.display_name }}</td>
                 <td>{{ quote.name }}</td>
                 <td>{{ quote.sales_rep }}</td>
                 <td>{{ quote.customer_name }}</td>
@@ -71,22 +118,22 @@
         {% endfor %}
 
 
-   
-     
     </tbody>
   </table>
+</form>
+{% endwith %}
 
 <!-- Pagination Controls -->
 <nav aria-label="Page navigation">
     <ul class="pagination justify-content-center">
         {% if quotes.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1&search={{ search_query }}&status={{ selected_status }}" aria-label="First">
+                <a class="page-link" href="?page=1&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="First">
                     <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.previous_page_number }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Previous">
+                <a class="page-link" href="?page={{ quotes.previous_page_number }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -101,12 +148,12 @@
 
         {% if quotes.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.next_page_number }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Next">
+                <a class="page-link" href="?page={{ quotes.next_page_number }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ quotes.paginator.num_pages }}&search={{ search_query }}&status={{ selected_status }}" aria-label="Last">
+                <a class="page-link" href="?page={{ quotes.paginator.num_pages }}&search={{ search_query }}&status={{ selected_status }}&sort={{ sort }}&dir={{ dir }}" aria-label="Last">
                     <span aria-hidden="true">&raquo;&raquo;</span>
                 </a>
             </li>
@@ -116,5 +163,34 @@
         {% endif %}
     </ul>
 </nav>
+
+<script>
+  // Auto-clear status filter when typing a search term
+  document.getElementById('search-input').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+      document.getElementById('status-filter').value = 'all';
+    }
+  });
+
+  const selectAll = document.getElementById('select-all');
+  const bulkBar = document.getElementById('bulk-bar');
+  const countLabel = document.getElementById('selected-count');
+
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const total = document.querySelectorAll('.row-check').length;
+    countLabel.textContent = checked.length + ' selected';
+    bulkBar.style.display = checked.length > 0 ? 'flex' : 'none';
+    selectAll.indeterminate = checked.length > 0 && checked.length < total;
+    selectAll.checked = total > 0 && checked.length === total;
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    updateBulkBar();
+  });
+
+  document.querySelectorAll('.row-check').forEach(cb => cb.addEventListener('change', updateBulkBar));
+</script>
 
 {% endblock %}

@@ -11,13 +11,14 @@
             <form method="get" class="d-flex gap-3">
                 <div class="flex-grow-1">
                     <input type="text"
+                           id="search-input"
                            name="search"
                            class="form-control"
                            placeholder="Search by SKU, Name, or Category"
                            value="{{ search_query }}">
                 </div>
                 <div class="w-auto">
-                    <select name="status" class="form-select">
+                    <select name="status" id="status-select" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
                         <option value="{{ value }}"
@@ -36,35 +37,77 @@
         </div>
     </div>
 
+    {% with base_params="search="|add:search_query|add:"&status="|add:status_filter %}
+    <form method="post" action="{% url 'bulk_update_products' %}" id="bulk-form">
+      {% csrf_token %}
+      <input type="hidden" name="return_params" value="{{ base_params }}&sort={{ sort }}&dir={{ dir }}">
+
+      <!-- Bulk action bar (shown when rows are checked) -->
+      <div class="d-flex align-items-center gap-2 mb-2" id="bulk-bar" style="display:none;">
+        <span id="selected-count" class="text-muted small">0 selected</span>
+        <select name="bulk_status" class="form-select form-select-sm w-auto">
+          {% for value, label in status_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-warning">Update Selected</button>
+      </div>
+
     <table class="table">
         <thead>
             <tr>
-                <th scope="col">SKU</th>
-                <th scope="col">Name</th>
-                <th scope="col">Category</th>
+                <th scope="col" style="width:36px;">
+                  <input type="checkbox" id="select-all" class="form-check-input" title="Select all">
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=sku&dir={% if sort == 'sku' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    SKU {% if sort == 'sku' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=name&dir={% if sort == 'name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    Name {% if sort == 'name' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=category&dir={% if sort == 'category' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    Category {% if sort == 'category' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
                 <th scope="col">Price List</th>
                 <th scope="col">Product List</th>
                 <th scope="col">HTS</th>
                 <th scope="col">NPDS</th>
                 <th scope="col">QB SKU</th>
                 <th scope="col">Published</th>
-                <th scope="col">Status</th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=status&dir={% if sort == 'status' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    Status {% if sort == 'status' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=date_created&dir={% if sort == 'date_created' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    Date Added {% if sort == 'date_created' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
                 <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for product in products %}
             <tr>
+                <td><input type="checkbox" name="product_ids" value="{{ product.id }}" class="form-check-input row-check"></td>
                 <td>{{ product.sku }}</td>
                 <td>{{ product.name }}</td>
                 <td>{{ product.category }}</td>
-                <td><input type="checkbox" class="form-check-input" {% if product.price_list %}checked{% endif %} disabled></td>
-                <td><input type="checkbox" class="form-check-input" {% if product.product_list %}checked{% endif %} disabled></td>
-                <td><input type="checkbox" class="form-check-input" {% if product.hts_list %}checked{% endif %} disabled></td>
-                <td><input type="checkbox" class="form-check-input" {% if product.npds_done %}checked{% endif %} disabled></td>
-                <td><input type="checkbox" class="form-check-input" {% if product.qb_added %}checked{% endif %} disabled></td>
-                <td><input type="checkbox" class="form-check-input" {% if product.published %}checked{% endif %} disabled></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="price_list" {% if product.price_list %}checked{% endif %}></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="product_list" {% if product.product_list %}checked{% endif %}></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="hts_list" {% if product.hts_list %}checked{% endif %}></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="npds_done" {% if product.npds_done %}checked{% endif %}></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="qb_added" {% if product.qb_added %}checked{% endif %}></td>
+                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="published" {% if product.published %}checked{% endif %}></td>
                 <td>{{ product.status }}</td>
+                <td>{{ product.date_created|date:"M d, Y" }}</td>
                 <td class="d-flex gap-1">
                     <a href="{% url 'edit_product' product.id %}" class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-pencil-alt"></i>
@@ -74,11 +117,13 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="11" class="text-center text-muted py-4">No products found.</td>
+                <td colspan="12" class="text-center text-muted py-4">No products found.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </form>
+    {% endwith %}
 
     <!-- Pagination -->
     {% if products.has_other_pages %}
@@ -86,19 +131,19 @@
         <ul class="pagination justify-content-center">
             {% if products.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                <a class="page-link" href="?page={{ products.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}&sort={{ sort }}&dir={{ dir }}">
                     &laquo; Previous
                 </a>
             </li>
             {% endif %}
             {% for num in products.paginator.page_range %}
             <li class="page-item {% if products.number == num %}active{% endif %}">
-                <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}&sort={{ sort }}&dir={{ dir }}">{{ num }}</a>
             </li>
             {% endfor %}
             {% if products.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.next_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                <a class="page-link" href="?page={{ products.next_page_number }}&search={{ search_query }}&status={{ status_filter }}&sort={{ sort }}&dir={{ dir }}">
                     Next &raquo;
                 </a>
             </li>
@@ -111,4 +156,69 @@
         Showing {{ products.start_index }}–{{ products.end_index }} of {{ products.paginator.count }} products
     </p>
 </div>
+
+<script>
+  // Auto-clear status filter when typing a search term
+  document.getElementById('search-input').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+      document.getElementById('status-select').value = '';
+    }
+  });
+
+  // Bulk select logic
+  const selectAll = document.getElementById('select-all');
+  const bulkBar = document.getElementById('bulk-bar');
+  const countLabel = document.getElementById('selected-count');
+
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const total = document.querySelectorAll('.row-check').length;
+    countLabel.textContent = checked.length + ' selected';
+    bulkBar.style.display = checked.length > 0 ? 'flex' : 'none';
+    selectAll.indeterminate = checked.length > 0 && checked.length < total;
+    selectAll.checked = total > 0 && checked.length === total;
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    updateBulkBar();
+  });
+
+  document.querySelectorAll('.row-check').forEach(cb => cb.addEventListener('change', updateBulkBar));
+
+  // Flag toggle AJAX
+  const csrfToken = '{{ csrf_token }}';
+
+  document.querySelectorAll('.flag-toggle').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      const pk = this.dataset.pk;
+      const field = this.dataset.field;
+      const checkbox = this;
+      checkbox.disabled = true;
+
+      fetch(`/products/toggle-flag/${pk}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ field: field }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          checkbox.checked = data.value;
+        } else {
+          checkbox.checked = !checkbox.checked; // revert on error
+        }
+        checkbox.disabled = false;
+      })
+      .catch(() => {
+        checkbox.checked = !checkbox.checked; // revert on network error
+        checkbox.disabled = false;
+      });
+    });
+  });
+</script>
+
 {% endblock %}

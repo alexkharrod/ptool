@@ -112,6 +112,15 @@ class Quote(models.Model):
     notes = models.CharField(max_length=255, blank=True, null=True)
     reciprocal_tariffs = models.CharField(max_length=255, blank=True, null=True)
 
+    @property
+    def display_name(self):
+        """Returns the formatted quote label used for filenames and display: MDDYY - Rep - Name Quote"""
+        d = self.date_created
+        date_str = f"{d.month}{d.strftime('%d%y')}"
+        safe_rep = self.sales_rep.strip().replace('"', '').replace('/', '-')
+        safe_name = self.name.strip().replace('"', '').replace('/', '-')
+        return f"{date_str} - {safe_rep} - {safe_name} Quote"
+
     def __str__(self):
         return self.quote_num
 

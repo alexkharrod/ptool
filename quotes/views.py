@@ -18,7 +18,38 @@ from .models import Quote
 @login_required
 def view_quote(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
-    return render(request, "view_quote.html", {"quote": quote})
+    return render(request, "view_quote.html", {"quote": quote, "status_choices": Quote.STATUS_CHOICES})
+
+
+@login_required
+def update_quote_status(request, pk):
+    if request.method == "POST":
+        quote = get_object_or_404(Quote, pk=pk)
+        new_status = request.POST.get("status")
+        valid_statuses = [s[0] for s in Quote.STATUS_CHOICES]
+        if new_status in valid_statuses:
+            quote.status = new_status
+            quote.save()
+            messages.success(request, f"Status updated to {new_status}.")
+        else:
+            messages.error(request, "Invalid status.")
+    return redirect("view_quote", pk=pk)
+
+
+@login_required
+def bulk_update_quotes(request):
+    if request.method == "POST":
+        quote_ids = request.POST.getlist("quote_ids")
+        new_status = request.POST.get("bulk_status")
+        valid_statuses = [s[0] for s in Quote.STATUS_CHOICES]
+        if new_status in valid_statuses and quote_ids:
+            updated = Quote.objects.filter(pk__in=quote_ids).update(status=new_status)
+            messages.success(request, f"{updated} quote(s) updated to {new_status}.")
+        else:
+            messages.error(request, "Please select quotes and a valid status.")
+    # Preserve current query params when redirecting back
+    params = request.POST.get("return_params", "")
+    return redirect(f"/quotes/quotes/?{params}")
 
 
 @login_required
@@ -37,9 +68,17 @@ def edit_quote(request, pk):
 @login_required
 def quotes(request):
     search_query = request.GET.get("search", "")
-    status_filter = request.GET.get("status", "Open")
-    if not status_filter:
-        status_filter = "Open"
+    # Default to Open when browsing; search across all statuses when text search is active
+    status_filter = request.GET.get("status", "Open" if not search_query else "all")
+
+    sort = request.GET.get("sort", "date_created")
+    direction = request.GET.get("dir", "desc")
+
+    allowed_sorts = {"quote_num", "name", "sales_rep", "customer_name", "date_created", "status"}
+    if sort not in allowed_sorts:
+        sort = "quote_num"
+    if direction not in ("asc", "desc"):
+        direction = "asc"
 
     queryset = Quote.objects.all()
 
@@ -55,7 +94,8 @@ def quotes(request):
             | Q(sales_rep__icontains=search_query)
         )
 
-    queryset = queryset.order_by("quote_num")
+    order_field = f"-{sort}" if direction == "desc" else sort
+    queryset = queryset.order_by(order_field)
 
     statuses = Quote.objects.values_list("status", flat=True).distinct().order_by("status")
 
@@ -68,6 +108,8 @@ def quotes(request):
         "search_query": search_query,
         "statuses": statuses,
         "selected_status": status_filter,
+        "sort": sort,
+        "dir": direction,
     }
 
     return render(request, "quotes.html", context)
@@ -100,7 +142,14 @@ def create_quote(request):
             new_suffix = "0001"
         auto_generated_quote_num = f"{date_prefix}{new_suffix}"
 
-        form = CreateQuoteForm(initial={"quote_num": auto_generated_quote_num})
+        initial = {"quote_num": auto_generated_quote_num}
+        # Pre-populate customer/rep if coming from "New quote for same customer" button
+        if request.GET.get("customer_name"):
+            initial["customer_name"] = request.GET["customer_name"]
+        if request.GET.get("sales_rep"):
+            initial["sales_rep"] = request.GET["sales_rep"]
+
+        form = CreateQuoteForm(initial=initial)
 
     return render(request, "create_quote.html", {"form": form})
 
@@ -128,14 +177,14 @@ def quote_pdf(request, quote_id):
             with open(image_path, "rb") as img_file:
                 encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
 
+    pdf_filename = f"{quote.display_name}.pdf"
+
     context = {"quote": quote, "encoded_image": encoded_image}
 
     html_string = render_to_string("quote_pdf.html", context)
 
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'attachment; filename="quote_{quote.quote_num}.pdf"'
-    )
+    response["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
 
     HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(
         response, presentational_hints=True
