@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
@@ -37,10 +37,10 @@ def products(request):
     search_query = request.GET.get("search", "")
     status_filter = request.GET.get("status", "Open")
 
-    sort = request.GET.get("sort", "sku")
-    direction = request.GET.get("dir", "asc")
+    sort = request.GET.get("sort", "date_created")
+    direction = request.GET.get("dir", "desc")
 
-    allowed_sorts = {"sku", "name", "category", "status"}
+    allowed_sorts = {"sku", "name", "category", "status", "date_created"}
     if sort not in allowed_sorts:
         sort = "sku"
     if direction not in ("asc", "desc"):
@@ -124,3 +124,40 @@ def npds(request, product_id):
     )
 
     return response
+
+
+@login_required
+def bulk_update_products(request):
+    if request.method == "POST":
+        product_ids = request.POST.getlist("product_ids")
+        new_status = request.POST.get("bulk_status")
+        valid_statuses = [s[0] for s in Product.STATUS_CHOICES]
+        if new_status in valid_statuses and product_ids:
+            updated = Product.objects.filter(pk__in=product_ids).update(status=new_status)
+            from django.contrib import messages
+            messages.success(request, f"{updated} product(s) updated to {new_status}.")
+        else:
+            from django.contrib import messages
+            messages.error(request, "Please select products and a valid status.")
+    params = request.POST.get("return_params", "")
+    return redirect(f"/products/?{params}")
+
+
+@login_required
+def toggle_product_flag(request, pk):
+    import json
+    if request.method == "POST":
+        product = get_object_or_404(Product, pk=pk)
+        allowed_fields = {"price_list", "product_list", "hts_list", "npds_done", "qb_added", "published"}
+        try:
+            data = json.loads(request.body)
+            field = data.get("field")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"ok": False, "error": "Invalid request"}, status=400)
+        if field not in allowed_fields:
+            return JsonResponse({"ok": False, "error": "Invalid field"}, status=400)
+        new_val = not getattr(product, field)
+        setattr(product, field, new_val)
+        product.save(update_fields=[field])
+        return JsonResponse({"ok": True, "value": new_val})
+    return JsonResponse({"ok": False}, status=405)

@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.core.files.base import ContentFile
 from django.db import models
+from django.utils.timezone import now
 
 
 def compress_image(image_field, max_width=800, quality=72):
@@ -81,6 +82,8 @@ class Product(models.Model):
 
     # Product Status
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="Open")
+
+    date_created = models.DateTimeField(default=now)
 
     def __str__(self):
         return f"{self.sku} — {self.name}"
