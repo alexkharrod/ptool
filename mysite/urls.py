@@ -3,8 +3,18 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.http import HttpResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
+
+
+def service_worker(request):
+    import os
+    sw_path = os.path.join(settings.BASE_DIR, "static", "sw.js")
+    with open(sw_path, "r") as f:
+        content = f.read()
+    return HttpResponse(content, content_type="application/javascript")
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -19,6 +29,7 @@ urlpatterns = [
         name="login",
     ),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("sw.js", service_worker, name="service_worker"),
 ]
 
 # Serve uploaded media files in development
