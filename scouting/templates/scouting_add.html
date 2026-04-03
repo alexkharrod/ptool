@@ -132,11 +132,11 @@ cardInput.addEventListener('change', function() {
   scanStatus.style.display = 'block';
   scanBtn.disabled = true;
 
-  // Resize image to max 1200px before sending to avoid Django upload size limits
+  // Resize image to max 800px before sending to avoid Django upload size limits
   const img = new Image();
   const objectUrl = URL.createObjectURL(file);
   img.onload = function() {
-    const MAX = 1200;
+    const MAX = 800;
     let w = img.width, h = img.height;
     if (w > MAX || h > MAX) {
       if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -147,7 +147,7 @@ cardInput.addEventListener('change', function() {
     canvas.getContext('2d').drawImage(img, 0, 0, w, h);
     URL.revokeObjectURL(objectUrl);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
     const [header, b64] = dataUrl.split(',');
     const mediaType = 'image/jpeg';
 

@@ -139,6 +139,12 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# ─── Upload limits ───────────────────────────────────────────────────────────
+# Business card scans are sent as base64 JSON, using Django's in-memory parser.
+# Raise the limit to 10 MB to handle resized images comfortably.
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+
 # ─── Misc ────────────────────────────────────────────────────────────────────
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
