@@ -142,6 +142,10 @@
             Promoted to product <strong>{{ prospect.promoted_sku }}</strong>
         </div>
         {% endif %}
+        <a href="{% url 'scouting_add' %}?vendor_name={{ prospect.vendor_name|urlencode }}&vendor_contact={{ prospect.vendor_contact|urlencode }}&vendor_email={{ prospect.vendor_email|urlencode }}&vendor_website={{ prospect.vendor_website|urlencode }}&show_name={{ prospect.show_name|urlencode }}&show_date={{ prospect.show_date|date:'Y-m-d' }}"
+           class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add Another — Same Vendor
+        </a>
         <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary ms-auto">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>

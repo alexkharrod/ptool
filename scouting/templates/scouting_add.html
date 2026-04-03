@@ -31,8 +31,19 @@
 
         <!-- Vendor Info -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-secondary text-white fw-semibold">
-                <i class="bi bi-building me-1"></i>Vendor
+            <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building me-1"></i>Vendor</span>
+                <button type="button" id="scan-card-btn" class="btn btn-sm btn-light">
+                    <i class="bi bi-credit-card me-1"></i>Scan Business Card
+                </button>
+            </div>
+            <!-- Hidden camera input for business card -->
+            <input type="file" id="card-camera-input" accept="image/*" capture="environment" style="display:none;">
+            <div id="scan-status" class="px-3 pt-2" style="display:none;">
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    Reading business card…
+                </div>
             </div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
@@ -106,4 +117,55 @@
         </div>
     </form>
 </div>
+
+<script>
+const scanBtn = document.getElementById('scan-card-btn');
+const cardInput = document.getElementById('card-camera-input');
+const scanStatus = document.getElementById('scan-status');
+
+scanBtn.addEventListener('click', () => cardInput.click());
+
+cardInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+
+  scanStatus.style.display = 'block';
+  scanBtn.disabled = true;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const [header, b64] = dataUrl.split(',');
+    const mediaType = header.match(/:(.*?);/)[1];
+
+    fetch("{% url 'scan_business_card' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({ image: b64, media_type: mediaType }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        if (data.vendor_name)    document.getElementById('id_vendor_name').value    = data.vendor_name;
+        if (data.vendor_contact) document.getElementById('id_vendor_contact').value = data.vendor_contact;
+        if (data.vendor_email)   document.getElementById('id_vendor_email').value   = data.vendor_email;
+        if (data.vendor_website) document.getElementById('id_vendor_website').value = data.vendor_website;
+      } else {
+        alert('Could not read card: ' + (data.error || 'unknown error'));
+      }
+    })
+    .catch(() => alert('Network error scanning card.'))
+    .finally(() => {
+      scanStatus.style.display = 'none';
+      scanBtn.disabled = false;
+      cardInput.value = '';
+    });
+  };
+  reader.readAsDataURL(file);
+});
+</script>
+
 {% endblock %}

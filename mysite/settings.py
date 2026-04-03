@@ -55,6 +55,9 @@ INSTALLED_APPS = [
 
 # Add Cloudinary if configured
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
+
+# Anthropic API — used for business card scanning in scouting
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 if CLOUDINARY_URL:
     INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"

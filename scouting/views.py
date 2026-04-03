@@ -1,5 +1,9 @@
+import base64
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from products.forms import CreateProductForm
@@ -54,13 +58,14 @@ def scouting_add(request):
     if request.method == "POST":
         form = ProspectForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            return redirect("scouting_list")
+            prospect = form.save()
+            return redirect("scouting_detail", pk=prospect.pk)
     else:
-        # Pre-fill show name if passed via query param
+        # Pre-populate from query params (same vendor flow or business card scan)
         initial = {}
-        if request.GET.get("show"):
-            initial["show_name"] = request.GET.get("show")
+        for field in ("show_name", "show_date", "vendor_name", "vendor_contact", "vendor_email", "vendor_website"):
+            if request.GET.get(field):
+                initial[field] = request.GET[field]
         form = ProspectForm(initial=initial)
     return render(request, "scouting_add.html", {"form": form})
 
@@ -110,3 +115,67 @@ def scouting_promote(request, pk):
         "scouting_promote.html",
         {"form": form, "prospect": prospect},
     )
+
+
+@login_required
+def scan_business_card(request):
+    """Accepts a base64 image, calls Claude vision API, returns extracted vendor fields as JSON."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    try:
+        import anthropic
+        from django.conf import settings
+
+        data = json.loads(request.body)
+        image_b64 = data.get("image")
+        media_type = data.get("media_type", "image/jpeg")
+
+        if not image_b64:
+            return JsonResponse({"ok": False, "error": "No image provided"}, status=400)
+
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_b64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "This is a vendor business card. Extract the following fields and return ONLY valid JSON, "
+                                "no explanation:\n"
+                                '{"vendor_name": "", "vendor_contact": "", "vendor_email": "", "vendor_website": ""}\n'
+                                "Use empty string for any field not found on the card. "
+                                "vendor_name is the company name, vendor_contact is the person's name."
+                            ),
+                        },
+                    ],
+                }
+            ],
+        )
+
+        text = message.content[0].text.strip()
+        # Strip markdown code fences if present
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        extracted = json.loads(text)
+        return JsonResponse({"ok": True, **extracted})
+
+    except ImportError:
+        return JsonResponse({"ok": False, "error": "Anthropic package not installed"}, status=500)
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
