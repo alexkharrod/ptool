@@ -73,7 +73,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "mysite.middleware.EnforcePasswordChangeMiddleware",
+    "mysite.middleware.PtoolAccessMiddleware",
 ]
 
 ROOT_URLCONF = "mysite.urls"
