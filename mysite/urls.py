@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import include, path
 from django.views.generic import TemplateView
 
@@ -16,9 +17,17 @@ def service_worker(request):
     return HttpResponse(content, content_type="application/javascript")
 
 
+@login_required
+def home(request):
+    if getattr(request.user, "scouting_only", False):
+        return redirect("scouting_list")
+    from django.shortcuts import render
+    return render(request, "index.html")
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", login_required(TemplateView.as_view(template_name="index.html")), name="home"),
+    path("", home, name="home"),
     path("products/", include("products.urls")),
     path("quotes/", include("quotes.urls")),
     path("users/", include("users.urls")),

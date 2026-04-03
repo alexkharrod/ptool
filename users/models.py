@@ -37,6 +37,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         choices=[('Admin', 'Admin'), ('Marketing', 'Marketing'), ('User', 'User')],
         default='User'
     )
+    scouting_only = models.BooleanField(default=False, help_text="Restrict user to scouting section only")
+    must_change_password = models.BooleanField(default=False, help_text="Force password change on next login")
 
     # User Manager
     objects = CustomUserManager()

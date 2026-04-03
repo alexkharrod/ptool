@@ -45,6 +45,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
+                    {% if not user.scouting_only %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'quotes' %}">
                             <i class="bi bi-file-text me-1"></i>Quotes
@@ -55,6 +56,7 @@
                             <i class="bi bi-box-seam me-1"></i>Products
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'scouting_list' %}">
                             <i class="bi bi-binoculars me-1"></i>Scouting
