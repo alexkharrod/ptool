@@ -122,6 +122,34 @@ def scouting_promote(request, pk):
 
 
 @login_required
+def update_prospect_status(request, pk):
+    """AJAX POST — update a single prospect's status, return JSON."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+    prospect = get_object_or_404(Prospect, pk=pk)
+    data = json.loads(request.body)
+    new_status = data.get("status")
+    valid = [v for v, _ in Prospect.STATUS_CHOICES]
+    if new_status not in valid:
+        return JsonResponse({"ok": False, "error": "Invalid status"}, status=400)
+    prospect.status = new_status
+    prospect.save(update_fields=["status"])
+    return JsonResponse({"ok": True, "status": prospect.status})
+
+
+@login_required
+def bulk_update_prospects(request):
+    """Bulk status update from the scouting list form."""
+    if request.method == "POST":
+        pks = request.POST.getlist("prospect_ids")
+        new_status = request.POST.get("bulk_status")
+        valid = [v for v, _ in Prospect.STATUS_CHOICES]
+        if pks and new_status in valid:
+            Prospect.objects.filter(pk__in=pks).update(status=new_status)
+    return redirect(request.POST.get("next", "scouting_list"))
+
+
+@login_required
 def scan_business_card(request):
     """Accepts a base64 image, calls Claude vision API, returns extracted vendor fields as JSON."""
     if request.method != "POST":

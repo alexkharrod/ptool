@@ -47,70 +47,139 @@
     <!-- Results count -->
     <p class="text-muted mb-2">{{ prospects|length }} prospect{{ prospects|length|pluralize }} found</p>
 
-    <!-- Card grid -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-        {% for prospect in prospects %}
-        <div class="col">
-            <div class="card h-100 shadow-sm {% if prospect.promoted %}border-success{% endif %}">
-                {% if prospect.image %}
-                <img src="{{ prospect.image.url }}" class="card-img-top"
-                     alt="{{ prospect.product_name }}"
-                     style="height: 200px; object-fit: cover;">
-                {% else %}
-                <div class="bg-light d-flex align-items-center justify-content-center"
-                     style="height: 200px;">
-                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                </div>
-                {% endif %}
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-1">
-                        <h6 class="card-title mb-0 fw-bold">{{ prospect.product_name }}</h6>
-                        <span class="badge ms-2
-                            {% if prospect.status == 'Spotted' %}bg-secondary
-                            {% elif prospect.status == 'Sample Ordered' %}bg-info text-dark
-                            {% elif prospect.status == 'Evaluating' %}bg-warning text-dark
-                            {% elif prospect.status == 'Adding' %}bg-success
-                            {% elif prospect.status == 'Rejected' %}bg-danger
-                            {% endif %}">
-                            {{ prospect.status }}
-                        </span>
+    <!-- Bulk action bar -->
+    <form method="post" action="{% url 'bulk_update_prospects' %}" id="bulk-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+        <div id="bulk-bar" class="alert alert-secondary d-none d-flex align-items-center gap-3 mb-3 py-2">
+            <span id="bulk-count" class="fw-semibold small"></span>
+            <select name="bulk_status" class="form-select form-select-sm" style="width:auto;">
+                {% for value, label in status_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Update Selected</button>
+            <button type="button" id="deselect-all" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+        </div>
+
+        <!-- Card grid -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+            {% for prospect in prospects %}
+            <div class="col">
+                <div class="card h-100 shadow-sm {% if prospect.promoted %}border-success{% endif %}">
+                    <!-- Checkbox overlay -->
+                    <div class="position-relative">
+                        <input type="checkbox" name="prospect_ids" value="{{ prospect.pk }}"
+                               class="prospect-checkbox form-check-input position-absolute"
+                               style="top:8px; left:8px; z-index:10; width:1.3em; height:1.3em;">
+                        {% if prospect.image %}
+                        <img src="{{ prospect.image.url }}" class="card-img-top"
+                             alt="{{ prospect.product_name }}"
+                             style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center"
+                             style="height: 200px;">
+                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                        </div>
+                        {% endif %}
                     </div>
-                    <p class="text-muted small mb-1">
-                        <i class="bi bi-building me-1"></i>{{ prospect.vendor_name }}
-                    </p>
-                    <p class="text-muted small mb-2">
-                        <i class="bi bi-geo-alt me-1"></i>{{ prospect.show_name }}
-                        {% if prospect.show_date %}&nbsp;&middot;&nbsp;{{ prospect.show_date }}{% endif %}
-                    </p>
-                    {% if prospect.unit_cost %}
-                    <p class="mb-1"><strong>Cost:</strong> {{ prospect.unit_cost }}</p>
-                    {% endif %}
-                    {% if prospect.colors %}
-                    <p class="small text-muted mb-1"><i class="bi bi-palette me-1"></i>{{ prospect.colors }}</p>
-                    {% endif %}
-                    {% if prospect.promoted %}
-                    <div class="alert alert-success py-1 px-2 mb-0 mt-2 small">
-                        <i class="bi bi-check-circle me-1"></i>Promoted → {{ prospect.promoted_sku }}
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="card-title mb-0 fw-bold">{{ prospect.product_name }}</h6>
+                        </div>
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-building me-1"></i>{{ prospect.vendor_name }}
+                        </p>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-geo-alt me-1"></i>{{ prospect.show_name }}
+                            {% if prospect.show_date %}&nbsp;&middot;&nbsp;{{ prospect.show_date }}{% endif %}
+                        </p>
+                        {% if prospect.unit_cost %}
+                        <p class="mb-1"><strong>Cost:</strong> {{ prospect.unit_cost }}</p>
+                        {% endif %}
+                        {% if prospect.colors %}
+                        <p class="small text-muted mb-1"><i class="bi bi-palette me-1"></i>{{ prospect.colors }}</p>
+                        {% endif %}
+                        {% if prospect.promoted %}
+                        <div class="alert alert-success py-1 px-2 mb-0 mt-2 small">
+                            <i class="bi bi-check-circle me-1"></i>Promoted → {{ prospect.promoted_sku }}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer bg-transparent d-flex gap-2">
-                    <a href="{% url 'scouting_detail' prospect.pk %}"
-                       class="btn btn-sm btn-outline-primary flex-grow-1">View</a>
-                    <a href="{% url 'scouting_edit' prospect.pk %}"
-                       class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-pencil"></i>
-                    </a>
+                    <div class="card-footer bg-transparent">
+                        <!-- Inline status dropdown -->
+                        <select class="form-select form-select-sm status-select mb-2"
+                                data-pk="{{ prospect.pk }}"
+                                data-url="{% url 'update_prospect_status' prospect.pk %}">
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if prospect.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'scouting_detail' prospect.pk %}"
+                               class="btn btn-sm btn-outline-primary flex-grow-1">View</a>
+                            <a href="{% url 'scouting_edit' prospect.pk %}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info">
-                No prospects found. <a href="{% url 'scouting_add' %}">Add one now.</a>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No prospects found. <a href="{% url 'scouting_add' %}">Add one now.</a>
+                </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
+    </form>
 </div>
+
+<script>
+// Inline status update via AJAX
+document.querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', function() {
+        const url = this.dataset.url;
+        const status = this.value;
+        const csrfToken = '{{ csrf_token }}';
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ status }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) alert('Could not update status: ' + (data.error || 'unknown error'));
+        })
+        .catch(() => alert('Network error updating status.'));
+    });
+});
+
+// Bulk selection bar
+const checkboxes = document.querySelectorAll('.prospect-checkbox');
+const bulkBar = document.getElementById('bulk-bar');
+const bulkCount = document.getElementById('bulk-count');
+const deselectBtn = document.getElementById('deselect-all');
+
+function updateBulkBar() {
+    const checked = document.querySelectorAll('.prospect-checkbox:checked');
+    if (checked.length > 0) {
+        bulkBar.classList.remove('d-none');
+        bulkCount.textContent = checked.length + ' selected';
+    } else {
+        bulkBar.classList.add('d-none');
+    }
+}
+
+checkboxes.forEach(cb => cb.addEventListener('change', updateBulkBar));
+
+deselectBtn.addEventListener('click', () => {
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBulkBar();
+});
+</script>
+
 {% endblock %}
