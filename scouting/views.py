@@ -14,13 +14,17 @@ from .models import Prospect
 @login_required
 def scouting_list(request):
     search_query = request.GET.get("search", "")
-    status_filter = request.GET.get("status", "")
+    status_filter = request.GET.get("status", "")   # "" = default (exclude Rejected), "all" = everything
     show_filter = request.GET.get("show", "")
 
     queryset = Prospect.objects.all()
 
-    if status_filter:
+    if status_filter == "all":
+        pass  # Show everything including Rejected
+    elif status_filter:
         queryset = queryset.filter(status=status_filter)
+    else:
+        queryset = queryset.exclude(status="Rejected")
 
     if show_filter:
         queryset = queryset.filter(show_name__icontains=show_filter)
