@@ -69,6 +69,7 @@ class HtsCode(models.Model):
     description = models.CharField(max_length=200)
     duty_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     section_301_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    extra_tariff_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Extra/RT tariff rate (additional tariff beyond duty and Section 301)")
     other_tariff_notes = models.TextField(blank=True, help_text="Notes on additional tariffs, exemptions, or conditions (e.g. copper content rules)")
     category_hint = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, help_text="Suggested product category for auto-suggest")
     date_added = models.DateTimeField(default=now)
@@ -83,7 +84,7 @@ class HtsCode(models.Model):
 
     @property
     def total_percent(self):
-        return self.duty_percent + self.section_301_percent
+        return self.duty_percent + self.section_301_percent + self.extra_tariff_percent
 
 
 class Product(models.Model):

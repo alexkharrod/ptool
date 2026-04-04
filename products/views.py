@@ -159,6 +159,7 @@ def hts_add(request):
         description = request.POST.get("description", "").strip()
         duty = request.POST.get("duty_percent", "0")
         s301 = request.POST.get("section_301_percent", "0")
+        extra = request.POST.get("extra_tariff_percent", "0")
         notes = request.POST.get("other_tariff_notes", "").strip()
         category_hint = request.POST.get("category_hint", "")
         if not code or not description:
@@ -169,6 +170,7 @@ def hts_add(request):
             HtsCode.objects.create(
                 code=code, description=description,
                 duty_percent=duty, section_301_percent=s301,
+                extra_tariff_percent=extra,
                 other_tariff_notes=notes, category_hint=category_hint,
             )
             return redirect("hts_list")
@@ -188,6 +190,7 @@ def hts_edit(request, pk):
         description = request.POST.get("description", "").strip()
         duty = request.POST.get("duty_percent", "0")
         s301 = request.POST.get("section_301_percent", "0")
+        extra = request.POST.get("extra_tariff_percent", "0")
         notes = request.POST.get("other_tariff_notes", "").strip()
         category_hint = request.POST.get("category_hint", "")
         if not code or not description:
@@ -199,6 +202,7 @@ def hts_edit(request, pk):
             hts.description = description
             hts.duty_percent = duty
             hts.section_301_percent = s301
+            hts.extra_tariff_percent = extra
             hts.other_tariff_notes = notes
             hts.category_hint = category_hint
             hts.save()
