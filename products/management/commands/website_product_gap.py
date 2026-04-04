@@ -46,8 +46,8 @@ def fetch_website_products():
                 sku = sku[:-3]
             name = segments[0].replace("-", " ").title()
             if sku not in seen:
-                seen[sku] = name
-    return list(seen.items())
+                seen[sku] = (name, url)
+    return [(sku, name, url) for sku, (name, url) in seen.items()]
 
 
 class Command(BaseCommand):
@@ -82,11 +82,11 @@ class Command(BaseCommand):
         # Get all ptool SKUs
         ptool_products = list(Product.objects.values_list("sku", "name", "status"))
         ptool_skus = {row[0].upper(): (row[1], row[2]) for row in ptool_products}
-        website_skus = {sku: name for sku, name in website_products}
+        website_skus = {sku: (name, url) for sku, name, url in website_products}
 
         # Categorise
-        website_only = [(sku, name) for sku, name in website_products if sku not in ptool_skus]
-        in_both = [(sku, name) for sku, name in website_products if sku in ptool_skus]
+        website_only = [(sku, name, url) for sku, name, url in website_products if sku not in ptool_skus]
+        in_both = [(sku, name, url) for sku, name, url in website_products if sku in ptool_skus]
         ptool_only = [(sku, ptool_skus[sku][0], ptool_skus[sku][1]) for sku in ptool_skus if sku not in website_skus]
 
         self.stdout.write(f"  On website only (not in ptool): {len(website_only)}")
@@ -142,23 +142,23 @@ class Command(BaseCommand):
         # Sheet 1: Website only (not in ptool) — these are the legacy products
         ws1 = wb.active
         website_only_rows = [
-            (sku, name, "", "", "", "")
-            for sku, name in website_only
+            (sku, name, url, "", "", "", "")
+            for sku, name, url in website_only
         ]
         write_sheet(
             ws1,
             "Not In Ptool",
-            ["SKU", "Product Name (Website)", "Vendor", "Vendor SKU", "MOQ", "Notes"],
+            ["SKU", "Product Name (Website)", "Website URL", "Vendor", "Vendor SKU", "MOQ", "Notes"],
             website_only_rows,
             header_fill_red,
         )
 
         # Sheet 2: In both
-        in_both_rows = [(sku, website_skus[sku], ptool_skus[sku][0], ptool_skus[sku][1]) for sku in [s for s, _ in in_both]]
+        in_both_rows = [(sku, website_skus[sku][0], website_skus[sku][1], ptool_skus[sku][0], ptool_skus[sku][1]) for sku in [s for s, _, __ in in_both]]
         write_sheet(
             wb.create_sheet(),
             "In Both",
-            ["SKU", "Website Name", "Ptool Name", "Ptool Status"],
+            ["SKU", "Website Name", "Website URL", "Ptool Name", "Ptool Status"],
             in_both_rows,
             header_fill_green,
         )
