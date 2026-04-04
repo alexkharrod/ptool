@@ -4,13 +4,14 @@ import os
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import models
 from django.db.models import Q
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
 from .forms import CreateProductForm
-from .models import Product
+from .models import Product, Vendor
 
 
 @login_required
@@ -142,6 +143,54 @@ def bulk_update_products(request):
             messages.error(request, "Please select products and a valid status.")
     params = request.POST.get("return_params", "")
     return redirect(f"/products/?{params}")
+
+
+@login_required
+def vendor_list(request):
+    vendors = Vendor.objects.annotate(product_count=models.Count("products")).order_by("name")
+    return render(request, "vendors/vendor_list.html", {"vendors": vendors})
+
+
+@login_required
+def vendor_add(request):
+    error = None
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        country = request.POST.get("country", "CN")
+        if not name:
+            error = "Vendor name is required."
+        elif Vendor.objects.filter(name__iexact=name).exists():
+            error = f'A vendor named "{name}" already exists.'
+        else:
+            Vendor.objects.create(name=name, country=country)
+            return redirect("vendor_list")
+    return render(request, "vendors/vendor_add.html", {
+        "error": error,
+        "country_choices": Vendor.COUNTRY_CHOICES,
+    })
+
+
+@login_required
+def vendor_edit(request, pk):
+    vendor = get_object_or_404(Vendor, pk=pk)
+    error = None
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        country = request.POST.get("country", "CN")
+        if not name:
+            error = "Vendor name is required."
+        elif Vendor.objects.filter(name__iexact=name).exclude(pk=pk).exists():
+            error = f'A vendor named "{name}" already exists.'
+        else:
+            vendor.name = name
+            vendor.country = country
+            vendor.save()
+            return redirect("vendor_list")
+    return render(request, "vendors/vendor_edit.html", {
+        "vendor": vendor,
+        "error": error,
+        "country_choices": Vendor.COUNTRY_CHOICES,
+    })
 
 
 @login_required

@@ -31,6 +31,27 @@ def compress_image(image_field, max_width=800, quality=72):
 
 
 # Create your models here.
+class Vendor(models.Model):
+    COUNTRY_CHOICES = [
+        ("CN", "China"),
+        ("US", "United States"),
+        ("TW", "Taiwan"),
+        ("VN", "Vietnam"),
+        ("IN", "India"),
+        ("OTHER", "Other"),
+    ]
+
+    name = models.CharField(max_length=100, unique=True)
+    country = models.CharField(max_length=10, choices=COUNTRY_CHOICES, default="CN")
+    date_added = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     STATUS_CHOICES = [
         ("Open", "Open"),
@@ -50,7 +71,10 @@ class Product(models.Model):
     description = models.TextField(max_length=500)
 
     # Vendor info:
-    vendor = models.CharField(max_length=50)
+    vendor = models.CharField(max_length=50)  # legacy text field — kept for backwards compat
+    vendor_ref = models.ForeignKey(
+        "Vendor", null=True, blank=True, on_delete=models.SET_NULL, related_name="products"
+    )
     vendor_sku = models.CharField(max_length=50)
 
     # Master Carton info:

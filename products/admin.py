@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Product
+from .models import Product, Vendor
 
 # Register your models here.
 # admin.site.register(Product)
@@ -24,3 +24,10 @@ class ProductAdmin(admin.ModelAdmin):
 
 # register the site with custom admin
 admin.site.register(Product, ProductAdmin)
+
+
+@admin.register(Vendor)
+class VendorAdmin(admin.ModelAdmin):
+    list_display = ("name", "country", "date_added")
+    search_fields = ("name",)
+    list_filter = ("country",)
