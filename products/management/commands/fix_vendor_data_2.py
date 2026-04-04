@@ -37,6 +37,8 @@ SKU_OVERRIDES = {
     "RT13":  "Fulfillment Tech",
     "RT14":  "Fulfillment Tech",
     "RT15":  "Fulfillment Tech",
+    "RT18":  "Fulfillment Tech",
+    "RT25":  "Fulfillment Tech",
     "RT28":  "Fulfillment Tech",
     "RT29":  "Fulfillment Tech",
     # Bluetees
@@ -59,11 +61,7 @@ SKU_OVERRIDES = {
     "WC61":  "Caibo",
 }
 
-# SKUs that still need manual review (left in DB unchanged)
-NEEDS_REVIEW = {
-    "RT18": "Amazon / D&H",
-    "RT25": "normal",
-}
+NEEDS_REVIEW = {}
 
 
 class Command(BaseCommand):
