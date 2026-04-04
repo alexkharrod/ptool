@@ -8,9 +8,11 @@ Run with --dry-run to preview changes without saving.
 """
 
 from django.core.management.base import BaseCommand
-from products.models import Product
+from products.models import Category, Product
 
-VALID_CODES = {c[0] for c in Product.CATEGORY_CHOICES}
+
+def get_valid_codes():
+    return set(Category.objects.values_list("code", flat=True))
 
 # Map old free-text values → new code (case-insensitive key)
 TEXT_MAP = {
@@ -90,6 +92,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+        valid_codes = get_valid_codes()
         updated = 0
         already_ok = 0
         unmatched = []
@@ -98,7 +101,7 @@ class Command(BaseCommand):
             cat = (product.category or "").strip()
 
             # Already a valid code — nothing to do
-            if cat in VALID_CODES:
+            if cat in valid_codes:
                 already_ok += 1
                 continue
 
@@ -108,7 +111,7 @@ class Command(BaseCommand):
             # Fall back to SKU prefix (first 2 uppercase letters)
             if not new_code:
                 prefix = "".join(c for c in product.sku if c.isalpha())[:2].upper()
-                if prefix in VALID_CODES:
+                if prefix in valid_codes:
                     new_code = prefix
 
             if new_code:
