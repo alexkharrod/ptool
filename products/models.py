@@ -108,6 +108,7 @@ class Product(models.Model):
         ("JB", "Power Banks"),
         ("LY", "Lanyards"),
         ("MA", "Mobile Accessories"),
+        ("MG", "Massage Guns"),
         ("Misc", "Miscellaneous"),
         ("NFC", "Near Field / RFID"),
         ("OA", "Office Accessories"),
@@ -126,7 +127,7 @@ class Product(models.Model):
 
     sku = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150)
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, blank=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True)
     image_url = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="products/", null=True, blank=True)
     moq = models.IntegerField()

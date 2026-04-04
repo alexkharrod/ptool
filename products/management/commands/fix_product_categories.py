@@ -39,6 +39,8 @@ TEXT_MAP = {
     "lanyard": "LY",
     "mobile accessories": "MA",
     "mobile": "MA",
+    "is": "MA",
+    "ph": "MA",
     "miscellaneous": "Misc",
     "misc": "Misc",
     "near field / rfid": "NFC",
@@ -73,6 +75,10 @@ TEXT_MAP = {
     "office tech": "OA",
     "personal tech": "FT",
     "other": "Misc",
+    "same as pk313": "Misc",
+    "mg": "MG",
+    "massage guns": "MG",
+    "massage gun": "MG",
 }
 
 

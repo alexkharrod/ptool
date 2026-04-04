@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name='category',
             field=models.CharField(
                 blank=True,
-                max_length=10,
+                max_length=50,
                 choices=[
                     ('AC', 'AC Adapters'),
                     ('AT', 'Air Trackers'),
@@ -28,6 +28,7 @@ class Migration(migrations.Migration):
                     ('JB', 'Power Banks'),
                     ('LY', 'Lanyards'),
                     ('MA', 'Mobile Accessories'),
+                    ('MG', 'Massage Guns'),
                     ('Misc', 'Miscellaneous'),
                     ('NFC', 'Near Field / RFID'),
                     ('OA', 'Office Accessories'),
