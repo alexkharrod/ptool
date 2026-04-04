@@ -1,9 +1,20 @@
 from django import forms
 
-from .models import Product  # Import the Product model
+from .models import Category, Product
+
+
+def category_choices():
+    choices = [("", "— Select Category —")]
+    choices += [(c.code, f"{c.code} – {c.description}") for c in Category.objects.all()]
+    return choices
 
 
 class CreateProductForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].widget = forms.Select(choices=category_choices())
+        self.fields["category"].required = False
+
     class Meta:
         model = Product
         fields = [

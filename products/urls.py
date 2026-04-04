@@ -20,4 +20,8 @@ urlpatterns = [
     path("vendors/", views.vendor_list, name="vendor_list"),
     path("vendors/add/", views.vendor_add, name="vendor_add"),
     path("vendors/<int:pk>/edit/", views.vendor_edit, name="vendor_edit"),
+    # Category management
+    path("categories/", views.category_list, name="category_list"),
+    path("categories/add/", views.category_add, name="category_add"),
+    path("categories/<int:pk>/edit/", views.category_edit, name="category_edit"),
 ]

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Categories{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Categories</h2>
+    <a href="{% url 'category_add' %}" class="btn btn-success">
+      <i class="bi bi-plus-lg me-1"></i>Add Category
+    </a>
+  </div>
+
+  <table class="table table-hover table-bordered align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Code</th>
+        <th>Description</th>
+        <th class="text-center" style="width:100px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td class="fw-bold font-monospace">{{ cat.code }}</td>
+        <td>{{ cat.description }}</td>
+        <td class="text-center">
+          <a href="{% url 'category_edit' cat.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="text-muted text-center py-4">No categories yet. Add your first one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

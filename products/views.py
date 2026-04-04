@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
 from .forms import CreateProductForm
-from .models import Product, Vendor, HtsCode
+from .models import Category, Product, Vendor, HtsCode
 
 
 @login_required
@@ -297,3 +297,46 @@ def toggle_product_flag(request, pk):
         product.save(update_fields=[field])
         return JsonResponse({"ok": True, "value": new_val})
     return JsonResponse({"ok": False}, status=405)
+
+
+# ── Category management ────────────────────────────────────────────────────────
+
+@login_required
+def category_list(request):
+    categories = Category.objects.all()
+    return render(request, "categories/category_list.html", {"categories": categories})
+
+
+@login_required
+def category_add(request):
+    error = None
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip().upper()
+        description = request.POST.get("description", "").strip()
+        if not code or not description:
+            error = "Code and description are required."
+        elif Category.objects.filter(code__iexact=code).exists():
+            error = f'Category code "{code}" already exists.'
+        else:
+            Category.objects.create(code=code, description=description)
+            return redirect("category_list")
+    return render(request, "categories/category_add.html", {"error": error, "post": request.POST})
+
+
+@login_required
+def category_edit(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    error = None
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip().upper()
+        description = request.POST.get("description", "").strip()
+        if not code or not description:
+            error = "Code and description are required."
+        elif Category.objects.filter(code__iexact=code).exclude(pk=pk).exists():
+            error = f'Category code "{code}" already exists.'
+        else:
+            category.code = code
+            category.description = description
+            category.save()
+            return redirect("category_list")
+    return render(request, "categories/category_edit.html", {"category": category, "error": error})

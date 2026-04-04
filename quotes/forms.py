@@ -1,9 +1,21 @@
 from django import forms
 
+from products.models import Category
 from .models import Quote
 
 
+def category_choices():
+    choices = [("", "— Select Category —")]
+    choices += [(c.code, f"{c.code} – {c.description}") for c in Category.objects.all()]
+    return choices
+
+
 class CreateQuoteForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].widget = forms.Select(choices=category_choices())
+        self.fields["category"].required = False
+
     class Meta:
         model = Quote
         fields = [
@@ -121,59 +133,6 @@ class CreateQuoteForm(forms.ModelForm):
             "ocean_transit_time": "Ocean Transit Time",
         }
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.initial.update(
-                {
-                    "air_transit_time": "7-10 days",
-                    "ocean_transit_time": "~6 weeks",
-                    "quote_num": "Q12345",  # Default quote number
-                    "name": "Default Product Name",
-                    "vendor": "Default Vendor",
-                    "vendor_part_number": "12345",
-                    "category": "Default Category",
-                    "image_url": "https://example.com/image.jpg",
-                    "moq": 100,
-                    "package": "Default Package",
-                    "production_time": "7 days",
-                    "description": "Default description for the product.",
-                    "air_freight": 0.0,
-                    "ocean_freight": 0.0,
-                    "duty_percent": 10.0,
-                    "tariff_percent": 5.0,
-                    "imprint_cost": 50.0,
-                    "customer_name": "Default Customer",
-                    "sales_rep": "Default Sales Rep",
-                    "carton_qty": 10,
-                    "carton_weight": 1.5,
-                    "carton_width": 30.0,
-                    "carton_length": 40.0,
-                    "carton_height": 50.0,
-                    "imprint_location": "Default Imprint Location",
-                    "imprint_method": "Default Imprint Method",
-                    "imprint_dimension": "10x10 cm",
-                    "quantity1": 100,
-                    "quantity2": 200,
-                    "quantity3": 300,
-                    "quantity4": 400,
-                    "quantity5": 500,
-                    "qty1_cost": 10.0,
-                    "qty2_cost": 9.5,
-                    "qty3_cost": 9.0,
-                    "qty4_cost": 8.5,
-                    "qty5_cost": 8.0,
-                    "qty1_price_air": 20.0, # Default example value
-                    "qty2_price_air": 19.5, # Default example value
-                    "qty3_price_air": 19.0,
-                    "qty4_price_air": 18.5,
-                    "qty5_price_air": 18.0,
-                    "qty1_price_ocean": 0.0,
-                    "qty2_price_ocean": 0.0,
-                    "qty3_price_ocean": 0.0,
-                    "qty4_price_ocean": 0.0,
-                    "qty5_price_ocean": 0.0,
-                }
-            )
 
     def clean(self):
         cleaned_data = super().clean()

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Add Category{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+  <h2 class="mb-4">Add Category</h2>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Code</label>
+        <input type="text" name="code" class="form-control font-monospace text-uppercase" autofocus required
+               maxlength="10" placeholder="e.g. SP" value="{{ post.code|default:'' }}">
+        <div class="form-text">Short abbreviation (2–4 letters)</div>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label fw-bold">Description</label>
+        <input type="text" name="description" class="form-control" required
+               maxlength="100" placeholder="e.g. Speakers" value="{{ post.description|default:'' }}">
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-success">Save Category</button>
+      <a href="{% url 'category_list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

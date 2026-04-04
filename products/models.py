@@ -31,6 +31,18 @@ def compress_image(image_field, max_width=800, quality=72):
 
 
 # Create your models here.
+class Category(models.Model):
+    code = models.CharField(max_length=10, unique=True)
+    description = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name_plural = "Categories"
+
+    def __str__(self):
+        return f"{self.code} – {self.description}"
+
+
 class Vendor(models.Model):
     COUNTRY_CHOICES = [
         ("CN", "China"),
@@ -94,40 +106,9 @@ class Product(models.Model):
         ("Canceled", "Canceled"),
     ]
 
-    CATEGORY_CHOICES = [
-        ("AC", "AC – AC Adapters"),
-        ("AT", "AT – Air Trackers"),
-        ("CB", "CB – Cables"),
-        ("CM", "CM – Custom Molds"),
-        ("DF", "DF – Digital Frames"),
-        ("DW", "DW – Drinkware"),
-        ("EB", "EB – Earbuds / Headphones"),
-        ("FN", "FN – Fans"),
-        ("FT", "FT – Fitness"),
-        ("HW", "HW – Hand Warmers"),
-        ("JB", "JB – Power Banks"),
-        ("LY", "LY – Lanyards"),
-        ("MA", "MA – Mobile Accessories"),
-        ("MG", "MG – Massage Guns"),
-        ("Misc", "Misc – Miscellaneous"),
-        ("NFC", "NFC – Near Field / RFID"),
-        ("OA", "OA – Office Accessories"),
-        ("RT", "RT – Retail"),
-        ("SC", "SC – Screen Cleaners"),
-        ("SL", "SL – Selfie Lights"),
-        ("SP", "SP – Speakers"),
-        ("ST", "ST – Straws"),
-        ("TA", "TA – Travel Adapters"),
-        ("TL", "TL – Tools"),
-        ("TT", "TT – Fidget Games"),
-        ("UD", "UD – USB Drives"),
-        ("UH", "UH – USB Hubs"),
-        ("WC", "WC – Wireless Chargers"),
-    ]
-
     sku = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True)
+    category = models.CharField(max_length=50, blank=True)
     image_url = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="products/", null=True, blank=True)
     moq = models.IntegerField()
