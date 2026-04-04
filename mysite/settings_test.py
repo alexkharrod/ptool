@@ -22,3 +22,6 @@ LOGGING = {}
 
 # Cloudinary — skip real uploads during tests
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
+# Bypass WhiteNoise manifest storage — no collectstatic needed in tests
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
