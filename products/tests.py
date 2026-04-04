@@ -29,8 +29,8 @@ class VendorModelTests(TestCase):
 class VendorViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="alex", password="testpass")
-        self.client.login(username="alex", password="testpass")
+        self.user = User.objects.create_user(email="alex@test.com", password="testpass")
+        self.client.login(email="alex@test.com", password="testpass")
 
     def test_vendor_list_renders(self):
         Vendor.objects.create(name="RSH")
@@ -41,7 +41,7 @@ class VendorViewTests(TestCase):
     def test_vendor_list_requires_login(self):
         self.client.logout()
         response = self.client.get(reverse("vendor_list"))
-        self.assertRedirects(response, f"/login/?next={reverse('vendor_list')}")
+        self.assertRedirects(response, f"/login/?next={reverse('vendor_list')}", fetch_redirect_response=False)
 
     def test_add_vendor(self):
         response = self.client.post(reverse("vendor_add"), {
@@ -110,30 +110,30 @@ class VendorViewTests(TestCase):
 class AccessControlTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.regular_user = User.objects.create_user(username="alex", password="pass")
+        self.regular_user = User.objects.create_user(email="alex@test.com", password="pass")
         self.scouting_user = User.objects.create_user(
-            username="china", password="pass", scouting_only=True
+            email="china@test.com", password="pass", scouting_only=True
         )
 
     def test_scouting_only_blocked_from_products(self):
-        self.client.login(username="china", password="pass")
+        self.client.login(email="china@test.com", password="pass")
         response = self.client.get("/products/")
-        self.assertRedirects(response, reverse("scouting_list"))
+        self.assertRedirects(response, reverse("scouting_list"), fetch_redirect_response=False)
 
     def test_scouting_only_blocked_from_quotes(self):
-        self.client.login(username="china", password="pass")
+        self.client.login(email="china@test.com", password="pass")
         response = self.client.get("/quotes/")
-        self.assertRedirects(response, reverse("scouting_list"))
+        self.assertRedirects(response, reverse("scouting_list"), fetch_redirect_response=False)
 
     def test_regular_user_can_access_products(self):
-        self.client.login(username="alex", password="pass")
+        self.client.login(email="alex@test.com", password="pass")
         response = self.client.get("/products/")
         self.assertEqual(response.status_code, 200)
 
     def test_must_change_password_redirects(self):
         User.objects.create_user(
-            username="newuser", password="pass", must_change_password=True
+            email="newuser@test.com", password="pass", must_change_password=True
         )
-        self.client.login(username="newuser", password="pass")
+        self.client.login(email="newuser@test.com", password="pass")
         response = self.client.get("/products/")
-        self.assertRedirects(response, reverse("change_password"))
+        self.assertRedirects(response, reverse("change_password"), fetch_redirect_response=False)
