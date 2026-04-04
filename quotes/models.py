@@ -33,11 +33,42 @@ def compress_image(image_field, max_width=800, quality=72):
 
 # Create your models here.
 class Quote(models.Model):
+    CATEGORY_CHOICES = [
+        ("AC", "AC – AC Adapters"),
+        ("AT", "AT – Air Trackers"),
+        ("CB", "CB – Cables"),
+        ("CM", "CM – Custom Molds"),
+        ("DF", "DF – Digital Frames"),
+        ("DW", "DW – Drinkware"),
+        ("EB", "EB – Earbuds / Headphones"),
+        ("FN", "FN – Fans"),
+        ("FT", "FT – Fitness"),
+        ("HW", "HW – Hand Warmers"),
+        ("JB", "JB – Power Banks"),
+        ("LY", "LY – Lanyards"),
+        ("MA", "MA – Mobile Accessories"),
+        ("MG", "MG – Massage Guns"),
+        ("Misc", "Misc – Miscellaneous"),
+        ("NFC", "NFC – Near Field / RFID"),
+        ("OA", "OA – Office Accessories"),
+        ("RT", "RT – Retail"),
+        ("SC", "SC – Screen Cleaners"),
+        ("SL", "SL – Selfie Lights"),
+        ("SP", "SP – Speakers"),
+        ("ST", "ST – Straws"),
+        ("TA", "TA – Travel Adapters"),
+        ("TL", "TL – Tools"),
+        ("TT", "TT – Fidget Games"),
+        ("UD", "UD – USB Drives"),
+        ("UH", "UH – USB Hubs"),
+        ("WC", "WC – Wireless Chargers"),
+    ]
+
     quote_num = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150, default="Product Name")
     vendor = models.CharField(max_length=50, default="Vendor Name")
     vendor_part_number = models.CharField(max_length=50, default="Vendor Part Number")
-    category = models.CharField(max_length=50, default="Category")
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, default="")
     image_url = models.CharField(
         max_length=2083, default="", blank=True
     )
