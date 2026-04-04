@@ -58,3 +58,4 @@ webencodings==0.5.1
 zope.interface==7.2
 zopfli==0.2.3.post1
 anthropic>=0.40.0
+openpyxl>=3.1.0

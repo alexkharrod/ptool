@@ -10,6 +10,7 @@ Usage:
     python manage.py website_product_gap --output ~/Desktop/product_gap.xlsx
 """
 
+import ssl
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -25,7 +26,10 @@ SITEMAP_URL = "https://www.logoincluded.com/sitemap-3.xml"
 def fetch_website_products():
     """Parse logoincluded.com sitemap and return list of (sku, name) tuples."""
     req = urllib.request.Request(SITEMAP_URL, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
         xml_data = resp.read()
 
     root = ET.fromstring(xml_data)
