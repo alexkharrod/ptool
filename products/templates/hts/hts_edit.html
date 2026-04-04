@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+  <h2 class="mb-4">Edit HTS Code</h2>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label fw-bold">HTS Code</label>
+        <input type="text" name="code" class="form-control font-monospace" required
+               value="{{ post.code|default:hts.code }}">
+      </div>
+      <div class="col-md-7">
+        <label class="form-label fw-bold">Description</label>
+        <input type="text" name="description" class="form-control" required
+               value="{{ post.description|default:hts.description }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Duty %</label>
+        <div class="input-group">
+          <input type="number" name="duty_percent" class="form-control" step="0.01" min="0"
+                 value="{{ post.duty_percent|default:hts.duty_percent }}">
+          <span class="input-group-text">%</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Section 301 %</label>
+        <div class="input-group">
+          <input type="number" name="section_301_percent" class="form-control" step="0.01" min="0"
+                 value="{{ post.section_301_percent|default:hts.section_301_percent }}">
+          <span class="input-group-text">%</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Category Hint</label>
+        <select name="category_hint" class="form-select">
+          <option value="">— None —</option>
+          {% for code, label in category_choices %}
+          <option value="{{ code }}"
+            {% if post.category_hint == code %}selected
+            {% elif not post and hts.category_hint == code %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-bold">Notes <span class="text-muted fw-normal">(tariff conditions, exemptions, copper content rules, etc.)</span></label>
+        <textarea name="other_tariff_notes" class="form-control" rows="3">{{ post.other_tariff_notes|default:hts.other_tariff_notes }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="{% url 'hts_list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+
+  {% if hts.product_count %}
+  <div class="mt-4 text-muted small">
+    Used by {{ hts.product_count }} product{{ hts.product_count|pluralize }}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

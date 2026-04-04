@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
 from .forms import CreateProductForm
-from .models import Product, Vendor
+from .models import Product, Vendor, HtsCode
 
 
 @login_required
@@ -143,6 +143,88 @@ def bulk_update_products(request):
             messages.error(request, "Please select products and a valid status.")
     params = request.POST.get("return_params", "")
     return redirect(f"/products/?{params}")
+
+
+@login_required
+def hts_list(request):
+    codes = HtsCode.objects.annotate(product_count=models.Count("products")).order_by("code")
+    return render(request, "hts/hts_list.html", {"codes": codes})
+
+
+@login_required
+def hts_add(request):
+    error = None
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip()
+        description = request.POST.get("description", "").strip()
+        duty = request.POST.get("duty_percent", "0")
+        s301 = request.POST.get("section_301_percent", "0")
+        notes = request.POST.get("other_tariff_notes", "").strip()
+        category_hint = request.POST.get("category_hint", "")
+        if not code or not description:
+            error = "HTS code and description are required."
+        elif HtsCode.objects.filter(code=code).exists():
+            error = f'HTS code "{code}" already exists.'
+        else:
+            HtsCode.objects.create(
+                code=code, description=description,
+                duty_percent=duty, section_301_percent=s301,
+                other_tariff_notes=notes, category_hint=category_hint,
+            )
+            return redirect("hts_list")
+    return render(request, "hts/hts_add.html", {
+        "error": error,
+        "category_choices": HtsCode.CATEGORY_CHOICES,
+        "post": request.POST,
+    })
+
+
+@login_required
+def hts_edit(request, pk):
+    hts = get_object_or_404(HtsCode, pk=pk)
+    error = None
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip()
+        description = request.POST.get("description", "").strip()
+        duty = request.POST.get("duty_percent", "0")
+        s301 = request.POST.get("section_301_percent", "0")
+        notes = request.POST.get("other_tariff_notes", "").strip()
+        category_hint = request.POST.get("category_hint", "")
+        if not code or not description:
+            error = "HTS code and description are required."
+        elif HtsCode.objects.filter(code=code).exclude(pk=pk).exists():
+            error = f'HTS code "{code}" already exists.'
+        else:
+            hts.code = code
+            hts.description = description
+            hts.duty_percent = duty
+            hts.section_301_percent = s301
+            hts.other_tariff_notes = notes
+            hts.category_hint = category_hint
+            hts.save()
+            return redirect("hts_list")
+    return render(request, "hts/hts_edit.html", {
+        "hts": hts,
+        "error": error,
+        "category_choices": HtsCode.CATEGORY_CHOICES,
+        "post": request.POST,
+    })
+
+
+@login_required
+def hts_suggest(request):
+    """AJAX endpoint: returns HTS codes matching a category or search term."""
+    q = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    qs = HtsCode.objects.all()
+    if category:
+        qs = qs.filter(category_hint=category)
+    if q:
+        qs = qs.filter(
+            models.Q(code__icontains=q) | models.Q(description__icontains=q)
+        )
+    results = list(qs.values("id", "code", "description", "duty_percent", "section_301_percent", "other_tariff_notes")[:20])
+    return JsonResponse({"results": results})
 
 
 @login_required

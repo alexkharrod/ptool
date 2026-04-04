@@ -11,6 +11,11 @@ urlpatterns = [
     path("view/<int:pk>/", views.view_product, name="view_product"),
     path("npds/<int:product_id>/pdf/", views.npds, name="npds"),
     path("toggle-flag/<int:pk>/", views.toggle_product_flag, name="toggle_product_flag"),
+    # HTS code management
+    path("hts/", views.hts_list, name="hts_list"),
+    path("hts/add/", views.hts_add, name="hts_add"),
+    path("hts/<int:pk>/edit/", views.hts_edit, name="hts_edit"),
+    path("hts/suggest/", views.hts_suggest, name="hts_suggest"),
     # Vendor management
     path("vendors/", views.vendor_list, name="vendor_list"),
     path("vendors/add/", views.vendor_add, name="vendor_add"),

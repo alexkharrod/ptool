@@ -52,6 +52,40 @@ class Vendor(models.Model):
         return self.name
 
 
+class HtsCode(models.Model):
+    CATEGORY_CHOICES = [
+        ("Audio Tech", "Audio Tech"),
+        ("Charging Tech", "Charging Tech"),
+        ("Drinkware", "Drinkware"),
+        ("Lanyards", "Lanyards"),
+        ("Mobile Tech", "Mobile Tech"),
+        ("Office Tech", "Office Tech"),
+        ("Personal Tech", "Personal Tech"),
+        ("USB Drives", "USB Drives"),
+        ("Other", "Other"),
+    ]
+
+    code = models.CharField(max_length=20, unique=True)
+    description = models.CharField(max_length=200)
+    duty_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    section_301_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    other_tariff_notes = models.TextField(blank=True, help_text="Notes on additional tariffs, exemptions, or conditions (e.g. copper content rules)")
+    category_hint = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, help_text="Suggested product category for auto-suggest")
+    date_added = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "HTS Code"
+        verbose_name_plural = "HTS Codes"
+
+    def __str__(self):
+        return f"{self.code} — {self.description}"
+
+    @property
+    def total_percent(self):
+        return self.duty_percent + self.section_301_percent
+
+
 class Product(models.Model):
     STATUS_CHOICES = [
         ("Open", "Open"),
@@ -88,6 +122,11 @@ class Product(models.Model):
     imprint_location = models.CharField(max_length=50)
     imprint_method = models.CharField(max_length=50)
     imprint_dimension = models.CharField(max_length=50)
+
+    # HTS code
+    hts_code = models.ForeignKey(
+        "HtsCode", null=True, blank=True, on_delete=models.SET_NULL, related_name="products"
+    )
 
     # Freight Costs
     air_freight = models.DecimalField(max_digits=10, decimal_places=2)

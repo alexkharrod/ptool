@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>HTS Codes</h2>
+    <a href="{% url 'hts_add' %}" class="btn btn-success">+ Add HTS Code</a>
+  </div>
+
+  <table class="table table-striped table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>HTS Code</th>
+        <th>Description</th>
+        <th class="text-center">Duty %</th>
+        <th class="text-center">Section 301 %</th>
+        <th class="text-center">Total %</th>
+        <th>Category Hint</th>
+        <th class="text-center">Products</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for hts in codes %}
+      <tr>
+        <td><code>{{ hts.code }}</code></td>
+        <td>
+          {{ hts.description }}
+          {% if hts.other_tariff_notes %}
+          <i class="bi bi-info-circle text-muted ms-1" title="{{ hts.other_tariff_notes }}" data-bs-toggle="tooltip"></i>
+          {% endif %}
+        </td>
+        <td class="text-center">{{ hts.duty_percent }}%</td>
+        <td class="text-center">{{ hts.section_301_percent }}%</td>
+        <td class="text-center fw-bold">{{ hts.total_percent }}%</td>
+        <td>{{ hts.category_hint|default:"—" }}</td>
+        <td class="text-center">
+          {% if hts.product_count %}
+            <span class="badge bg-secondary">{{ hts.product_count }}</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a href="{% url 'hts_edit' hts.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-muted text-center py-4">No HTS codes yet. Add your first one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // Enable tooltips for tariff notes
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+  });
+</script>
+{% endblock %}

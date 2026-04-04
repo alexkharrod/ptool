@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Product, Vendor
+from .models import Product, Vendor, HtsCode
 
 # Register your models here.
 # admin.site.register(Product)
@@ -24,6 +24,13 @@ class ProductAdmin(admin.ModelAdmin):
 
 # register the site with custom admin
 admin.site.register(Product, ProductAdmin)
+
+
+@admin.register(HtsCode)
+class HtsCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "description", "duty_percent", "section_301_percent", "category_hint")
+    search_fields = ("code", "description")
+    list_filter = ("category_hint",)
 
 
 @admin.register(Vendor)
