@@ -8,6 +8,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.timezone import now
 
+from products.models import HtsCode, Vendor
+
 
 def compress_image(image_field, max_width=800, quality=72):
     """Resize and compress an image in-place. Converts to JPEG."""
@@ -38,6 +40,8 @@ class Quote(models.Model):
     vendor = models.CharField(max_length=50, default="Vendor Name")
     vendor_part_number = models.CharField(max_length=50, default="Vendor Part Number")
     category = models.CharField(max_length=50, blank=True, default="")
+    hts_code = models.ForeignKey(HtsCode, null=True, blank=True, on_delete=models.SET_NULL)
+    vendor_ref = models.ForeignKey(Vendor, null=True, blank=True, on_delete=models.SET_NULL)
     image_url = models.CharField(
         max_length=2083, default="", blank=True
     )

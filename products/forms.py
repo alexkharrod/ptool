@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Category, Product
+from .models import Category, HtsCode, Product, Vendor
 
 
 def category_choices():
@@ -9,11 +9,29 @@ def category_choices():
     return choices
 
 
+def hts_choices():
+    choices = [("", "— Select HTS Code —")]
+    choices += [(h.pk, f"{h.code} — {h.description}") for h in HtsCode.objects.all()]
+    return choices
+
+
+def vendor_choices():
+    choices = [("", "— Select Vendor —")]
+    choices += [(v.pk, v.name) for v in Vendor.objects.all()]
+    return choices
+
+
 class CreateProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].widget = forms.Select(choices=category_choices())
         self.fields["category"].required = False
+        self.fields["hts_code"].widget = forms.Select(choices=hts_choices())
+        self.fields["hts_code"].required = False
+        self.fields["hts_code"].label = "HTS Code"
+        self.fields["vendor_ref"].widget = forms.Select(choices=vendor_choices())
+        self.fields["vendor_ref"].required = False
+        self.fields["vendor_ref"].label = "Vendor"
 
     class Meta:
         model = Product
@@ -21,6 +39,8 @@ class CreateProductForm(forms.ModelForm):
             "sku",
             "name",
             "category",
+            "hts_code",
+            "vendor_ref",
             "image",
             "moq",
             "package",

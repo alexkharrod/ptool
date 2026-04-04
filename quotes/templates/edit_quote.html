@@ -41,13 +41,24 @@
         <!-- Section 2: Product Information -->
         <h4>Product Information</h4>
         <div class="row g-3 mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label for="id_category" class="form-label">Product Category</label>
                 {{ form.category|add_class:"form-control" }}
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <label class="form-label">Vendor</label>
+                {{ form.vendor_ref|add_class:"form-select" }}
+            </div>
+            <div class="col-md-4">
                 <label for="id_image" class="form-label">Product Image</label>
                 {{ form.image }}
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-8">
+                <label class="form-label fw-bold">HTS Code</label>
+                {{ form.hts_code|add_class:"form-select" }}
+                <div class="form-text text-muted" id="hts-summary"></div>
             </div>
         </div>
         <div class="row g-3 mb-3">
@@ -284,4 +295,34 @@
         </div>
     </form>
 </div>
+
+<script>
+const htsData = {{ hts_data|safe }};
+const htsSelect = document.getElementById('id_hts_code');
+const htsSummary = document.getElementById('hts-summary');
+
+function updateSummary() {
+    const pk = htsSelect.value;
+    if (pk && htsData[pk]) {
+        const h = htsData[pk];
+        htsSummary.textContent = `Duty: ${h.duty}% | Section 301: ${h.section301}% | Extra (RT): ${h.extra}% | Total: ${h.total}%`;
+    } else {
+        htsSummary.textContent = '';
+    }
+}
+
+htsSelect.addEventListener('change', function() {
+    const pk = this.value;
+    if (pk && htsData[pk]) {
+        const h = htsData[pk];
+        document.getElementById('id_duty_percent').value = h.duty;
+        document.getElementById('id_tariff_percent').value = h.section301;
+        updateSummary();
+    } else {
+        htsSummary.textContent = '';
+    }
+});
+
+updateSummary();
+</script>
 {% endblock %}

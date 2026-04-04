@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.timezone import now
 
+from products.models import HtsCode
 from .forms import CreateQuoteForm
 from .models import Quote
 
@@ -62,7 +64,8 @@ def edit_quote(request, pk):
             return redirect("view_quote", pk=quote.pk)
     else:
         form = CreateQuoteForm(instance=quote)
-    return render(request, "edit_quote.html", {"form": form, "quote": quote})
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    return render(request, "edit_quote.html", {"form": form, "quote": quote, "hts_data": json.dumps(hts_data)})
 
 
 @login_required
@@ -151,7 +154,8 @@ def create_quote(request):
 
         form = CreateQuoteForm(initial=initial)
 
-    return render(request, "create_quote.html", {"form": form})
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    return render(request, "create_quote.html", {"form": form, "hts_data": json.dumps(hts_data)})
 
 
 @login_required

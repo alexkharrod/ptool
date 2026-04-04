@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 
 from django.conf import settings
@@ -30,7 +31,8 @@ def edit_product(request, pk):
             return redirect("view_product", pk=product.pk)
     else:
         form = CreateProductForm(instance=product)
-    return render(request, "edit_product.html", {"form": form, "product": product})
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    return render(request, "edit_product.html", {"form": form, "product": product, "hts_data": json.dumps(hts_data)})
 
 
 @login_required
@@ -88,7 +90,8 @@ def add_product(request):
             return redirect("view_product", pk=product.pk)
     else:
         form = CreateProductForm()
-    return render(request, "add_product.html", {"form": form})
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    return render(request, "add_product.html", {"form": form, "hts_data": json.dumps(hts_data)})
 
 
 @login_required
