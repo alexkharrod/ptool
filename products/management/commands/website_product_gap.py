@@ -36,15 +36,18 @@ def fetch_website_products():
     ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     locs = [el.text.strip() for el in root.findall(".//sm:loc", ns)]
 
-    products = []
+    seen = {}
     for url in locs:
         if "/product/" in url:
             parts = url.split("/product/")[1]
             segments = parts.split("/")
             sku = segments[-1].upper()
+            if sku.endswith("-US"):
+                sku = sku[:-3]
             name = segments[0].replace("-", " ").title()
-            products.append((sku, name))
-    return products
+            if sku not in seen:
+                seen[sku] = name
+    return list(seen.items())
 
 
 class Command(BaseCommand):
