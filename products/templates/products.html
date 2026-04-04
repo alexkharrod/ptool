@@ -99,7 +99,7 @@
                 <td><input type="checkbox" name="product_ids" value="{{ product.id }}" class="form-check-input row-check"></td>
                 <td>{{ product.sku }}</td>
                 <td>{{ product.name }}</td>
-                <td>{{ product.category }}</td>
+                <td>{{ product.get_category_display }}</td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="price_list" {% if product.price_list %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="product_list" {% if product.product_list %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="hts_list" {% if product.hts_list %}checked{% endif %}></td>

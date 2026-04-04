@@ -94,9 +94,39 @@ class Product(models.Model):
         ("Canceled", "Canceled"),
     ]
 
+    CATEGORY_CHOICES = [
+        ("AC", "AC Adapters"),
+        ("AT", "Air Trackers"),
+        ("CB", "Cables"),
+        ("CM", "Custom Molds"),
+        ("DF", "Digital Frames"),
+        ("DW", "Drinkware"),
+        ("EB", "Earbuds / Headphones"),
+        ("FN", "Fans"),
+        ("FT", "Fitness"),
+        ("HW", "Hand Warmers"),
+        ("JB", "Power Banks"),
+        ("LY", "Lanyards"),
+        ("MA", "Mobile Accessories"),
+        ("Misc", "Miscellaneous"),
+        ("NFC", "Near Field / RFID"),
+        ("OA", "Office Accessories"),
+        ("RT", "Retail"),
+        ("SC", "Screen Cleaners"),
+        ("SL", "Selfie Lights"),
+        ("SP", "Speakers"),
+        ("ST", "Straws"),
+        ("TA", "Travel Adapters"),
+        ("TL", "Tools"),
+        ("TT", "Fidget Games"),
+        ("UD", "USB Drives"),
+        ("UH", "USB Hubs"),
+        ("WC", "Wireless Chargers"),
+    ]
+
     sku = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150)
-    category = models.CharField(max_length=50)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, blank=True)
     image_url = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="products/", null=True, blank=True)
     moq = models.IntegerField()
