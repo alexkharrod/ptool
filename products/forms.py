@@ -34,7 +34,6 @@ class CreateProductForm(forms.ModelForm):
         self.fields["vendor_ref"].label = "Vendor"
         # Render imprint methods as plain checkboxes (styled in the template)
         self.fields["imprint_methods"].queryset = ImprintMethod.objects.all()
-        self.fields["imprint_methods"].widget = forms.CheckboxSelectMultiple()
         self.fields["imprint_methods"].required = False
         self.fields["imprint_methods"].label = "Imprint Methods"
 
@@ -80,6 +79,7 @@ class CreateProductForm(forms.ModelForm):
 
         widgets = {
             "description": forms.Textarea(attrs={"class": "form-control"}),
+            "imprint_methods": forms.CheckboxSelectMultiple(),
             "mold_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "e.g. 250.00"}),
             "other_imprint": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Laser Engraving"}),
         }
