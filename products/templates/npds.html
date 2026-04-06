@@ -233,49 +233,40 @@
                     </div>
                 </div>
 
-                <!-- Rest of the sections remain the same but with optimized spacing -->
                 <!-- Product Information section -->
                 <div class="product-info-section">
                     <h5>Product Information</h5>
                     <div class="col-md-6">
                         <strong>Available Colors:</strong> {{ product.colors }}
                     </div>
-                        <div class="col-md-6">
-                            <strong>Imprint Location:</strong> {{ product.imprint_location}}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Imprint Dimension:</strong> {{ product.imprint_dimension }}
-                        </div>
-                      
-                        <div class="col-md-6">
-                            <strong>Production Time:</strong> {{ product.production_time }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Estimated Launch:</strong> {{ product.estimated_launch}}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Package Type:</strong> {{ product.package }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Product Launch:</strong> {{ product.estimated_launch }}
-                        </div>
+                    <div class="col-md-6">
+                        <strong>Production Time:</strong> {{ product.production_time }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Estimated Launch:</strong> {{ product.estimated_launch }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Package Type:</strong> {{ product.package }}
                     </div>
                 </div>
 
-                <!-- Pricing Information section -->
-              
-
-                <!-- Imprint Methods table -->
-                {% with methods=product.imprint_methods.all %}
-                {% if methods or product.mold_fee or product.other_imprint %}
+                <!-- Imprint Details section -->
                 <div class="imprint-section">
-                    <h5>Imprint Methods</h5>
+                    <h5>Imprint Details</h5>
+                    <div class="col-md-6">
+                        <strong>Imprint Location:</strong> {{ product.imprint_location }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Imprint Dimension:</strong> {{ product.imprint_dimension }}
+                    </div>
+                    {% with methods=product.imprint_methods.all %}
+                    {% if methods or product.mold_fee or product.other_imprint %}
                     <table class="imprint-table">
                         <thead>
                             <tr>
-                                <th>Type</th>
+                                <th>Imprint Type</th>
                                 <th>Setup Fee</th>
-                                <th>Run Charge (additional)</th>
+                                <th>Run Charge (per piece)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -284,21 +275,13 @@
                                 <td>{{ method.name }}</td>
                                 <td>
                                     {% if method.has_variable_fee %}
-                                        {% if product.mold_fee %}
-                                            ${{ product.mold_fee }}
-                                        {% else %}
-                                            Assigned individually
-                                        {% endif %}
+                                        {% if product.mold_fee %}${{ product.mold_fee }}{% else %}Assigned individually{% endif %}
                                     {% else %}
                                         ${{ method.setup_fee }}
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if method.run_charge %}
-                                        ${{ method.run_charge }}/pc
-                                    {% else %}
-                                        —
-                                    {% endif %}
+                                    {% if method.run_charge %}${{ method.run_charge }}/pc{% else %}—{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -311,9 +294,9 @@
                             {% endif %}
                         </tbody>
                     </table>
+                    {% endif %}
+                    {% endwith %}
                 </div>
-                {% endif %}
-                {% endwith %}
 
                 <!-- Master Carton Information section -->
                 <div class="carton-info-section">
