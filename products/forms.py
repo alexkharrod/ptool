@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Category, HtsCode, Product, Vendor
+from .models import Category, HtsCode, ImprintMethod, Product, Vendor
 
 
 def category_choices():
@@ -32,6 +32,11 @@ class CreateProductForm(forms.ModelForm):
         self.fields["vendor_ref"].widget = forms.Select(choices=vendor_choices())
         self.fields["vendor_ref"].required = False
         self.fields["vendor_ref"].label = "Vendor"
+        # Render imprint methods as plain checkboxes (styled in the template)
+        self.fields["imprint_methods"].queryset = ImprintMethod.objects.all()
+        self.fields["imprint_methods"].widget = forms.CheckboxSelectMultiple()
+        self.fields["imprint_methods"].required = False
+        self.fields["imprint_methods"].label = "Imprint Methods"
 
     class Meta:
         model = Product
@@ -55,8 +60,10 @@ class CreateProductForm(forms.ModelForm):
             "carton_length",
             "carton_height",
             "imprint_location",
-            "imprint_method",
             "imprint_dimension",
+            "imprint_methods",
+            "mold_fee",
+            "other_imprint",
             "air_freight",
             "ocean_freight",
             "duty_percent",
@@ -73,6 +80,8 @@ class CreateProductForm(forms.ModelForm):
 
         widgets = {
             "description": forms.Textarea(attrs={"class": "form-control"}),
+            "mold_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "e.g. 250.00"}),
+            "other_imprint": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Laser Engraving"}),
         }
 
         labels = {
@@ -93,8 +102,10 @@ class CreateProductForm(forms.ModelForm):
             "carton_length": "Carton Length",
             "carton_height": "Carton Height",
             "imprint_location": "Imprint Location",
-            "imprint_method": "Imprint Method",
             "imprint_dimension": "Imprint Dimension",
+            "imprint_methods": "Imprint Methods",
+            "mold_fee": "Mold Fee (setup $)",
+            "other_imprint": "Other Imprint Method",
             "air_freight": "Air Freight",
             "ocean_freight": "Ocean Freight",
             "duty_percent": "Duty Percent",

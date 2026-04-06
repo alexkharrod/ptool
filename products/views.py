@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
 from .forms import CreateProductForm
-from .models import Category, Product, Vendor, HtsCode
+from .models import Category, ImprintMethod, Product, Vendor, HtsCode
 
 
 @login_required
@@ -32,7 +32,13 @@ def edit_product(request, pk):
     else:
         form = CreateProductForm(instance=product)
     hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
-    return render(request, "edit_product.html", {"form": form, "product": product, "hts_data": json.dumps(hts_data)})
+    imprint_methods_data = list(ImprintMethod.objects.values("name", "setup_fee", "run_charge"))
+    return render(request, "edit_product.html", {
+        "form": form,
+        "product": product,
+        "hts_data": json.dumps(hts_data),
+        "imprint_methods_data": imprint_methods_data,
+    })
 
 
 @login_required
@@ -91,7 +97,12 @@ def add_product(request):
     else:
         form = CreateProductForm()
     hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
-    return render(request, "add_product.html", {"form": form, "hts_data": json.dumps(hts_data)})
+    imprint_methods_data = list(ImprintMethod.objects.values("name", "setup_fee", "run_charge"))
+    return render(request, "add_product.html", {
+        "form": form,
+        "hts_data": json.dumps(hts_data),
+        "imprint_methods_data": imprint_methods_data,
+    })
 
 
 @login_required

@@ -99,6 +99,35 @@ class HtsCode(models.Model):
         return self.duty_percent + self.section_301_percent + self.extra_tariff_percent
 
 
+class ImprintMethod(models.Model):
+    """
+    A supported imprint method with standard setup and run charges.
+    setup_fee=None means the fee is assigned individually per product (e.g. Mold Fee).
+    run_charge=0 means no per-piece run charge (e.g. Sublimation, Mold Fee).
+    """
+    name = models.CharField(max_length=100, unique=True)
+    setup_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        help_text="Leave blank for methods where fee is assigned per product (e.g. Mold Fee).",
+    )
+    run_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=0,
+        help_text="Additional per-piece run charge (0 = none).",
+    )
+    sort_order = models.IntegerField(default=0, help_text="Display order in forms and NPDS.")
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def has_variable_fee(self):
+        """True when setup_fee must be assigned per product (i.e. Mold Fee)."""
+        return self.setup_fee is None
+
+
 class Product(models.Model):
     STATUS_CHOICES = [
         ("Open", "Open"),
@@ -133,8 +162,21 @@ class Product(models.Model):
 
     # Imprint info:
     imprint_location = models.CharField(max_length=50)
-    imprint_method = models.CharField(max_length=50)
+    imprint_method = models.CharField(max_length=50)   # legacy free-text field kept for existing data
     imprint_dimension = models.CharField(max_length=50)
+
+    # Structured imprint methods (checkboxes on form, table on NPDS)
+    imprint_methods = models.ManyToManyField(
+        "ImprintMethod", blank=True, related_name="products",
+    )
+    mold_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        help_text="Setup fee for Mold Fee imprint (assigned individually per product).",
+    )
+    other_imprint = models.CharField(
+        max_length=200, blank=True,
+        help_text="Any additional imprint method not covered by the standard list.",
+    )
 
     # HTS code
     hts_code = models.ForeignKey(

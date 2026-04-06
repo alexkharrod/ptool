@@ -87,17 +87,58 @@
                 <div class="form-text text-muted" id="hts-summary"></div>
             </div>
         </div>
+        <!-- ── Imprint Methods ──────────────────────────────── -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <label class="form-label fw-bold">Imprint Methods</label>
+                <div class="border rounded p-3 bg-light">
+                    <div class="row g-2">
+                        {% for method in form.imprint_methods %}
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ method.tag }}
+                                <label class="form-check-label" for="{{ method.id_for_label }}">
+                                    {{ method.choice_label }}
+                                    {% for m in imprint_methods_data %}
+                                        {% if m.name == method.choice_label %}
+                                            <span class="text-muted small">
+                                                — Setup:
+                                                {% if m.setup_fee %}${{ m.setup_fee }}{% else %}<em>see below</em>{% endif %}
+                                                {% if m.run_charge %}
+                                                    &nbsp;Run: ${{ m.run_charge }}/pc
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Mold Fee: shown when Mold Fee checkbox is checked -->
+                    <div class="row mt-2" id="mold-fee-row">
+                        <div class="col-md-4">
+                            <label for="id_mold_fee" class="form-label small">Mold Fee Setup ($)</label>
+                            {{ form.mold_fee }}
+                        </div>
+                    </div>
+                    <!-- Other / custom imprint method -->
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <label for="id_other_imprint" class="form-label small">Other Imprint Method</label>
+                            {{ form.other_imprint }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row mt-3">
             <div class="col-md-4">
-                <label for="id_production_time" class="form-label">Imprint Method</label>
-                {{ form.imprint_method|add_class:"form-control" }}
-            </div>
-            <div class="col-md-4">
-                <label for="id_vendor" class="form-label">Imprint Dims</label>
+                <label for="id_imprint_dimension" class="form-label">Imprint Dims</label>
                 {{ form.imprint_dimension|add_class:"form-control" }}
             </div>
             <div class="col-md-4">
-                <label for="id_vendor_sku" class="form-label">Imprint Location</label>
+                <label for="id_imprint_location" class="form-label">Imprint Location</label>
                 {{ form.imprint_location|add_class:"form-control" }}
             </div>
         </div>
@@ -238,5 +279,21 @@ htsSelect.addEventListener('change', function() {
 });
 
 updateSummary();
+
+// ── Mold Fee row visibility ───────────────────────────────────────────────────
+(function () {
+    function hasMoldFeeLabel(el) {
+        const label = el.closest('.form-check')?.querySelector('label');
+        return label && label.textContent.includes('Mold Fee');
+    }
+    function syncMoldFeeRow() {
+        const checked = [...document.querySelectorAll('#id_imprint_methods input[type=checkbox]')]
+            .some(cb => hasMoldFeeLabel(cb) && cb.checked);
+        document.getElementById('mold-fee-row').style.display = checked ? '' : 'none';
+    }
+    document.querySelectorAll('#id_imprint_methods input[type=checkbox]')
+        .forEach(cb => cb.addEventListener('change', syncMoldFeeRow));
+    syncMoldFeeRow();
+})();
 </script>
 {% endblock %}

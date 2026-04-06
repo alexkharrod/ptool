@@ -150,6 +150,31 @@
             margin: 8px 15px;
             font-size: 11px;
         }
+
+        /* Imprint methods table */
+        .imprint-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .imprint-table th {
+            background-color: #2E75B6;
+            color: #ffffff;
+            padding: 4px 8px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .imprint-table td {
+            padding: 3px 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .imprint-table tr:nth-child(even) td {
+            background-color: #f0f6fc;
+        }
+        .imprint-section {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -216,10 +241,10 @@
                         <strong>Available Colors:</strong> {{ product.colors }}
                     </div>
                         <div class="col-md-6">
-                            <strong>Imprint Method:</strong> {{ product.imprint_method }}
+                            <strong>Imprint Location:</strong> {{ product.imprint_location}}
                         </div>
                         <div class="col-md-6">
-                            <strong>Imprint Location:</strong> {{ product.imprint_location}}
+                            <strong>Imprint Dimension:</strong> {{ product.imprint_dimension }}
                         </div>
                       
                         <div class="col-md-6">
@@ -239,6 +264,56 @@
 
                 <!-- Pricing Information section -->
               
+
+                <!-- Imprint Methods table -->
+                {% with methods=product.imprint_methods.all %}
+                {% if methods or product.mold_fee or product.other_imprint %}
+                <div class="imprint-section">
+                    <h5>Imprint Methods</h5>
+                    <table class="imprint-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Setup Fee</th>
+                                <th>Run Charge (additional)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method in methods %}
+                            <tr>
+                                <td>{{ method.name }}</td>
+                                <td>
+                                    {% if method.has_variable_fee %}
+                                        {% if product.mold_fee %}
+                                            ${{ product.mold_fee }}
+                                        {% else %}
+                                            Assigned individually
+                                        {% endif %}
+                                    {% else %}
+                                        ${{ method.setup_fee }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if method.run_charge %}
+                                        ${{ method.run_charge }}/pc
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if product.other_imprint %}
+                            <tr>
+                                <td>{{ product.other_imprint }}</td>
+                                <td>—</td>
+                                <td>—</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% endwith %}
 
                 <!-- Master Carton Information section -->
                 <div class="carton-info-section">

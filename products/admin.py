@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Product, Vendor, HtsCode
+from .models import ImprintMethod, Product, Vendor, HtsCode
 
 # Register your models here.
 # admin.site.register(Product)
@@ -24,6 +24,12 @@ class ProductAdmin(admin.ModelAdmin):
 
 # register the site with custom admin
 admin.site.register(Product, ProductAdmin)
+
+
+@admin.register(ImprintMethod)
+class ImprintMethodAdmin(admin.ModelAdmin):
+    list_display = ("name", "setup_fee", "run_charge", "sort_order")
+    ordering = ("sort_order", "name")
 
 
 @admin.register(HtsCode)
