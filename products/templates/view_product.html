@@ -166,10 +166,110 @@
             <!-- Actions -->
             <div class="text-end mt-4">
                 <a href="{% url 'products' %}" class="btn btn-secondary">Back to Products</a>
+                <a href="{% url 'edit_product' product.pk %}" class="btn btn-warning">Edit</a>
+                <button class="btn btn-success" id="genDescBtn" onclick="generateDescription()">
+                    ✦ Generate Website Description
+                </button>
                 <a href="{% url 'npds' product.id %}" class="btn btn-primary">Download NPDS</a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Generate Description Modal -->
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="descriptionModalLabel">Website Description — {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Spinner -->
+                <div id="descSpinner" class="text-center py-5">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2 text-muted">Generating description…</p>
+                </div>
+                <!-- Result area (hidden until ready) -->
+                <div id="descResult" style="display:none;">
+                    <ul class="nav nav-tabs mb-3" id="descTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" onclick="showTab('html')">HTML</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" onclick="showTab('preview')">Preview</button>
+                        </li>
+                    </ul>
+                    <div id="tabHtml">
+                        <textarea id="descHtml" class="form-control font-monospace" rows="14" style="font-size:12px;"></textarea>
+                    </div>
+                    <div id="tabPreview" style="display:none; border:1px solid #dee2e6; border-radius:4px; padding:16px; background:#fff;">
+                        <div id="descPreviewContent"></div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" onclick="copyHtml()">📋 Copy HTML</button>
+                        <button class="btn btn-outline-secondary" onclick="generateDescription()">↻ Regenerate</button>
+                        <span id="copyConfirm" class="text-success align-self-center" style="display:none;">Copied!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateDescription() {
+    // Show modal and spinner
+    document.getElementById('descSpinner').style.display = 'block';
+    document.getElementById('descResult').style.display = 'none';
+    document.getElementById('copyConfirm').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('descriptionModal'));
+    modal.show();
+
+    fetch("{% url 'generate_description' product.pk %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById('descHtml').value = "Error: " + data.error;
+        } else {
+            document.getElementById('descHtml').value = data.html;
+            document.getElementById('descPreviewContent').innerHTML = data.html;
+        }
+        document.getElementById('descSpinner').style.display = 'none';
+        document.getElementById('descResult').style.display = 'block';
+    })
+    .catch(err => {
+        document.getElementById('descHtml').value = "Request failed: " + err;
+        document.getElementById('descSpinner').style.display = 'none';
+        document.getElementById('descResult').style.display = 'block';
+    });
+}
+
+function showTab(tab) {
+    document.querySelectorAll('#descTabs .nav-link').forEach(b => b.classList.remove('active'));
+    if (tab === 'html') {
+        document.getElementById('tabHtml').style.display = 'block';
+        document.getElementById('tabPreview').style.display = 'none';
+        document.querySelectorAll('#descTabs .nav-link')[0].classList.add('active');
+    } else {
+        document.getElementById('tabHtml').style.display = 'none';
+        document.getElementById('tabPreview').style.display = 'block';
+        document.querySelectorAll('#descTabs .nav-link')[1].classList.add('active');
+    }
+}
+
+function copyHtml() {
+    const ta = document.getElementById('descHtml');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => {
+        const c = document.getElementById('copyConfirm');
+        c.style.display = 'inline';
+        setTimeout(() => c.style.display = 'none', 2000);
+    });
+}
+</script>
 
 {% endblock %}
