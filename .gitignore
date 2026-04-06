@@ -64,6 +64,16 @@ static/images/wc57.jpg
 static/images backup 4-20-25.zip
 static/images.zip
 
+# PromoStandards scratch/test files (may contain credentials)
+promostandards_test.py
+build_ps_preview.py
+ps_product_preview.xlsx
+~$ps_product_preview.xlsx
+claude_promostandards.txt
+add_moldull_voice_recorder.py
+.claudeenv
+FETCH_HEAD
+
 # Python
 __pycache__/
 *.py[cod]
