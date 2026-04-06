@@ -32,6 +32,7 @@ class CreateProductForm(forms.ModelForm):
         self.fields["vendor_ref"].widget = forms.Select(choices=vendor_choices())
         self.fields["vendor_ref"].required = False
         self.fields["vendor_ref"].label = "Vendor"
+        self.fields["vendor"].required = False   # legacy field, not shown in template
         # Render imprint methods as plain checkboxes (styled in the template)
         self.fields["imprint_methods"].queryset = ImprintMethod.objects.all()
         self.fields["imprint_methods"].required = False
