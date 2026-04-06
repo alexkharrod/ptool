@@ -294,6 +294,79 @@ def vendor_edit(request, pk):
 
 
 @login_required
+def generate_description(request, pk):
+    """Call Claude to generate a website-ready HTML product description."""
+    import anthropic, os
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    product = get_object_or_404(Product, pk=pk)
+
+    imprint_methods = product.imprint_methods.all()
+    methods_text = (
+        ", ".join(m.name for m in imprint_methods)
+        if imprint_methods.exists()
+        else (product.imprint_method or "Not specified")
+    )
+
+    prompt = f"""You are a product copywriter for LogoIncluded, a promotional products company that sells custom-branded tech and lifestyle items.
+
+Generate a website product description in HTML for the product below.
+
+Follow this exact structure (copy the format precisely):
+
+<p>Opening marketing sentence — lead with the product name and key selling points. If it is a special/custom order start the paragraph: <strong>SPECIAL ORDER:</strong></p>
+
+<p><strong>KEY FEATURES:</strong></p>
+<ul>
+  <li><strong>Feature Label:</strong> Short benefit-focused description</li>
+  ... (3–6 items)
+</ul>
+
+<p><strong>SPECIFICATIONS:</strong></p>
+<ul>
+  <li><strong>Spec Name:</strong> Value</li>
+  ... (all relevant specs)
+</ul>
+
+<p>MOQ<br>{product.moq}</p>
+<p>PRODUCTION TIME<br>{product.production_time}</p>
+
+PRODUCT DATA:
+Name: {product.name}
+SKU: {product.sku}
+Raw description / notes: {product.description}
+Available Colors: {product.colors}
+MOQ: {product.moq}
+Production Time: {product.production_time}
+Imprint Location: {product.imprint_location}
+Imprint Methods: {methods_text}
+Package: {product.package}
+
+Rules:
+- Return ONLY the raw HTML — no markdown, no code fences, no explanation
+- Keep marketing language professional but enthusiastic
+- If specs are sparse, expand sensibly from the product name and notes
+- Do not invent specs you have no basis for
+"""
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=500)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    html_output = message.content[0].text.strip()
+
+    return JsonResponse({"html": html_output})
+
+
+@login_required
 def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":
