@@ -7,334 +7,227 @@
             size: letter portrait;
             margin: 1.5cm;
         }
-        
+
         body {
-            font-size: 12px;
-            line-height: 1.3;
-        }
-
-        .specs {
-            margin-top: 5px;
-            margin-bottom: 5px;
-            min-height: 120px;  /* Ensures minimum space for specifications */
-            max-height: 250px;  /* Adjusts maximum height while keeping one page */
-            overflow: auto;     /* Allows scrolling if content exceeds space */
-        }
-        
-        .container {
-            width: 100%;
-            padding: 8px;      /* Slightly reduced padding */
-        }
-        
-        h1 {
-            font-size: 20px;
-            margin: 8px 0;     /* Reduced margin */
-            text-align: center;
-        }
-        
-        h4 {
-            font-size: 16px;
-            margin: 6px 0;     /* Reduced margin */
-        }
-        
-        h5 {
-            font-size: 14px;
-            margin: 6px 0;     /* Reduced margin */
-        }
-        
-        .card {
-            position: relative;
-            border: 1px solid #ddd;
-            background: #fff;
-        }
-        
-        .card-header {
-            position: relative;
-            padding: 6px 15px;  /* Reduced padding */
-        }
-        
-        .card-body {
-            padding: 12px;     /* Reduced padding */
-        }
-        
-        .row {
-            margin-bottom: 6px; /* Reduced margin */
-            display: flex;
-            flex-wrap: wrap;
-        }
-        
-        /* Column widths remain the same */
-        .col-md-8 { width: 66.66%; }
-        .col-md-6 { width: 50%; }
-        .col-md-4 { width: 33.33%; }
-        .col-md-3 { width: 25%; }
-        .col-md-2 { width: 16.66%; }
-        
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0;    /* Reduced margin */
-        }
-        
-        .table th, .table td {
-            padding: 4px;      /* Reduced padding */
-            font-size: 12px;
-        }
-        
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        
-        .product-image {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-        }
-        
-        .product-image img {
-            max-width: 160px;  /* Slightly reduced image size */
-            height: auto;
-        }
-        
-        .section {
-            margin-bottom: 10px; /* Reduced margin */
-        }
-
-        .header {
-            text-align: left;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .header img {
-            max-width: 50px;
-            height: auto;
-        }
-        
-        .header .company-details {
-            font-size: 10px;
+            font-size: 11px;
+            line-height: 1.4;
             font-family: Arial, sans-serif;
         }
-        
-        .general-info {
-            width: 65%;
-        }
 
-        /* New styles for specifications section */
-        .specifications-section {
-            margin-top: 10px;
+        h1 { font-size: 18px; margin: 6px 0; text-align: center; }
+        h4 { font-size: 14px; margin: 4px 0; }
+        h5 { font-size: 12px; margin: 4px 0; font-weight: bold; }
+
+        /* ── Header ─────────────────────────────────────── */
+        .header {
+            display: table;
             width: 100%;
+            margin-bottom: 6px;
         }
+        .header-logo { display: table-cell; vertical-align: middle; width: 60px; }
+        .header-logo img { width: 50px; height: auto; }
+        .header-details { display: table-cell; vertical-align: middle; font-size: 10px; }
 
-        .specifications-content {
+        /* ── Card ───────────────────────────────────────── */
+        .card { border: 1px solid #ccc; }
+        .card-header { padding: 5px 12px; border-bottom: 1px solid #ccc; background: #f5f5f5; }
+        .card-body { padding: 10px 12px; }
+
+        /* ── Top section: info left, image right ────────── */
+        .top-table { width: 100%; border-collapse: collapse; }
+        .top-info { vertical-align: top; width: 60%; padding-right: 10px; }
+        .top-image { vertical-align: top; width: 40%; text-align: right; }
+        .top-image img { max-width: 160px; max-height: 160px; height: auto; }
+
+        /* ── Info rows ──────────────────────────────────── */
+        .info-row { margin-bottom: 3px; }
+
+        /* ── Specifications ─────────────────────────────── */
+        .spec-section { margin-top: 10px; width: 100%; }
+        .spec-content {
             padding: 8px;
-            border: 1px solid #eee;
-            background-color: #fafafa;
-            min-height: 120px;
-            max-height: 200px;
-            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            background: #fafafa;
+            font-size: 11px;
         }
+        /* Style the AI-generated HTML inside spec-content */
+        .spec-content p  { margin: 4px 0; }
+        .spec-content ul { margin: 4px 0 4px 16px; padding: 0; }
+        .spec-content li { margin-bottom: 2px; }
 
-        /* Optimize other sections for space */
-        .product-info-section,
-        .pricing-section,
-        .carton-info-section {
+        /* ── Divider sections ───────────────────────────── */
+        .section {
             margin-top: 8px;
-            padding: 6px 0;
+            padding-top: 6px;
+            border-top: 1px solid #e8e8e8;
         }
 
-        .footer-text {
-            margin: 8px 15px;
-            font-size: 11px;
-        }
+        /* ── Two-column info table ──────────────────────── */
+        .info-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .info-table td { padding: 2px 4px; font-size: 11px; width: 50%; vertical-align: top; }
 
-        /* Imprint methods table */
-        .imprint-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 6px;
-            font-size: 11px;
-        }
+        /* ── Imprint methods table ──────────────────────── */
+        .imprint-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
         .imprint-table th {
             background-color: #2E75B6;
-            color: #ffffff;
+            color: #fff;
             padding: 4px 8px;
             text-align: left;
             font-weight: bold;
         }
-        .imprint-table td {
-            padding: 3px 8px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .imprint-table tr:nth-child(even) td {
-            background-color: #f0f6fc;
-        }
-        .imprint-section {
-            margin-top: 10px;
+        .imprint-table td { padding: 3px 8px; border-bottom: 1px solid #e0e0e0; }
+        .imprint-table tr:nth-child(even) td { background-color: #f0f6fc; }
+
+        /* ── Carton table ───────────────────────────────── */
+        .carton-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .carton-table td { padding: 2px 4px; font-size: 11px; width: 20%; }
+
+        /* ── Keywords ───────────────────────────────────── */
+        .keywords {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid #e8e8e8;
+            font-size: 10px;
+            color: #444;
         }
     </style>
 </head>
 <body>
-    <!-- Header and container sections remain the same -->
+
+    <!-- Header -->
     <div class="header">
-        <img src="{{ base_url }}/static/images/li-circle.png" alt="Logo">
-        <div class="company-details">
+        <div class="header-logo">
+            <img src="{{ base_url }}/static/images/li-circle.png" alt="Logo">
+        </div>
+        <div class="header-details">
             <strong>LogoIncluded</strong><br>
             salesteam@logoincluded.com<br>
             678-947-0993
         </div>
     </div>
-    <div class="container">
-        <h1> New Product Data Sheet</h1>
 
-        <div class="card">
-            <div class="card-header">
-                <h4>SKU # {{ product.sku }}</h4>
-            </div>
-            
-            <div class="card-body">
-                <div class="section">
-                    <div class="general-info">
+    <h1>New Product Data Sheet</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>SKU # {{ product.sku }}</h4>
+        </div>
+        <div class="card-body">
+
+            <!-- Top: General info + image side by side -->
+            <table class="top-table">
+                <tr>
+                    <td class="top-info">
                         <h5>General Information</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Name:</strong> {{ product.name }}
-                            </div>
-                        </div>
-                        <div class="row">                          
-                            <div class="col-md-6">
-                                <strong>Vendor info</strong>  {{ product.vendor }}
-                            </div>
-                        </div>
-                        <div class="row">
-                                <div class="col-md-6">
-                                <strong>Vendor Part#:</strong>  {{ product.vendor_sku }}
-                                </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>MOQ</strong> {{ product.moq }}
-                            </div>
-                        </div>
-                        
-                        <!-- Specifications / Website Description -->
-                        <div class="specifications-section">
-                            <strong>Specifications</strong>
-                            <div class="specifications-content">
-                                {% if product.website_description %}
-                                    {{ product.website_description|safe }}
-                                {% else %}
-                                    {{ product.description }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="product-image">
-                        <img src="data:image/png;base64,{{ encoded_image }}" alt="Product Image">
-                    </div>
-                </div>
+                        <div class="info-row"><strong>Name:</strong> {{ product.name }}</div>
+                        <div class="info-row"><strong>Vendor:</strong> {{ product.vendor }}</div>
+                        <div class="info-row"><strong>Vendor Part#:</strong> {{ product.vendor_sku }}</div>
+                        <div class="info-row"><strong>MOQ:</strong> {{ product.moq }}</div>
+                    </td>
+                    <td class="top-image">
+                        {% if encoded_image %}
+                        <img src="data:image/jpeg;base64,{{ encoded_image }}" alt="Product Image">
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
 
-                <!-- Product Information section -->
-                <div class="product-info-section">
-                    <h5>Product Information</h5>
-                    <div class="col-md-6">
-                        <strong>Available Colors:</strong> {{ product.colors }}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Production Time:</strong> {{ product.production_time }}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Estimated Launch:</strong> {{ product.estimated_launch }}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Package Type:</strong> {{ product.package }}
-                    </div>
-                </div>
-
-                <!-- Imprint Details section -->
-                <div class="imprint-section">
-                    <h5>Imprint Details</h5>
-                    <div class="col-md-6">
-                        <strong>Imprint Location:</strong> {{ product.imprint_location }}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Imprint Dimension:</strong> {{ product.imprint_dimension }}
-                    </div>
-                    {% with methods=product.imprint_methods.all %}
-                    {% if methods or product.mold_fee or product.other_imprint %}
-                    <table class="imprint-table">
-                        <thead>
-                            <tr>
-                                <th>Imprint Type</th>
-                                <th>Setup Fee</th>
-                                <th>Run Charge (per piece)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for method in methods %}
-                            <tr>
-                                <td>{{ method.name }}</td>
-                                <td>
-                                    {% if method.has_variable_fee %}
-                                        {% if product.mold_fee %}${{ product.mold_fee }}{% else %}Assigned individually{% endif %}
-                                    {% else %}
-                                        ${{ method.setup_fee }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if method.run_charge %}${{ method.run_charge }}/pc{% else %}—{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% if product.other_imprint %}
-                            <tr>
-                                <td>{{ product.other_imprint }}</td>
-                                <td>—</td>
-                                <td>—</td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
+            <!-- Specifications -->
+            <div class="spec-section">
+                <strong>Specifications</strong>
+                <div class="spec-content">
+                    {% if product.website_description %}
+                        {{ product.website_description|safe }}
+                    {% else %}
+                        {{ product.description }}
                     {% endif %}
-                    {% endwith %}
-                </div>
-
-                <!-- Keywords -->
-                {% if product.website_keywords %}
-                <div style="margin-top:8px; padding-top:6px; border-top:1px solid #eee;">
-                    <strong style="font-size:11px;">Search Keywords:</strong>
-                    <span style="font-size:10px; color:#555;">{{ product.website_keywords }}</span>
-                </div>
-                {% endif %}
-
-                <!-- Master Carton Information section -->
-                <div class="carton-info-section">
-                    <h5>Master Carton Information</h5>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <strong>Carton Quantity:</strong> {{ product.carton_qty }}
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Weight:</strong> {{ product.carton_weight }} kg
-                        </div>
-                        <div class="col-md-2">
-                            <strong>Width:</strong> {{ product.carton_width }} cm
-                        </div>
-                        <div class="col-md-2">
-                            <strong>Length:</strong> {{ product.carton_length }} cm
-                        </div>
-
-                        <div class="col-md-2">
-                            <strong>Height:</strong> {{ product.carton_height }} cm
-                        </div>
-                    </div>
                 </div>
             </div>
+
+            <!-- Product Information -->
+            <div class="section">
+                <h5>Product Information</h5>
+                <table class="info-table">
+                    <tr>
+                        <td><strong>Available Colors:</strong> {{ product.colors }}</td>
+                        <td><strong>Production Time:</strong> {{ product.production_time }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Estimated Launch:</strong> {{ product.estimated_launch }}</td>
+                        <td><strong>Package Type:</strong> {{ product.package }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Imprint Details -->
+            <div class="section">
+                <h5>Imprint Details</h5>
+                <table class="info-table">
+                    <tr>
+                        <td><strong>Imprint Location:</strong> {{ product.imprint_location }}</td>
+                        <td><strong>Imprint Dimension:</strong> {{ product.imprint_dimension }}</td>
+                    </tr>
+                </table>
+                {% with methods=product.imprint_methods.all %}
+                {% if methods or product.mold_fee or product.other_imprint %}
+                <table class="imprint-table">
+                    <thead>
+                        <tr>
+                            <th>Imprint Type</th>
+                            <th>Setup Fee</th>
+                            <th>Run Charge (per piece)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for method in methods %}
+                        <tr>
+                            <td>{{ method.name }}</td>
+                            <td>
+                                {% if method.has_variable_fee %}
+                                    {% if product.mold_fee %}${{ product.mold_fee }}{% else %}Assigned individually{% endif %}
+                                {% else %}
+                                    ${{ method.setup_fee }}
+                                {% endif %}
+                            </td>
+                            <td>{% if method.run_charge %}${{ method.run_charge }}/pc{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if product.other_imprint %}
+                        <tr>
+                            <td>{{ product.other_imprint }}</td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Master Carton Information -->
+            <div class="section">
+                <h5>Master Carton Information</h5>
+                <table class="carton-table">
+                    <tr>
+                        <td><strong>Qty:</strong> {{ product.carton_qty }}</td>
+                        <td><strong>Weight:</strong> {{ product.carton_weight }} kg</td>
+                        <td><strong>Width:</strong> {{ product.carton_width }} cm</td>
+                        <td><strong>Length:</strong> {{ product.carton_length }} cm</td>
+                        <td><strong>Height:</strong> {{ product.carton_height }} cm</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Keywords -->
+            {% if product.website_keywords %}
+            <div class="keywords">
+                <strong>Search Keywords:</strong> {{ product.website_keywords }}
+            </div>
+            {% endif %}
 
         </div>
     </div>
+
 </body>
 </html>
