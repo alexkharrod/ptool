@@ -318,6 +318,10 @@ function generateKeywords() {
                 `<span class="badge bg-secondary me-1 mb-1 fs-6">${k}</span>`
             ).join('');
             document.getElementById('kwCount').textContent = `${data.keywords.length} keywords`;
+            const charLen = data.raw.length;
+            const charEl = document.getElementById('kwCharCount');
+            charEl.textContent = `${charLen}/200 characters`;
+            charEl.className = charLen > 200 ? 'ms-2 text-danger fw-bold' : 'ms-2 text-success';
         }
         document.getElementById('kwSpinner').style.display = 'none';
         document.getElementById('kwResult').style.display = 'block';
@@ -356,6 +360,7 @@ function copyKeywords() {
                 <div id="kwResult" style="display:none;">
                     <div id="kwGrid" class="mb-3"></div>
                     <small class="text-muted" id="kwCount"></small>
+                    <small class="ms-2" id="kwCharCount"></small>
                     <div class="mt-3">
                         <label class="form-label fw-bold">Copy/paste ready (comma-separated):</label>
                         <textarea id="kwRaw" class="form-control font-monospace" rows="4" style="font-size:12px;"></textarea>

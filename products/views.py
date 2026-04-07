@@ -389,12 +389,14 @@ def generate_keywords(request, pk):
 Generate keyword phrases for the product below following these strict rules:
 1. Up to 30 keyword phrases total
 2. Each phrase must be 30 characters or fewer
-3. Each phrase should be one or two words only — no sentences
-4. Do NOT repeat any words already in the product name or description
-5. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) unless the product IS that retail brand
-6. Do NOT include competitor supplier names, line names, or part numbers
-7. Focus on words distributors would actually search for — use type, function, material, use case, audience
-8. No keyword spamming — every phrase must be genuinely relevant
+3. The entire list joined with ", " must be 200 characters or fewer (including spaces and commas)
+4. Each phrase should be one or two words only — no sentences
+5. Do NOT repeat any words already in the product name or description
+6. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) unless the product IS that retail brand
+7. Do NOT include competitor supplier names, line names, or part numbers
+8. Focus on words distributors would actually search for — use type, function, material, use case, audience
+9. No keyword spamming — every phrase must be genuinely relevant
+10. Prioritize the most important keywords first — if the list must be trimmed to fit 200 characters, keep the best ones
 
 PRODUCT DATA:
 Name: {product.name}
@@ -415,9 +417,21 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
     )
     raw = message.content[0].text.strip()
 
-    # Parse into list, enforce rules, deduplicate
+    # Parse into list, enforce per-phrase and total character limits
     phrases = [p.strip() for p in raw.split(",") if p.strip()]
-    phrases = [p for p in phrases if len(p) <= 30][:30]
+    phrases = [p for p in phrases if len(p) <= 30]
+
+    # Enforce 200-char total limit (joined as "phrase1, phrase2, ...")
+    final = []
+    total = 0
+    for p in phrases:
+        needed = len(p) + (2 if final else 0)  # ", " separator except for first
+        if total + needed <= 200:
+            final.append(p)
+            total += needed
+        else:
+            break
+    phrases = final[:30]
 
     # Save to database
     product.website_keywords = ", ".join(phrases)
