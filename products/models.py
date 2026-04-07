@@ -178,6 +178,16 @@ class Product(models.Model):
         help_text="Any additional imprint method not covered by the standard list.",
     )
 
+    # AI-generated website content
+    website_description = models.TextField(
+        blank=True,
+        help_text="AI-generated HTML description for the website (replaces specs on NPDS).",
+    )
+    website_keywords = models.TextField(
+        blank=True,
+        help_text="Comma-separated keyword phrases for product search (up to 30).",
+    )
+
     # HTS code
     hts_code = models.ForeignKey(
         "HtsCode", null=True, blank=True, on_delete=models.SET_NULL, related_name="products"

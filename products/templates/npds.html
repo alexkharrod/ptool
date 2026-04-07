@@ -220,11 +220,15 @@
                             </div>
                         </div>
                         
-                        <!-- Updated specifications section -->
+                        <!-- Specifications / Website Description -->
                         <div class="specifications-section">
                             <strong>Specifications</strong>
                             <div class="specifications-content">
-                                {{ product.description }}
+                                {% if product.website_description %}
+                                    {{ product.website_description|safe }}
+                                {% else %}
+                                    {{ product.description }}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -297,6 +301,14 @@
                     {% endif %}
                     {% endwith %}
                 </div>
+
+                <!-- Keywords -->
+                {% if product.website_keywords %}
+                <div style="margin-top:8px; padding-top:6px; border-top:1px solid #eee;">
+                    <strong style="font-size:11px;">Search Keywords:</strong>
+                    <span style="font-size:10px; color:#555;">{{ product.website_keywords }}</span>
+                </div>
+                {% endif %}
 
                 <!-- Master Carton Information section -->
                 <div class="carton-info-section">

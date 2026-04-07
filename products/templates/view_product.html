@@ -134,6 +134,25 @@
                 </tr>
             </table>
 
+            <!-- Website Content -->
+            {% if product.website_description or product.website_keywords %}
+            <h5 class="text-muted mt-4">Website Content</h5>
+            {% if product.website_description %}
+            <div class="mb-3">
+                <label class="fw-bold small text-muted">HTML Description</label>
+                <div class="border rounded p-3 bg-light" style="font-size:13px;">
+                    {{ product.website_description|safe }}
+                </div>
+            </div>
+            {% endif %}
+            {% if product.website_keywords %}
+            <div class="mb-3">
+                <label class="fw-bold small text-muted">Keywords</label>
+                <div class="border rounded p-2 bg-light font-monospace" style="font-size:12px;">{{ product.website_keywords }}</div>
+            </div>
+            {% endif %}
+            {% endif %}
+
             <!-- Administrative Details -->
             <h5 class="text-muted mt-4">Administrative Details</h5>
             <table class="table table-bordered">

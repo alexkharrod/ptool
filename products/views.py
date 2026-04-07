@@ -363,6 +363,10 @@ Rules:
     )
     html_output = message.content[0].text.strip()
 
+    # Save to database
+    product.website_description = html_output
+    product.save(update_fields=["website_description"])
+
     return JsonResponse({"html": html_output})
 
 
@@ -414,6 +418,10 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
     # Parse into list, enforce rules, deduplicate
     phrases = [p.strip() for p in raw.split(",") if p.strip()]
     phrases = [p for p in phrases if len(p) <= 30][:30]
+
+    # Save to database
+    product.website_keywords = ", ".join(phrases)
+    product.save(update_fields=["website_keywords"])
 
     return JsonResponse({"keywords": phrases, "raw": ", ".join(phrases)})
 
