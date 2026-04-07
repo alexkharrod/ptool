@@ -12,6 +12,7 @@ urlpatterns = [
     path("npds/<int:product_id>/pdf/", views.npds, name="npds"),
     path("toggle-flag/<int:pk>/", views.toggle_product_flag, name="toggle_product_flag"),
     path("view/<int:pk>/generate-description/", views.generate_description, name="generate_description"),
+    path("view/<int:pk>/generate-keywords/", views.generate_keywords, name="generate_keywords"),
     # HTS code management
     path("hts/", views.hts_list, name="hts_list"),
     path("hts/add/", views.hts_add, name="hts_add"),

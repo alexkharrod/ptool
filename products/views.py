@@ -367,6 +367,58 @@ Rules:
 
 
 @login_required
+def generate_keywords(request, pk):
+    """Call Claude to generate PromoStandards-compliant product keywords."""
+    import anthropic, os
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    product = get_object_or_404(Product, pk=pk)
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=500)
+
+    prompt = f"""You are a product data specialist for LogoIncluded, a promotional products distributor.
+
+Generate keyword phrases for the product below following these strict rules:
+1. Up to 30 keyword phrases total
+2. Each phrase must be 30 characters or fewer
+3. Each phrase should be one or two words only — no sentences
+4. Do NOT repeat any words already in the product name or description
+5. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) unless the product IS that retail brand
+6. Do NOT include competitor supplier names, line names, or part numbers
+7. Focus on words distributors would actually search for — use type, function, material, use case, audience
+8. No keyword spamming — every phrase must be genuinely relevant
+
+PRODUCT DATA:
+Name: {product.name}
+SKU: {product.sku}
+Description: {product.description}
+Category: {product.category}
+Colors: {product.colors}
+
+Return ONLY a plain comma-separated list of keyword phrases — no numbering, no bullets, no explanation, no extra text.
+Example format: wireless charger, power bank, tech gift, desk accessory, fast charge
+"""
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = message.content[0].text.strip()
+
+    # Parse into list, enforce rules, deduplicate
+    phrases = [p.strip() for p in raw.split(",") if p.strip()]
+    phrases = [p for p in phrases if len(p) <= 30][:30]
+
+    return JsonResponse({"keywords": phrases, "raw": ", ".join(phrases)})
+
+
+@login_required
 def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":

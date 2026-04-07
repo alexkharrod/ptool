@@ -170,6 +170,9 @@
                 <button class="btn btn-success" id="genDescBtn" onclick="generateDescription()">
                     ✦ Generate Website Description
                 </button>
+                <button class="btn btn-info text-white" onclick="generateKeywords()">
+                    ✦ Generate Keywords
+                </button>
                 <a href="{% url 'npds' product.id %}" class="btn btn-primary">Download NPDS</a>
             </div>
         </div>
@@ -270,6 +273,83 @@ function copyHtml() {
         setTimeout(() => c.style.display = 'none', 2000);
     });
 }
+
+// ── Keyword generator ──────────────────────────────────────────────────────────
+function generateKeywords() {
+    document.getElementById('kwSpinner').style.display = 'block';
+    document.getElementById('kwResult').style.display = 'none';
+    document.getElementById('kwCopyConfirm').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('keywordsModal'));
+    modal.show();
+
+    fetch("{% url 'generate_keywords' product.pk %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById('kwRaw').value = "Error: " + data.error;
+            document.getElementById('kwGrid').innerHTML = '';
+            document.getElementById('kwCount').textContent = '';
+        } else {
+            document.getElementById('kwRaw').value = data.raw;
+            const grid = document.getElementById('kwGrid');
+            grid.innerHTML = data.keywords.map(k =>
+                `<span class="badge bg-secondary me-1 mb-1 fs-6">${k}</span>`
+            ).join('');
+            document.getElementById('kwCount').textContent = `${data.keywords.length} keywords`;
+        }
+        document.getElementById('kwSpinner').style.display = 'none';
+        document.getElementById('kwResult').style.display = 'block';
+    })
+    .catch(err => {
+        document.getElementById('kwRaw').value = "Request failed: " + err;
+        document.getElementById('kwSpinner').style.display = 'none';
+        document.getElementById('kwResult').style.display = 'block';
+    });
+}
+
+function copyKeywords() {
+    const ta = document.getElementById('kwRaw');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => {
+        const c = document.getElementById('kwCopyConfirm');
+        c.style.display = 'inline';
+        setTimeout(() => c.style.display = 'none', 2000);
+    });
+}
 </script>
+
+<!-- Keywords Modal -->
+<div class="modal fade" id="keywordsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Keywords — {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="kwSpinner" class="text-center py-5">
+                    <div class="spinner-border text-info" role="status"></div>
+                    <p class="mt-2 text-muted">Generating keywords…</p>
+                </div>
+                <div id="kwResult" style="display:none;">
+                    <div id="kwGrid" class="mb-3"></div>
+                    <small class="text-muted" id="kwCount"></small>
+                    <div class="mt-3">
+                        <label class="form-label fw-bold">Copy/paste ready (comma-separated):</label>
+                        <textarea id="kwRaw" class="form-control font-monospace" rows="4" style="font-size:12px;"></textarea>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary" onclick="copyKeywords()">📋 Copy Keywords</button>
+                        <button class="btn btn-outline-secondary" onclick="generateKeywords()">↻ Regenerate</button>
+                        <span id="kwCopyConfirm" class="text-success align-self-center" style="display:none;">Copied!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
