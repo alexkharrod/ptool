@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                     ("domestic", "US Domestic"),
                     ("retail", "Retail"),
                 ],
-                default="overseas",
+                default="domestic",
                 help_text="Where this product is sourced/stocked from.",
                 max_length=20,
             ),

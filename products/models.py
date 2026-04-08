@@ -196,7 +196,7 @@ class Product(models.Model):
 
     # Sourcing
     sourcing = models.CharField(
-        max_length=20, choices=SOURCING_CHOICES, default="overseas",
+        max_length=20, choices=SOURCING_CHOICES, default="domestic",
         help_text="Where this product is sourced/stocked from.",
     )
     needs_overseas_sku = models.BooleanField(
