@@ -56,21 +56,6 @@
                             <i class="bi bi-box-seam me-1"></i>Products
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'vendor_list' %}">
-                            <i class="bi bi-building me-1"></i>Vendors
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'hts_list' %}">
-                            <i class="bi bi-receipt me-1"></i>HTS Codes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'category_list' %}">
-                            <i class="bi bi-tags me-1"></i>Categories
-                        </a>
-                    </li>
                     {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'scouting_list' %}">
@@ -78,8 +63,25 @@
                         </a>
                     </li>
                     {% if user.is_authenticated and user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin/">Admin</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-1"></i>Admin
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'vendor_list' %}">
+                                <i class="bi bi-building me-2"></i>Vendors
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'hts_list' %}">
+                                <i class="bi bi-receipt me-2"></i>HTS Codes
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'category_list' %}">
+                                <i class="bi bi-tags me-2"></i>Categories
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/">
+                                <i class="bi bi-shield-lock me-2"></i>Django Admin
+                            </a></li>
+                        </ul>
                     </li>
                     {% endif %}
             
