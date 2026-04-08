@@ -205,8 +205,12 @@ class Command(BaseCommand):
                 try:
                     product = Product.objects.get(sku=r["sku"])
                     product.category = r["category"]
-                    product.hts_code = hts_map.get(r["hts_code"]) if r["hts_code"] else None
-                    product.save(update_fields=["category", "hts_code"])
+                    hts_obj = hts_map.get(r["hts_code"]) if r["hts_code"] else None
+                    product.hts_code = hts_obj
+                    # Sync rate fields from HTS code
+                    product.duty_percent   = hts_obj.duty_percent          if hts_obj else 0
+                    product.tariff_percent = hts_obj.section_301_percent   if hts_obj else 0
+                    product.save(update_fields=["category", "hts_code", "duty_percent", "tariff_percent"])
                     updated += 1
                 except Product.DoesNotExist:
                     self.stderr.write(f"  SKU not found: {r['sku']}")
