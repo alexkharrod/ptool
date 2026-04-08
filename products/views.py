@@ -441,6 +441,18 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
 
 
 @login_required
+def product_web_content(request, pk):
+    """Return saved website description and keywords as JSON (for the product list modal)."""
+    product = get_object_or_404(Product, pk=pk)
+    return JsonResponse({
+        "sku": product.sku,
+        "name": product.name,
+        "description": product.website_description or "",
+        "keywords": product.website_keywords or "",
+    })
+
+
+@login_required
 def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":

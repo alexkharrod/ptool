@@ -102,11 +102,21 @@
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="qb_added" {% if product.qb_added %}checked{% endif %}></td>
                 <td>{{ product.status }}</td>
                 <td>{{ product.date_created|date:"M d, Y" }}</td>
-                <td class="d-flex gap-1">
+                <td class="d-flex gap-1 flex-wrap">
                     <a href="{% url 'edit_product' product.id %}" class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-pencil-alt"></i>
                     </a>
                     <a href="{% url 'view_product' product.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                    <button type="button" class="btn btn-sm btn-outline-success web-content-btn"
+                            data-pk="{{ product.id }}" data-tab="description"
+                            {% if not product.website_description %}disabled title="No description generated yet"{% endif %}>
+                        HTML
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info web-content-btn"
+                            data-pk="{{ product.id }}" data-tab="keywords"
+                            {% if not product.website_keywords %}disabled title="No keywords generated yet"{% endif %}>
+                        KW
+                    </button>
                 </td>
             </tr>
             {% empty %}
@@ -213,6 +223,106 @@
       });
     });
   });
+
+  // --- Web Content modal ---
+  let wcModal = null;
+
+  document.querySelectorAll('.web-content-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const pk = this.dataset.pk;
+      const tab = this.dataset.tab;
+
+      // Reset modal state
+      document.getElementById('wc-preview').innerHTML = '<span class="text-muted">Loading…</span>';
+      document.getElementById('wc-html-raw').value = '';
+      document.getElementById('wc-kw-raw').value = '';
+      document.getElementById('wc-kw-chars').textContent = '';
+      document.getElementById('wc-html-copied').style.display = 'none';
+      document.getElementById('wc-kw-copied').style.display = 'none';
+      document.getElementById('webContentModalLabel').textContent = 'Loading…';
+
+      // Show modal
+      if (!wcModal) wcModal = new bootstrap.Modal(document.getElementById('webContentModal'));
+      wcModal.show();
+      wcShowTab(tab);
+
+      // Fetch content
+      fetch(`/products/view/${pk}/web-content/`)
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('webContentModalLabel').textContent = data.sku + ' — ' + data.name;
+          document.getElementById('wc-preview').innerHTML = data.description || '<em class="text-muted">No description saved.</em>';
+          document.getElementById('wc-html-raw').value = data.description || '';
+          document.getElementById('wc-kw-raw').value = data.keywords || '';
+          const kwLen = (data.keywords || '').length;
+          document.getElementById('wc-kw-chars').textContent = kwLen + '/200 characters';
+        })
+        .catch(() => {
+          document.getElementById('webContentModalLabel').textContent = 'Error loading content';
+        });
+    });
+  });
+
+  function wcShowTab(tab) {
+    const isDesc = tab === 'description';
+    document.getElementById('wc-description-panel').style.display = isDesc ? '' : 'none';
+    document.getElementById('wc-keywords-panel').style.display = isDesc ? 'none' : '';
+    document.getElementById('tab-description-btn').classList.toggle('active', isDesc);
+    document.getElementById('tab-keywords-btn').classList.toggle('active', !isDesc);
+  }
+
+  function wcCopy(type) {
+    const el = type === 'html' ? document.getElementById('wc-html-raw') : document.getElementById('wc-kw-raw');
+    const msg = type === 'html' ? document.getElementById('wc-html-copied') : document.getElementById('wc-kw-copied');
+    el.select();
+    navigator.clipboard.writeText(el.value).then(() => {
+      msg.style.display = 'inline';
+      setTimeout(() => msg.style.display = 'none', 2000);
+    });
+  }
 </script>
+
+<!-- Web Content Modal -->
+<div class="modal fade" id="webContentModal" tabindex="-1" aria-labelledby="webContentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="webContentModalLabel">Web Content</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <button class="nav-link active" id="tab-description-btn" onclick="wcShowTab('description')">Description (HTML)</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="tab-keywords-btn" onclick="wcShowTab('keywords')">Keywords</button>
+          </li>
+        </ul>
+
+        <div id="wc-description-panel">
+          <div class="border rounded p-3 mb-2 bg-light" id="wc-preview" style="max-height:260px;overflow-y:auto;"></div>
+          <label class="form-label text-muted small">Raw HTML (copy this)</label>
+          <textarea id="wc-html-raw" class="form-control font-monospace" rows="5" readonly></textarea>
+          <div class="mt-2">
+            <button class="btn btn-sm btn-success" onclick="wcCopy('html')">Copy HTML</button>
+            <span id="wc-html-copied" class="text-success small ms-2" style="display:none;">Copied!</span>
+          </div>
+        </div>
+
+        <div id="wc-keywords-panel" style="display:none;">
+          <textarea id="wc-kw-raw" class="form-control font-monospace" rows="4" readonly></textarea>
+          <div class="d-flex justify-content-between align-items-center mt-1">
+            <span id="wc-kw-chars" class="text-muted small"></span>
+            <div>
+              <button class="btn btn-sm btn-info" onclick="wcCopy('keywords')">Copy Keywords</button>
+              <span id="wc-kw-copied" class="text-success small ms-2" style="display:none;">Copied!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
