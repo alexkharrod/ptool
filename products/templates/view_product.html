@@ -9,7 +9,19 @@
     <div class="card shadow-sm">
         <div class="card-header text-white bg-primary d-flex justify-content-between align-items-center">
             <h4 class="mb-0">SKU # {{ product.sku }}</h4>
-            <span>{{ product.estimated_launch|date:"M d, Y" }}</span>
+            <div class="d-flex align-items-center gap-2">
+                {% if product.sourcing == 'domestic' %}
+                    <span class="badge fs-6 bg-success">🇺🇸 US Domestic</span>
+                    {% if product.needs_overseas_sku %}
+                        <span class="badge fs-6 bg-warning text-dark">Overseas SKU Needed</span>
+                    {% endif %}
+                {% elif product.sourcing == 'retail' %}
+                    <span class="badge fs-6 bg-info text-dark">Retail</span>
+                {% else %}
+                    <span class="badge fs-6 bg-secondary">Overseas</span>
+                {% endif %}
+                <span>{{ product.estimated_launch|date:"M d, Y" }}</span>
+            </div>
         </div>
         <div class="card-body">
             <div class="row">

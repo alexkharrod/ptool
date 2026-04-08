@@ -90,6 +90,30 @@
             font-size: 10px;
             color: #444;
         }
+
+        /* ── Sourcing badge ─────────────────────────────── */
+        .sourcing-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 0.4px;
+        }
+        .sourcing-overseas  { background: #e8e8e8; color: #333; border: 1px solid #bbb; }
+        .sourcing-domestic  { background: #1a6b2f; color: #fff; border: 1px solid #145524; }
+        .sourcing-retail    { background: #0e5fa3; color: #fff; border: 1px solid #0a4a80; }
+        .overseas-sku-needed {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            background: #f5a623;
+            color: #fff;
+            border: 1px solid #c47d0e;
+        }
     </style>
 </head>
 <body>
@@ -109,8 +133,22 @@
     <h1>New Product Data Sheet</h1>
 
     <div class="card">
-        <div class="card-header">
-            <h4>SKU # {{ product.sku }}</h4>
+        <div class="card-header" style="display:table; width:100%;">
+            <div style="display:table-cell; vertical-align:middle;">
+                <h4 style="margin:0;">SKU # {{ product.sku }}</h4>
+            </div>
+            <div style="display:table-cell; vertical-align:middle; text-align:right;">
+                {% if product.sourcing == 'domestic' %}
+                    <span class="sourcing-badge sourcing-domestic">🇺🇸 US Domestic</span>
+                    {% if product.needs_overseas_sku %}
+                        <span class="overseas-sku-needed">⚠ Overseas SKU Needed</span>
+                    {% endif %}
+                {% elif product.sourcing == 'retail' %}
+                    <span class="sourcing-badge sourcing-retail">Retail</span>
+                {% else %}
+                    <span class="sourcing-badge sourcing-overseas">Overseas</span>
+                {% endif %}
+            </div>
         </div>
         <div class="card-body">
 

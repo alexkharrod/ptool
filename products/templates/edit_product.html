@@ -224,6 +224,23 @@
                 {{ form.estimated_launch|add_class:"form-control" }}
             </div>
         </div>
+
+        <div class="row mt-3 align-items-end">
+            <div class="col-md-4">
+                <label for="id_sourcing" class="form-label fw-semibold">Sourcing</label>
+                <select name="sourcing" id="id_sourcing" class="form-select">
+                    <option value="overseas" {% if product.sourcing == 'overseas' %}selected{% endif %}>Overseas</option>
+                    <option value="domestic" {% if product.sourcing == 'domestic' %}selected{% endif %}>US Domestic</option>
+                    <option value="retail" {% if product.sourcing == 'retail' %}selected{% endif %}>Retail</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-4" id="overseas-sku-wrap" {% if product.sourcing != 'domestic' %}style="display:none;"{% endif %}>
+                    {{ form.needs_overseas_sku|add_class:"form-check-input" }}
+                    <label class="form-check-label" for="id_needs_overseas_sku">Overseas SKU Needed</label>
+                </div>
+            </div>
+        </div>
         
         <div class="mt-4">
             <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -276,6 +293,17 @@ updateSummary();
     document.querySelectorAll('#id_imprint_methods input[type=checkbox]')
         .forEach(cb => cb.addEventListener('change', syncMoldFeeRow));
     syncMoldFeeRow();
+})();
+
+// ── Sourcing → show/hide Overseas SKU checkbox ───────────────────────────────
+(function () {
+    const sourcingSelect = document.getElementById('id_sourcing');
+    const overseasWrap = document.getElementById('overseas-sku-wrap');
+    function syncOverseasSku() {
+        overseasWrap.style.display = sourcingSelect.value === 'domestic' ? '' : 'none';
+    }
+    sourcingSelect.addEventListener('change', syncOverseasSku);
+    syncOverseasSku();
 })();
 </script>
 {% endblock %}

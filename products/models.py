@@ -135,6 +135,12 @@ class Product(models.Model):
         ("Canceled", "Canceled"),
     ]
 
+    SOURCING_CHOICES = [
+        ("overseas", "Overseas"),
+        ("domestic", "US Domestic"),
+        ("retail", "Retail"),
+    ]
+
     sku = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150)
     category = models.CharField(max_length=50, blank=True)
@@ -186,6 +192,16 @@ class Product(models.Model):
     website_keywords = models.TextField(
         blank=True,
         help_text="Comma-separated keyword phrases for product search (up to 30).",
+    )
+
+    # Sourcing
+    sourcing = models.CharField(
+        max_length=20, choices=SOURCING_CHOICES, default="overseas",
+        help_text="Where this product is sourced/stocked from.",
+    )
+    needs_overseas_sku = models.BooleanField(
+        default=False,
+        help_text="US Domestic product that also needs an overseas (import) SKU created.",
     )
 
     # HTS code
