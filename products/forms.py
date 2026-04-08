@@ -69,11 +69,8 @@ class CreateProductForm(forms.ModelForm):
             "duty_percent",
             "tariff_percent",
             "price_list",
-            "product_list",
-            "hts_list",
             "npds_done",
             "qb_added",
-            "published",
             "status",
             "colors",
         ]
@@ -112,11 +109,8 @@ class CreateProductForm(forms.ModelForm):
             "duty_percent": "Duty Percent",
             "tariff_percent": "Tariff Percent",
             "price_list": "Price List",
-            "product_list": "Product List",
-            "hts_list": "Added to HTS",
             "npds_done": "NPDS Done",
             "qb_added": "QB Added",
-            "published": "Published",
             "status": "Status",
             "colors": "Colors",
         }

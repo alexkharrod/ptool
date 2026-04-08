@@ -75,11 +75,8 @@
                   </a>
                 </th>
                 <th scope="col">Price List</th>
-                <th scope="col">Product List</th>
-                <th scope="col">HTS</th>
                 <th scope="col">NPDS</th>
                 <th scope="col">QB SKU</th>
-                <th scope="col">Published</th>
                 <th scope="col">
                   <a href="?{{ base_params }}&sort=status&dir={% if sort == 'status' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
                     Status {% if sort == 'status' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
@@ -101,11 +98,8 @@
                 <td>{{ product.name }}</td>
                 <td>{{ product.category }}</td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="price_list" {% if product.price_list %}checked{% endif %}></td>
-                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="product_list" {% if product.product_list %}checked{% endif %}></td>
-                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="hts_list" {% if product.hts_list %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="npds_done" {% if product.npds_done %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="qb_added" {% if product.qb_added %}checked{% endif %}></td>
-                <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="published" {% if product.published %}checked{% endif %}></td>
                 <td>{{ product.status }}</td>
                 <td>{{ product.date_created|date:"M d, Y" }}</td>
                 <td class="d-flex gap-1">
@@ -117,7 +111,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="12" class="text-center text-muted py-4">No products found.</td>
+                <td colspan="9" class="text-center text-muted py-4">No products found.</td>
             </tr>
             {% endfor %}
         </tbody>

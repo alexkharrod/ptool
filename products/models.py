@@ -131,7 +131,7 @@ class ImprintMethod(models.Model):
 class Product(models.Model):
     STATUS_CHOICES = [
         ("Open", "Open"),
-        ("Added", "Added"),
+        ("Published", "Published"),
         ("Canceled", "Canceled"),
     ]
 

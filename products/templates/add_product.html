@@ -185,18 +185,6 @@
             </div>
             <div class="col-md-2">
                 <div class="form-check">
-                    {{ form.product_list|add_class:"form-check-input" }}
-                    <label class="form-check-label" for="id_product_list">Product List</label>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="form-check">
-                    {{ form.hts_list|add_class:"form-check-input" }}
-                    <label class="form-check-label" for="id_hts_list">HTS List</label>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="form-check">
                     {{ form.npds_done|add_class:"form-check-input" }}
                     <label class="form-check-label" for="id_npds_done">NPDS Done</label>
                 </div>
@@ -207,19 +195,13 @@
                     <label class="form-check-label" for="id_qb_added">QB Added</label>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="form-check">
-                    {{ form.published|add_class:"form-check-input" }}
-                    <label class="form-check-label" for="id_published">Published</label>
-                </div>
-            </div>
         </div>
         <div class="row mt-3">
             <div class="col-md-4">
                 <label for="id_status" class="form-label">Status</label>
                 <select name="status" id="id_status" class="form-select">
                     <option value="Open">Open</option>
-                    <option value="Added">Added</option>
+                    <option value="Published">Published</option>
                     <option value="Canceled">Canceled</option>
                 </select>
             </div>

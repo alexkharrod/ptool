@@ -445,7 +445,7 @@ def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":
         product = get_object_or_404(Product, pk=pk)
-        allowed_fields = {"price_list", "product_list", "hts_list", "npds_done", "qb_added", "published"}
+        allowed_fields = {"price_list", "npds_done", "qb_added"}
         try:
             data = json.loads(request.body)
             field = data.get("field")
