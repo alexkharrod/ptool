@@ -9,7 +9,20 @@
     </a>
     <h2 class="mt-2 mb-4">Add New Prospect</h2>
 
-    <form method="post" enctype="multipart/form-data">
+    <!-- Offline saved confirmation (hidden by default) -->
+    <div id="offline-saved-msg" class="alert alert-warning d-none">
+        <strong>📦 Saved offline.</strong> This prospect will sync automatically when you're back online.
+        <a href="{% url 'scouting_add' %}" class="btn btn-sm btn-warning ms-3">Add Another</a>
+        <a href="{% url 'scouting_list' %}" class="btn btn-sm btn-outline-secondary ms-1">Back to List</a>
+    </div>
+
+    <!-- Offline pending banner -->
+    <div id="scout-offline-banner" class="alert alert-info py-2 d-none" style="display:none!important">
+        <i class="bi bi-cloud-upload me-1"></i>
+        <span id="scout-pending-count">0</span> prospect(s) saved offline — will sync when connected.
+    </div>
+
+    <form id="prospect-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
         <!-- Show Info -->
@@ -118,7 +131,53 @@
     </form>
 </div>
 
+<script src="{% load static %}{% static 'js/scout-offline.js' %}"></script>
 <script>
+// ── Offline intercept ────────────────────────────────────────────────────────
+document.getElementById('prospect-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+
+    if (navigator.onLine) {
+        // Online — submit normally
+        form.submit();
+        return;
+    }
+
+    // Offline — collect fields and image, save to IndexedDB
+    const fd = new FormData(form);
+    const fields = {};
+    let imageFile = null;
+
+    for (const [key, val] of fd.entries()) {
+        if (key === 'csrfmiddlewaretoken') continue;
+        if (val instanceof File && val.size > 0) {
+            imageFile = val;
+        } else {
+            fields[key] = val;
+        }
+    }
+
+    try {
+        await scoutSavePending(fields, imageFile);
+        // Hide form, show confirmation
+        form.style.display = 'none';
+        document.getElementById('offline-saved-msg').classList.remove('d-none');
+        await scoutUpdateBanner();
+    } catch (err) {
+        alert('Could not save offline: ' + err);
+    }
+});
+
+// Show pending banner on load
+window.addEventListener('load', async () => {
+    await scoutUpdateBanner();
+    // Fix banner visibility (override d-none set inline above)
+    const banner = document.getElementById('scout-offline-banner');
+    if (banner) banner.style.removeProperty('display');
+});
+
+// ── Business card scanner ────────────────────────────────────────────────────
 const scanBtn = document.getElementById('scan-card-btn');
 const cardInput = document.getElementById('card-camera-input');
 const scanStatus = document.getElementById('scan-status');

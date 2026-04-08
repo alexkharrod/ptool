@@ -10,6 +10,18 @@
         </a>
     </div>
 
+    <!-- Offline pending / syncing banner -->
+    <div id="scout-offline-banner" class="alert alert-warning py-2" style="display:none;">
+        <i class="bi bi-cloud-upload me-1"></i>
+        <span id="scout-pending-count">0</span> prospect(s) saved offline —
+        <span id="scout-sync-status">will sync when connected.</span>
+        <button class="btn btn-sm btn-warning ms-2" onclick="scoutManualSync()">Sync Now</button>
+    </div>
+    <div id="scout-synced-msg" class="alert alert-success py-2" style="display:none;">
+        <i class="bi bi-check-circle me-1"></i>
+        <span id="scout-synced-count">0</span> prospect(s) synced successfully.
+    </div>
+
     <!-- Filters -->
     <form method="get" class="row g-2 mb-4">
         <div class="col-md-4">
@@ -179,6 +191,48 @@ checkboxes.forEach(cb => cb.addEventListener('change', updateBulkBar));
 deselectBtn.addEventListener('click', () => {
     checkboxes.forEach(cb => cb.checked = false);
     updateBulkBar();
+});
+</script>
+
+{% load static %}
+<script src="{% static 'js/scout-offline.js' %}"></script>
+<script>
+async function scoutManualSync() {
+    await doSync();
+}
+
+async function doSync() {
+    const banner = document.getElementById('scout-offline-banner');
+    const statusEl = document.getElementById('scout-sync-status');
+
+    if (!navigator.onLine) {
+        statusEl.textContent = 'No connection yet — will retry automatically.';
+        return;
+    }
+
+    statusEl.textContent = 'Syncing…';
+    const synced = await scoutSync();
+
+    if (synced > 0) {
+        banner.style.display = 'none';
+        const msg = document.getElementById('scout-synced-msg');
+        document.getElementById('scout-synced-count').textContent = synced;
+        msg.style.display = '';
+        // Reload after short delay so new prospects appear in the list
+        setTimeout(() => window.location.reload(), 1500);
+    } else {
+        await scoutUpdateBanner();
+        statusEl.textContent = 'will sync when connected.';
+    }
+}
+
+window.addEventListener('load', async () => {
+    await scoutUpdateBanner();
+    if (navigator.onLine) await doSync();
+});
+
+window.addEventListener('online', async () => {
+    await doSync();
 });
 </script>
 

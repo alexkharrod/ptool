@@ -61,9 +61,16 @@ def scouting_detail(request, pk):
 def scouting_add(request):
     if request.method == "POST":
         form = ProspectForm(request.POST, request.FILES)
+        is_async = request.headers.get("X-Async-Submit") == "1"
         if form.is_valid():
             prospect = form.save()
+            if is_async:
+                from django.http import JsonResponse as JR
+                return JR({"ok": True, "pk": prospect.pk})
             return redirect("scouting_detail", pk=prospect.pk)
+        elif is_async:
+            from django.http import JsonResponse as JR
+            return JR({"ok": False, "errors": form.errors}, status=400)
     else:
         # Pre-populate from query params (same vendor flow or business card scan)
         initial = {}
