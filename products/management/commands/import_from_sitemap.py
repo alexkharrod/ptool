@@ -59,26 +59,23 @@ def fetch_sitemap_products():
         xml = f.read()
 
     root = ElementTree.fromstring(xml)
-    ns = "http://www.sitemaps.org/schemas/sitemap/0.9"
-    locs = [el.text.strip() for el in root.iter(f"{{{ns}}}loc")]
-    if not locs:
-        locs = [el.text.strip() for el in root.iter("loc")]
+    SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
+    IMAGE_NS   = "http://www.google.com/schemas/sitemap-image/1.1"
 
-    # Pair product URLs with their following image URL
+    # Iterate <url> elements and pair each product <loc> with its <image:loc>.
+    # Structure: <url><loc>...</loc><image:image><image:loc>...</image:loc></image:image></url>
+    # Use .//{ns}loc (descendant search) because image:loc is nested inside image:image.
     pairs = []
-    i = 0
-    while i < len(locs):
-        if "logoincluded.com/product/" in locs[i]:
-            prod_url = locs[i]
-            img_url = None
-            if i + 1 < len(locs) and "cloudfront.net" in locs[i + 1]:
-                img_url = locs[i + 1]
-                i += 2
-            else:
-                i += 1
-            pairs.append((prod_url, img_url))
-        else:
-            i += 1
+    for url_el in root.iter(f"{{{SITEMAP_NS}}}url"):
+        loc_el = url_el.find(f"{{{SITEMAP_NS}}}loc")
+        img_el = url_el.find(f".//{{{IMAGE_NS}}}loc")   # any descendant <image:loc>
+        if loc_el is None:
+            continue
+        prod_url = loc_el.text.strip()
+        if "logoincluded.com/product/" not in prod_url:
+            continue
+        img_url = img_el.text.strip() if img_el is not None else None
+        pairs.append((prod_url, img_url))
 
     all_slugs = set()
     for prod_url, _ in pairs:
@@ -182,15 +179,21 @@ _EXTRACT_JS = """
             .trim()
         : '';
 
-    // Carton
-    const countM  = t.match(/Count:\\n(\\d+)/);
-    const weightM = t.match(/Weight:\\n([\\d.]+)\\s*Lbs?/i);
-    const dimM    = t.match(/Dimensions:\\n([\\d.]+)"\\s*x\\s*([\\d.]+)"\\s*x\\s*([\\d.]+)"/);
-    result.cartonQty    = countM  ? parseInt(countM[1])    : 0;
-    result.cartonWeight = weightM ? parseFloat(weightM[1]) : 0;
-    result.cartonLength = dimM    ? parseFloat(dimM[1])    : 0;
-    result.cartonWidth  = dimM    ? parseFloat(dimM[2])    : 0;
-    result.cartonHeight = dimM    ? parseFloat(dimM[3])    : 0;
+    // Carton — website shows either "X Lbs / Y Kg" or "X lb." — store in kg/cm for NPDS
+    const countM = t.match(/Count:\\n(\\d+)/);
+    // Try "Lbs / Kg" format first, fall back to lbs-only and convert
+    const weightKgM  = t.match(/Weight:\\n[\\d.]+\\s*Lbs?\\s*\\/\\s*([\\d.]+)\\s*Kg/i);
+    const weightLbsM = t.match(/Weight:\\n([\\d.]+)\\s*Lbs?/i);
+    let weightKg = 0;
+    if (weightKgM)       weightKg = parseFloat(weightKgM[1]);
+    else if (weightLbsM) weightKg = parseFloat(weightLbsM[1]) / 2.20462;
+    // Dimensions come in inches — convert to cm (× 2.54)
+    const dimM = t.match(/Dimensions:\\n([\\d.]+)"\\s*x\\s*([\\d.]+)"\\s*x\\s*([\\d.]+)"/);
+    result.cartonQty    = countM ? parseInt(countM[1])               : 0;
+    result.cartonWeight = parseFloat(weightKg.toFixed(2));
+    result.cartonLength = dimM   ? parseFloat((parseFloat(dimM[1]) * 2.54).toFixed(2)) : 0;
+    result.cartonWidth  = dimM   ? parseFloat((parseFloat(dimM[2]) * 2.54).toFixed(2)) : 0;
+    result.cartonHeight = dimM   ? parseFloat((parseFloat(dimM[3]) * 2.54).toFixed(2)) : 0;
 
     // Packaging
     const packM = t.match(/\\nPackaging\\n([^\\n]+)/);
@@ -225,21 +228,31 @@ def scrape_product_page(page, product_url, url_sku):
 # Image upload
 # ---------------------------------------------------------------------------
 
-def upload_image_to_cloudinary(image_url):
-    """Download image from CloudFront and upload to Cloudinary. Returns secure_url."""
-    import cloudinary.uploader
+def download_image(image_url):
+    """Download image bytes from a CloudFront URL. Returns (filename, bytes)."""
+    import urllib.parse
+    # CloudFront filenames sometimes contain spaces — percent-encode the path only
+    parsed = urllib.parse.urlparse(image_url)
+    safe_path = urllib.parse.quote(parsed.path, safe="/")
+    safe_url = parsed._replace(path=safe_path).geturl()
+    with urllib.request.urlopen(safe_url, timeout=30, context=_SSL_CTX) as f:
+        data = f.read()
+    filename = parsed.path.rstrip("/").split("/")[-1].split("?")[0]
+    # Sanitize filename — replace spaces and special chars
+    filename = urllib.parse.quote(filename, safe=".-_")
+    if not filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".webp")):
+        filename = filename + ".jpg"
+    return filename, data
 
-    with urllib.request.urlopen(image_url, timeout=30, context=_SSL_CTX) as f:
-        image_data = f.read()
 
-    result = cloudinary.uploader.upload(
-        image_data,
-        folder="products/",
-        resource_type="image",
-        format="jpg",
-        transformation=[{"width": 800, "crop": "limit", "quality": 72}],
-    )
-    return result.get("secure_url", "")
+def set_product_image(product, filename, image_bytes):
+    """
+    Save image to product.image (ImageField → Cloudinary via django-cloudinary-storage).
+    Uses save=False on the field + queryset update to avoid triggering model.save() twice.
+    """
+    from django.core.files.base import ContentFile
+    product.image.save(filename, ContentFile(image_bytes), save=False)
+    Product.objects.filter(pk=product.pk).update(image=product.image.name)
 
 
 # ---------------------------------------------------------------------------
@@ -525,37 +538,43 @@ class Command(BaseCommand):
                                               f"MOQ={scraped.get('moq',0)} | "
                                               f"colors={scraped.get('colors','—')[:30]}")
 
-                    # ── Image ──
-                    cloudinary_url = ""
+                    # ── Download image (before product save) ──
+                    img_filename = img_bytes = None
                     if not skip_images and data["image_url"]:
                         try:
-                            cloudinary_url = upload_image_to_cloudinary(data["image_url"])
-                            self.stdout.write(f"    image uploaded ✓")
+                            img_filename, img_bytes = download_image(data["image_url"])
                         except Exception as e:
-                            self.stderr.write(f"    image upload failed: {e}")
+                            self.stdout.write(self.style.ERROR(f"    image download failed: {e}"))
 
                     # ── Create product record ──
                     product = Product(
                         sku=sku,
-                        name=scraped.get("name") or data["name"],
+                        name=(scraped.get("name") or data["name"])[:150],
                         sourcing=data["sourcing"],
                         needs_overseas_sku=data["needs_overseas_sku"],
-                        image_url=cloudinary_url or data["image_url"],
-                        status="Open",
-                        # From scraper (default 0/"" if not scraped)
-                        description=scraped.get("description", ""),
-                        colors=scraped.get("colors", ""),
+                        # image_url kept as CloudFront fallback; product.image set below
+                        image_url=data["image_url"],
+                        # Status and checkboxes for imported/published products
+                        status="Published",
+                        price_list=True,
+                        npds_done=False,   # leave blank — marketing fills in
+                        qb_added=True,
+                        # From scraper (default 0/"" if scraping failed)
+                        # All CharField values are truncated to model max_length to prevent
+                        # "value too long for type character varying(N)" DB errors
+                        description=scraped.get("description", "")[:500],
+                        colors=scraped.get("colors", "")[:150],
                         moq=scraped.get("moq", 0),
-                        production_time=scraped.get("productionTime", ""),
-                        package=scraped.get("packaging", ""),
+                        production_time=scraped.get("productionTime", "")[:50],
+                        package=scraped.get("packaging", "")[:50],
                         carton_qty=scraped.get("cartonQty", 0),
                         carton_weight=scraped.get("cartonWeight", 0),
                         carton_width=scraped.get("cartonWidth", 0),
                         carton_length=scraped.get("cartonLength", 0),
                         carton_height=scraped.get("cartonHeight", 0),
-                        imprint_location=scraped.get("imprintLocation", ""),
-                        imprint_dimension=scraped.get("imprintDimension", ""),
-                        category=scraped.get("category", ""),
+                        imprint_location=scraped.get("imprintLocation", "")[:50],
+                        imprint_dimension=scraped.get("imprintDimension", "")[:50],
+                        category=scraped.get("category", "")[:50],
                         # Fields left blank — filled in later
                         vendor="",
                         vendor_sku="",
@@ -567,6 +586,14 @@ class Command(BaseCommand):
                         tariff_percent=0,
                     )
                     product.save()
+
+                    # ── Upload image to Cloudinary via ImageField ──
+                    if img_filename and img_bytes:
+                        try:
+                            set_product_image(product, img_filename, img_bytes)
+                            self.stdout.write(self.style.SUCCESS(f"    image uploaded ✓"))
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"    image upload failed: {e}"))
 
                     # ── AI generation ──
                     if not skip_generate:
