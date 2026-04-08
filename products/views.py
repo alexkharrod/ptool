@@ -310,13 +310,31 @@ def generate_description(request, pk):
         else (product.imprint_method or "Not specified")
     )
 
+    is_retail = product.sku.upper().startswith("RT") or product.sourcing == "retail"
+
+    if is_retail:
+        retail_instructions = """
+RETAIL PRODUCT RULES (this is a genuine retail branded product):
+- Identify the brand name and parent company from the product name/description.
+- After all other content, append a trademark disclaimer paragraph using this exact format:
+  <p class="trademark-notice"><em>[Brand] and [Product Name] are trademarks of [Parent Company], registered in the U.S. and other countries. LogoIncluded is not affiliated with or endorsed by [Parent Company].</em></p>
+- Fill in [Brand], [Product Name], and [Parent Company] accurately (e.g. AirPods Pro → Apple Inc.; Galaxy Buds → Samsung Electronics Co., Ltd.).
+- If there are multiple brand trademarks (e.g. MagSafe + Apple), include all in one sentence.
+- Do NOT add a "SPECIAL ORDER:" prefix for retail products.
+"""
+    else:
+        retail_instructions = """
+- Do NOT use any brand names (Apple, Samsung, Google, etc.) in the description.
+- If the product is a special/custom order, start the opening paragraph with: <strong>SPECIAL ORDER:</strong>
+"""
+
     prompt = f"""You are a product copywriter for LogoIncluded, a promotional products company that sells custom-branded tech and lifestyle items.
 
 Generate a website product description in HTML for the product below.
 
 Follow this exact structure (copy the format precisely):
 
-<p>Opening marketing sentence — lead with the product name and key selling points. If it is a special/custom order start the paragraph: <strong>SPECIAL ORDER:</strong></p>
+<p>Opening marketing sentence — lead with the product name and key selling points.</p>
 
 <p><strong>KEY FEATURES:</strong></p>
 <ul>
@@ -349,7 +367,7 @@ Rules:
 - Keep marketing language professional but enthusiastic
 - If specs are sparse, expand sensibly from the product name and notes
 - Do not invent specs you have no basis for
-"""
+{retail_instructions}"""
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -384,6 +402,22 @@ def generate_keywords(request, pk):
     if not api_key:
         return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=500)
 
+    is_retail = product.sku.upper().startswith("RT") or product.sourcing == "retail"
+
+    if is_retail:
+        brand_rule = (
+            "5. This IS a genuine retail branded product — DO include the brand name, product name, "
+            "model name, and any well-known product-specific terms (e.g. AirPods, Apple, MagSafe, "
+            "Galaxy Buds, Samsung). These are exactly what customers search for."
+        )
+        no_brand_note = ""
+    else:
+        brand_rule = (
+            "5. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) — "
+            "this is a generic/custom promotional product, not a retail branded item."
+        )
+        no_brand_note = ""
+
     prompt = f"""You are a product data specialist for LogoIncluded, a promotional products distributor.
 
 Generate keyword phrases for the product below following these strict rules:
@@ -391,12 +425,11 @@ Generate keyword phrases for the product below following these strict rules:
 2. Each phrase must be 30 characters or fewer
 3. The entire list joined with ", " must be 200 characters or fewer (including spaces and commas)
 4. Each phrase should be one or two words only — no sentences
-5. Do NOT repeat any words already in the product name or description
-6. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) unless the product IS that retail brand
-7. Do NOT include competitor supplier names, line names, or part numbers
-8. Focus on words distributors would actually search for — use type, function, material, use case, audience
-9. No keyword spamming — every phrase must be genuinely relevant
-10. Prioritize the most important keywords first — if the list must be trimmed to fit 200 characters, keep the best ones
+{brand_rule}
+6. Do NOT include competitor supplier names, line names, or part numbers
+7. Focus on words distributors would actually search for — use type, function, material, use case, audience
+8. No keyword spamming — every phrase must be genuinely relevant
+9. Prioritize the most important keywords first — if the list must be trimmed to fit 200 characters, keep the best ones
 
 PRODUCT DATA:
 Name: {product.name}
