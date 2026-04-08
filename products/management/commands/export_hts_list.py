@@ -1,9 +1,8 @@
 """
 Management command: export_hts_list
 
-Exports all HTS codes to an Excel spreadsheet for accounting.
-Includes code, description, duty %, Section 301 %, extra tariff %,
-total %, product count, and notes.
+Exports all products with their HTS code and duty rates to Excel for accounting.
+Columns: SKU, Product Name, HTS Code, Duty %, Section 301 %, Extra Tariff %
 
 Usage:
     python manage.py export_hts_list
@@ -13,13 +12,12 @@ Usage:
 import os
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 
-from products.models import HtsCode
+from products.models import Product
 
 
 class Command(BaseCommand):
-    help = "Export all HTS codes to an Excel spreadsheet for accounting"
+    help = "Export all products with HTS codes and duty rates to Excel for accounting"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -37,37 +35,33 @@ class Command(BaseCommand):
 
         output_path = options["output"]
 
-        codes = (
-            HtsCode.objects
-            .annotate(product_count=Count("products"))
-            .order_by("code")
+        products = (
+            Product.objects
+            .select_related("hts_code")
+            .order_by("sku")
+            .values("sku", "name", "hts_code__code",
+                    "hts_code__duty_percent", "hts_code__section_301_percent",
+                    "hts_code__extra_tariff_percent")
         )
-        total = codes.count()
-        self.stdout.write(f"Exporting {total} HTS codes...")
+        total = products.count()
+        self.stdout.write(f"Exporting {total} products...")
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "HTS Codes"
+        ws.title = "HTS Export"
 
-        # ── Styles ────────────────────────────────────────────────────────
         header_fill = PatternFill("solid", start_color="1F4E79", end_color="1F4E79")
         header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
         data_font   = Font(name="Arial", size=10)
         bold_font   = Font(name="Arial", size=10, bold=True)
-        total_font  = Font(name="Arial", size=10, bold=True, color="1F4E79")
         center      = Alignment(horizontal="center", vertical="center")
         left        = Alignment(horizontal="left",   vertical="center")
         thin_bottom = Border(bottom=Side(style="thin", color="D9D9D9"))
         alt_fill    = PatternFill("solid", start_color="F2F7FB", end_color="F2F7FB")
         pct_num     = '0.00"%"'
 
-        # ── Headers ───────────────────────────────────────────────────────
-        headers = [
-            "HTS Code", "Description",
-            "Duty %", "Section 301 %", "Extra Tariff %", "Total %",
-            "# Products", "Notes",
-        ]
-        col_widths = [16, 55, 10, 14, 14, 10, 12, 45]
+        headers    = ["SKU", "Product Name", "HTS Code", "Duty %", "Section 301 %", "Extra Tariff %"]
+        col_widths = [14,    52,              18,          10,        14,               14]
 
         for col_idx, (h, w) in enumerate(zip(headers, col_widths), start=1):
             cell = ws.cell(row=1, column=col_idx, value=h)
@@ -79,38 +73,32 @@ class Command(BaseCommand):
         ws.row_dimensions[1].height = 22
         ws.freeze_panes = "A2"
 
-        # ── Data rows ─────────────────────────────────────────────────────
-        for row_idx, hts in enumerate(codes, start=2):
-            is_alt = (row_idx % 2 == 0)
-            fill   = alt_fill if is_alt else None
+        for row_idx, p in enumerate(products, start=2):
+            fill = alt_fill if row_idx % 2 == 0 else None
 
-            def cell(col, value, align=center, font=data_font, num_format=None):
-                c = ws.cell(row=row_idx, column=col, value=value)
-                c.font      = font
-                c.alignment = align
-                c.border    = thin_bottom
+            def c(col, value, align=center, font=data_font, num_format=None):
+                cell = ws.cell(row=row_idx, column=col, value=value)
+                cell.font      = font
+                cell.alignment = align
+                cell.border    = thin_bottom
                 if fill:
-                    c.fill = fill
+                    cell.fill = fill
                 if num_format:
-                    c.number_format = num_format
-                return c
+                    cell.number_format = num_format
+                return cell
 
-            cell(1, hts.code,                          font=bold_font)
-            cell(2, hts.description,                   align=left)
-            cell(3, float(hts.duty_percent),           num_format=pct_num)
-            cell(4, float(hts.section_301_percent),    num_format=pct_num)
-            cell(5, float(hts.extra_tariff_percent),   num_format=pct_num)
-            cell(6, float(hts.total_percent),          font=total_font, num_format=pct_num)
-            cell(7, hts.product_count)
-            cell(8, hts.other_tariff_notes or "",      align=left)
+            c(1, p["sku"],                                           font=bold_font)
+            c(2, p["name"],                                          align=left)
+            c(3, p["hts_code__code"] or "")
+            c(4, float(p["hts_code__duty_percent"] or 0),            num_format=pct_num)
+            c(5, float(p["hts_code__section_301_percent"] or 0),     num_format=pct_num)
+            c(6, float(p["hts_code__extra_tariff_percent"] or 0),    num_format=pct_num)
 
             ws.row_dimensions[row_idx].height = 16
 
-        ws.auto_filter.ref = f"A1:H{total + 1}"
+        ws.auto_filter.ref = f"A1:F{total + 1}"
 
         wb.save(output_path)
-        abs_path = os.path.abspath(output_path)
         self.stdout.write(self.style.SUCCESS(
-            f"\n✓ Saved: {abs_path}\n"
-            f"  {total} HTS codes exported"
+            f"\n✓ Saved: {os.path.abspath(output_path)}\n  {total} products exported"
         ))
