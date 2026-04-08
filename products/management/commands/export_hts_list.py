@@ -58,7 +58,6 @@ class Command(BaseCommand):
         left        = Alignment(horizontal="left",   vertical="center")
         thin_bottom = Border(bottom=Side(style="thin", color="D9D9D9"))
         alt_fill    = PatternFill("solid", start_color="F2F7FB", end_color="F2F7FB")
-        pct_num     = '0.00"%"'
 
         headers    = ["SKU", "Product Name", "HTS Code", "Duty %", "Section 301 %", "Extra Tariff %"]
         col_widths = [14,    52,              18,          10,        14,               14]
@@ -87,12 +86,15 @@ class Command(BaseCommand):
                     cell.number_format = num_format
                 return cell
 
-            c(1, p["sku"],                                           font=bold_font)
-            c(2, p["name"],                                          align=left)
+            def pct(val):
+                return f"{float(val or 0):.2f}%"
+
+            c(1, p["sku"],                                      font=bold_font)
+            c(2, p["name"],                                     align=left)
             c(3, p["hts_code__code"] or "")
-            c(4, float(p["hts_code__duty_percent"] or 0),            num_format=pct_num)
-            c(5, float(p["hts_code__section_301_percent"] or 0),     num_format=pct_num)
-            c(6, float(p["hts_code__extra_tariff_percent"] or 0),    num_format=pct_num)
+            c(4, pct(p["hts_code__duty_percent"]))
+            c(5, pct(p["hts_code__section_301_percent"]))
+            c(6, pct(p["hts_code__extra_tariff_percent"]))
 
             ws.row_dimensions[row_idx].height = 16
 
