@@ -15,8 +15,8 @@
             {% endif %}
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'cq_view' cq.pk %}" class="btn btn-outline-secondary">Preview</a>
-            <a href="{% url 'cq_pdf' cq.pk %}" class="btn btn-outline-dark">↓ PDF</a>
+            <button type="button" class="btn btn-outline-secondary" onclick="saveAllThenGo('{% url 'cq_view' cq.pk %}')">Preview</button>
+            <button type="button" class="btn btn-outline-dark" onclick="saveAllThenGo('{% url 'cq_pdf' cq.pk %}')">↓ PDF</button>
         </div>
     </div>
 
@@ -118,6 +118,21 @@
 const CSRF = '{{ csrf_token }}';
 const QUOTE_PK = {{ cq.pk }};
 let selectedProduct = null;
+
+// ── Save all items then navigate ──────────────────────────────────────────────
+async function saveAllThenGo(url) {
+    const itemCards = document.querySelectorAll('[id^="item-card-"]');
+    if (itemCards.length === 0) { window.location.href = url; return; }
+
+    // Show brief feedback
+    const btns = document.querySelectorAll(`button[onclick*="saveAllThenGo"]`);
+    btns.forEach(b => { b.disabled = true; b.dataset.orig = b.textContent; b.textContent = 'Saving…'; });
+
+    for (const card of itemCards) {
+        await saveItemSilent(card.id.replace('item-card-', ''));
+    }
+    window.location.href = url;
+}
 
 // ── Product search autocomplete ───────────────────────────────────────────────
 let searchTimer;
