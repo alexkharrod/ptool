@@ -6,6 +6,8 @@ from . import views
 urlpatterns = [
     path("", views.products, name="products"),
     path("next-sku/", views.next_sku, name="next_sku"),
+    path("hts-ai-suggest/<int:pk>/", views.hts_ai_suggest, name="hts_ai_suggest"),
+    path("hts-ai-suggest/", views.hts_ai_suggest_text, name="hts_ai_suggest_text"),
     path("bulk-update/", views.bulk_update_products, name="bulk_update_products"),
     path("add_product/", views.add_product, name="add_product"),
     path("edit/<int:pk>/", views.edit_product, name="edit_product"),

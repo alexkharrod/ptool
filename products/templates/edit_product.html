@@ -86,6 +86,81 @@
                 {{ form.hts_code|add_class:"form-select" }}
                 <div class="form-text text-muted" id="hts-summary"></div>
             </div>
+            <div class="col-md-4 d-flex align-items-end pb-1">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="hts-ai-btn"
+                        onclick="suggestHts()">
+                    ✦ Suggest HTS Code
+                </button>
+            </div>
+        </div>
+
+        <!-- HTS AI suggestion panel (hidden until response arrives) -->
+        <div id="hts-suggest-panel" class="mt-2" style="display:none;">
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                    <span><strong>✦ HTS Suggestion</strong></span>
+                    <span id="hts-confidence-badge" class="badge bg-light text-dark"></span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <div class="small text-muted">Suggested Code</div>
+                            <div class="fw-bold fs-5" id="hts-suggested-code"></div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="small text-muted">Description</div>
+                            <div id="hts-suggested-desc"></div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-3 text-center">
+                            <div class="small text-muted">Duty</div>
+                            <div class="fw-semibold" id="hts-duty"></div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="small text-muted">Sec. 301</div>
+                            <div class="fw-semibold" id="hts-301"></div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="small text-muted">Extra</div>
+                            <div class="fw-semibold" id="hts-extra"></div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="small text-muted">Total</div>
+                            <div class="fw-bold text-danger" id="hts-total"></div>
+                        </div>
+                    </div>
+                    <div class="text-muted small fst-italic mb-3" id="hts-reasoning"></div>
+
+                    <!-- DB match status + actions -->
+                    <div id="hts-in-db-msg" class="d-none">
+                        <div class="alert alert-success py-2 mb-2">
+                            <i class="bi bi-check-circle me-1"></i>
+                            This code is already in your HTS database.
+                            <span class="text-muted small ms-1" id="hts-db-desc"></span>
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="applyHts('db')">
+                            Apply to Product
+                        </button>
+                    </div>
+                    <div id="hts-not-in-db-msg" class="d-none">
+                        <div class="alert alert-warning py-2 mb-2">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            This code is not yet in your HTS database.
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-warning" onclick="applyHts('new')">
+                                Add to HTS Database &amp; Apply
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-link btn-sm text-muted mt-1"
+                            onclick="document.getElementById('hts-suggest-panel').style.display='none'">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
         </div>
         <!-- ── Imprint Methods ──────────────────────────────── -->
         <div class="row mt-3">
@@ -301,5 +376,131 @@ updateSummary();
     sourcingSelect.addEventListener('change', syncOverseasSku);
     syncOverseasSku();
 })();
+
+// ── HTS AI Suggest ────────────────────────────────────────────────────────────
+let _htsLastSuggestion = null;
+
+async function suggestHts() {
+    const btn = document.getElementById('hts-ai-btn');
+    const panel = document.getElementById('hts-suggest-panel');
+
+    btn.disabled = true;
+    btn.textContent = '✦ Thinking…';
+    panel.style.display = 'none';
+
+    try {
+        const resp = await fetch("{% url 'hts_ai_suggest' product.pk %}", {
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+            alert('HTS suggestion failed: ' + (data.error || 'unknown error'));
+            return;
+        }
+
+        _htsLastSuggestion = data;
+
+        // Populate panel
+        const total = (data.duty_percent + data.section_301_percent + data.extra_tariff_percent).toFixed(2);
+        document.getElementById('hts-suggested-code').textContent = data.hts_code || '—';
+        document.getElementById('hts-suggested-desc').textContent = data.description || '';
+        document.getElementById('hts-duty').textContent = data.duty_percent + '%';
+        document.getElementById('hts-301').textContent = data.section_301_percent + '%';
+        document.getElementById('hts-extra').textContent = data.extra_tariff_percent + '%';
+        document.getElementById('hts-total').textContent = (data.in_db ? data.db_total : total) + '%';
+        document.getElementById('hts-reasoning').textContent = data.reasoning || '';
+
+        const conf = data.confidence || '';
+        const badge = document.getElementById('hts-confidence-badge');
+        badge.textContent = conf.charAt(0).toUpperCase() + conf.slice(1) + ' confidence';
+        badge.className = 'badge ' + (conf === 'high' ? 'bg-success' : conf === 'medium' ? 'bg-warning text-dark' : 'bg-danger');
+
+        if (data.in_db) {
+            document.getElementById('hts-db-desc').textContent = '(' + data.db_description + ')';
+            document.getElementById('hts-in-db-msg').classList.remove('d-none');
+            document.getElementById('hts-not-in-db-msg').classList.add('d-none');
+        } else {
+            document.getElementById('hts-in-db-msg').classList.add('d-none');
+            document.getElementById('hts-not-in-db-msg').classList.remove('d-none');
+        }
+
+        panel.style.display = '';
+
+    } catch(e) {
+        alert('Network error: ' + e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✦ Suggest HTS Code';
+    }
+}
+
+async function applyHts(mode) {
+    const d = _htsLastSuggestion;
+    if (!d) return;
+
+    if (mode === 'db') {
+        // Code already in DB — just select it in the dropdown
+        const sel = document.getElementById('id_hts_code');
+        for (const opt of sel.options) {
+            if (opt.value == d.db_id) {
+                sel.value = opt.value;
+                sel.dispatchEvent(new Event('change'));
+                break;
+            }
+        }
+    } else {
+        // Create the HTS code then apply it
+        const csrfToken = '{{ csrf_token }}';
+        try {
+            const resp = await fetch("{% url 'hts_add' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new URLSearchParams({
+                    csrfmiddlewaretoken: csrfToken,
+                    code: d.hts_code,
+                    description: d.description,
+                    duty_percent: d.duty_percent,
+                    section_301_percent: d.section_301_percent,
+                    extra_tariff_percent: d.extra_tariff_percent,
+                    category_hint: '',
+                    _ajax: '1',
+                })
+            });
+            const result = await resp.json();
+            if (result.ok) {
+                // Reload the page — the new HTS code will be in the dropdown
+                // Preserve the suggestion so user can apply after reload
+                sessionStorage.setItem('pendingHtsId', result.id);
+                location.reload();
+            } else {
+                alert('Could not save HTS code: ' + (result.error || 'unknown'));
+            }
+        } catch(e) {
+            alert('Error saving HTS code: ' + e);
+        }
+    }
+    document.getElementById('hts-suggest-panel').style.display = 'none';
+}
+
+// After reload, auto-select the newly created HTS code
+window.addEventListener('load', () => {
+    const pendingId = sessionStorage.getItem('pendingHtsId');
+    if (pendingId) {
+        sessionStorage.removeItem('pendingHtsId');
+        const sel = document.getElementById('id_hts_code');
+        for (const opt of sel.options) {
+            if (opt.value == pendingId) {
+                sel.value = opt.value;
+                sel.dispatchEvent(new Event('change'));
+                break;
+            }
+        }
+    }
+});
 </script>
 {% endblock %}

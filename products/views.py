@@ -215,6 +215,197 @@ def bulk_update_products(request):
     return redirect(f"/products/?{params}")
 
 
+# ── HTS AI Suggest ────────────────────────────────────────────────────────────
+
+@login_required
+def hts_ai_suggest(request, pk):
+    """
+    Call Claude with the product's name, description, category, and image
+    to suggest the best HTS code + tariff rates. Returns JSON.
+    """
+    import urllib.request as urlreq
+    import anthropic
+    from django.conf import settings
+
+    product = get_object_or_404(Product, pk=pk)
+
+    # Build text context
+    lines = []
+    if product.name:
+        lines.append(f"Product name: {product.name}")
+    if product.category:
+        lines.append(f"Category: {product.category}")
+    if product.description:
+        lines.append(f"Description: {product.description[:800]}")
+    if product.vendor:
+        lines.append(f"Vendor/brand context: {product.vendor}")
+    product_text = "\n".join(lines) if lines else "No description provided."
+
+    prompt = (
+        "You are a US import/export compliance specialist with deep expertise in the "
+        "Harmonized Tariff Schedule (HTS). Analyze this promotional product and return "
+        "the most appropriate 10-digit HTS code with current tariff rates.\n\n"
+        f"{product_text}\n\n"
+        "Return ONLY a valid JSON object — no markdown, no explanation outside the JSON:\n"
+        "{\n"
+        '  "hts_code": "XXXX.XX.XXXX",\n'
+        '  "description": "HTS line description",\n'
+        '  "duty_percent": 0.0,\n'
+        '  "section_301_percent": 0.0,\n'
+        '  "extra_tariff_percent": 10.0,\n'
+        '  "reasoning": "1-2 sentence explanation of why this code applies",\n'
+        '  "confidence": "high | medium | low"\n'
+        "}\n\n"
+        "Rules:\n"
+        "- duty_percent: standard MFN duty rate for this HTS code\n"
+        "- section_301_percent: Section 301 tariff (typically 25% for most Chinese goods, 0% if not subject)\n"
+        "- extra_tariff_percent: Additional executive tariff currently in effect (10% baseline as of early 2025, "
+        "may be higher for specific categories — use your best current knowledge)\n"
+        "- Be precise with the 10-digit HTS code; promotional/advertising products often have specific subheadings"
+    )
+
+    try:
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+        content = []
+
+        # Include product image if available
+        if product.image:
+            try:
+                with urlreq.urlopen(product.image.url, timeout=5) as resp:
+                    image_bytes = resp.read()
+                import base64
+                content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/jpeg",
+                        "data": base64.b64encode(image_bytes).decode(),
+                    }
+                })
+            except Exception:
+                pass  # Image unavailable — continue with text only
+
+        content.append({"type": "text", "text": prompt})
+
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            messages=[{"role": "user", "content": content}],
+        )
+
+        raw = message.content[0].text.strip()
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        suggested = json.loads(raw)
+
+        # Try to match against an existing HTS code in our DB
+        code_clean = suggested.get("hts_code", "").replace("-", "").replace(" ", "")
+        existing = HtsCode.objects.filter(code__iexact=code_clean).first()
+        if not existing:
+            # Try prefix match (first 8 digits)
+            existing = HtsCode.objects.filter(code__startswith=code_clean[:8]).first()
+
+        suggested["in_db"] = existing is not None
+        if existing:
+            suggested["db_id"] = existing.pk
+            suggested["db_code"] = existing.code
+            suggested["db_description"] = existing.description
+            suggested["db_duty"] = float(existing.duty_percent)
+            suggested["db_section301"] = float(existing.section_301_percent)
+            suggested["db_extra"] = float(existing.extra_tariff_percent)
+            suggested["db_total"] = float(existing.total_percent)
+
+        return JsonResponse({"ok": True, **suggested})
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
+@login_required
+def hts_ai_suggest_text(request):
+    """
+    Same as hts_ai_suggest but accepts name/category/description as POST text
+    (for use on add_product before the product is saved).
+    """
+    import anthropic
+    from django.conf import settings
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    data = json.loads(request.body)
+    name = data.get("name", "")
+    category = data.get("category", "")
+    description = data.get("description", "")
+
+    lines = []
+    if name:        lines.append(f"Product name: {name}")
+    if category:    lines.append(f"Category: {category}")
+    if description: lines.append(f"Description: {description[:800]}")
+    product_text = "\n".join(lines) if lines else "No description provided."
+
+    prompt = (
+        "You are a US import/export compliance specialist with deep expertise in the "
+        "Harmonized Tariff Schedule (HTS). Analyze this promotional product and return "
+        "the most appropriate 10-digit HTS code with current tariff rates.\n\n"
+        f"{product_text}\n\n"
+        "Return ONLY a valid JSON object — no markdown, no explanation outside the JSON:\n"
+        "{\n"
+        '  "hts_code": "XXXX.XX.XXXX",\n'
+        '  "description": "HTS line description",\n'
+        '  "duty_percent": 0.0,\n'
+        '  "section_301_percent": 0.0,\n'
+        '  "extra_tariff_percent": 10.0,\n'
+        '  "reasoning": "1-2 sentence explanation of why this code applies",\n'
+        '  "confidence": "high | medium | low"\n'
+        "}\n\n"
+        "Rules:\n"
+        "- duty_percent: standard MFN duty rate for this HTS code\n"
+        "- section_301_percent: Section 301 tariff (typically 25% for most Chinese goods, 0% if not subject)\n"
+        "- extra_tariff_percent: Additional executive tariff currently in effect (10% baseline as of early 2025, "
+        "may be higher for specific categories — use your best current knowledge)\n"
+        "- Be precise with the 10-digit HTS code"
+    )
+
+    try:
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        suggested = json.loads(raw)
+
+        code_clean = suggested.get("hts_code", "").replace("-", "").replace(" ", "")
+        existing = HtsCode.objects.filter(code__iexact=code_clean).first()
+        if not existing:
+            existing = HtsCode.objects.filter(code__startswith=code_clean[:8]).first()
+
+        suggested["in_db"] = existing is not None
+        if existing:
+            suggested["db_id"] = existing.pk
+            suggested["db_code"] = existing.code
+            suggested["db_description"] = existing.description
+            suggested["db_duty"] = float(existing.duty_percent)
+            suggested["db_section301"] = float(existing.section_301_percent)
+            suggested["db_extra"] = float(existing.extra_tariff_percent)
+            suggested["db_total"] = float(existing.total_percent)
+
+        return JsonResponse({"ok": True, **suggested})
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
 # ── Reports ───────────────────────────────────────────────────────────────────
 
 @login_required
@@ -337,12 +528,15 @@ def hts_add(request):
         elif HtsCode.objects.filter(code=code).exists():
             error = f'HTS code "{code}" already exists.'
         else:
-            HtsCode.objects.create(
+            hts = HtsCode.objects.create(
                 code=code, description=description,
                 duty_percent=duty, section_301_percent=s301,
                 extra_tariff_percent=extra,
                 other_tariff_notes=notes, category_hint=category_hint,
             )
+            # AJAX request from HTS AI suggest — return JSON instead of redirecting
+            if request.POST.get("_ajax") or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"ok": True, "id": hts.pk, "code": hts.code})
             return redirect("hts_list")
     return render(request, "hts/hts_add.html", {
         "error": error,
