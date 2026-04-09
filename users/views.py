@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -93,16 +95,29 @@ def user_create(request):
             messages.error(request, f"A user with email {email} already exists.")
             return render(request, "users/user_create.html", {"post": request.POST})
 
-        user = CustomUser.objects.create_user(
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            access_products=access_products,
-            access_quotes=access_quotes,
-            access_scouting=access_scouting,
-            must_change_password=True,
-        )
+        # Validate password against site rules before hitting the DB
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            for msg in e.messages:
+                messages.error(request, msg)
+            return render(request, "users/user_create.html", {"post": request.POST})
+
+        try:
+            user = CustomUser.objects.create_user(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                access_products=access_products,
+                access_quotes=access_quotes,
+                access_scouting=access_scouting,
+                must_change_password=True,
+            )
+        except Exception as e:
+            messages.error(request, f"Could not create user: {e}")
+            return render(request, "users/user_create.html", {"post": request.POST})
+
         messages.success(request, f"User {user.get_full_name()} created. They'll be prompted to set a new password on first login.")
         return redirect("user_manage")
 
