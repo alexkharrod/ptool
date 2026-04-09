@@ -44,8 +44,16 @@ def edit_product(request, pk):
 @login_required
 def products(request):
     search_query = request.GET.get("search", "")
-    # Default to Open when browsing; search across all statuses when text search is active
-    status_filter = request.GET.get("status", "Open" if not search_query else "")
+
+    # "active" is a synthetic filter that shows Open + Quote Only together.
+    # When a text search is active we show all statuses so nothing is hidden.
+    # Explicit status= param overrides everything.
+    if "status" in request.GET:
+        status_filter = request.GET.get("status", "")
+    elif search_query:
+        status_filter = ""   # show all when searching
+    else:
+        status_filter = "Open"  # default: Open only
 
     sort = request.GET.get("sort", "date_created")
     direction = request.GET.get("dir", "desc")
@@ -58,7 +66,9 @@ def products(request):
 
     queryset = Product.objects.all()
 
-    if status_filter:
+    if status_filter == "active":
+        queryset = queryset.filter(status__in=["Open", "Quote Only"])
+    elif status_filter:
         queryset = queryset.filter(status=status_filter)
 
     if search_query:
@@ -66,6 +76,10 @@ def products(request):
             Q(sku__icontains=search_query)
             | Q(name__icontains=search_query)
             | Q(category__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(vendor_sku__icontains=search_query)
+            | Q(vendor__icontains=search_query)
+            | Q(vendor_ref__name__icontains=search_query)
         )
 
     order_field = f"-{sort}" if direction == "desc" else sort

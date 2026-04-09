@@ -14,7 +14,7 @@
                            id="search-input"
                            name="search"
                            class="form-control"
-                           placeholder="Search by SKU, Name, or Category"
+                           placeholder="Search SKU, name, description, vendor, vendor part #"
                            value="{{ search_query }}">
                 </div>
                 <div class="w-auto">
@@ -112,7 +112,17 @@
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="price_list" {% if product.price_list %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="npds_done" {% if product.npds_done %}checked{% endif %}></td>
                 <td><input type="checkbox" class="form-check-input flag-toggle" data-pk="{{ product.id }}" data-field="qb_added" {% if product.qb_added %}checked{% endif %}></td>
-                <td>{{ product.status }}</td>
+                <td>
+                  {% if product.status == "Quote Only" %}
+                    <span class="badge bg-info text-dark">Quote Only</span>
+                  {% elif product.status == "Published" %}
+                    <span class="badge bg-success">Published</span>
+                  {% elif product.status == "Canceled" %}
+                    <span class="badge bg-secondary">Canceled</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">{{ product.status }}</span>
+                  {% endif %}
+                </td>
                 <td>{{ product.date_created|date:"M d, Y" }}</td>
                 <td class="d-flex gap-1 flex-wrap">
                     <a href="{% url 'edit_product' product.id %}" class="btn btn-sm btn-outline-secondary">
@@ -174,10 +184,13 @@
 </div>
 
 <script>
-  // Auto-clear status filter when typing a search term
+  // When typing a search term, switch to All Statuses so nothing is hidden
   document.getElementById('search-input').addEventListener('input', function() {
     if (this.value.trim() !== '') {
       document.getElementById('status-select').value = '';
+    } else {
+      // Restore Open default when search is cleared
+      document.getElementById('status-select').value = 'Open';
     }
   });
 
