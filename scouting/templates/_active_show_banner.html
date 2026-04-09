@@ -1,0 +1,53 @@
+<!-- Active Show Banner -->
+<div class="mb-3">
+    <div class="alert alert-primary py-2 mb-0 d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-geo-alt-fill me-1"></i>
+            {% if active_show_name %}
+                <strong>Active Show:</strong> {{ active_show_name }}
+                {% if active_show_date %}&nbsp;&middot;&nbsp;<span class="text-muted">{{ active_show_date }}</span>{% endif %}
+            {% else %}
+                <span class="text-muted fst-italic">No active show set — all new prospects will need a show name entered manually.</span>
+            {% endif %}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleShowForm()">
+            {% if active_show_name %}Change Show{% else %}Set Show for Today{% endif %}
+        </button>
+    </div>
+
+    <div id="show-form-panel" class="card border-primary shadow-sm" style="display:none; border-top:none; border-radius:0 0 .375rem .375rem;">
+        <div class="card-body py-2">
+            <form method="post" action="{% url 'set_active_show' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold mb-1">Show Name</label>
+                        <input type="text" name="show_name" class="form-control" value="{{ active_show_name }}" placeholder="e.g. PPAI Expo 2025">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold mb-1">Date</label>
+                        <input type="date" name="show_date" class="form-control" value="{{ active_show_date }}">
+                    </div>
+                    <div class="col-md-4 d-flex gap-2 pt-1">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleShowForm()">Cancel</button>
+                        {% if active_show_name %}
+                        <button type="submit" class="btn btn-outline-danger"
+                                onclick="this.form.querySelector('[name=show_name]').value=''">
+                            Leave Show
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleShowForm() {
+    const panel = document.getElementById('show-form-panel');
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+</script>

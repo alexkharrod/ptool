@@ -7,7 +7,9 @@
     <a href="{% url 'scouting_list' %}" class="text-muted small">
         <i class="bi bi-arrow-left me-1"></i>Back to Scouting
     </a>
-    <h2 class="mt-2 mb-4">Add New Prospect</h2>
+    <h2 class="mt-2 mb-3">Add New Prospect</h2>
+
+    {% include "_active_show_banner.html" %}
 
     <!-- Offline saved confirmation (hidden by default) -->
     <div id="offline-saved-msg" class="alert alert-warning d-none">

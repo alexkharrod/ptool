@@ -6,9 +6,16 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from products.forms import CreateProductForm
 from .forms import ProspectForm
 from .models import Prospect
+
+
+def _active_show(request):
+    """Return (show_name, show_date) from session, or ('', '')."""
+    return (
+        request.session.get("scouting_show_name", ""),
+        request.session.get("scouting_show_date", ""),
+    )
 
 
 @login_required
@@ -40,6 +47,7 @@ def scouting_list(request):
     # Unique show names for filter dropdown
     shows = Prospect.objects.values_list("show_name", flat=True).distinct().order_by("show_name")
 
+    active_show_name, active_show_date = _active_show(request)
     context = {
         "prospects": queryset,
         "search_query": search_query,
@@ -47,6 +55,8 @@ def scouting_list(request):
         "show_filter": show_filter,
         "shows": shows,
         "status_choices": Prospect.STATUS_CHOICES,
+        "active_show_name": active_show_name,
+        "active_show_date": active_show_date,
     }
     return render(request, "scouting_list.html", context)
 
@@ -77,8 +87,19 @@ def scouting_add(request):
         for field in ("show_name", "show_date", "vendor_name", "vendor_contact", "vendor_email", "vendor_website"):
             if request.GET.get(field):
                 initial[field] = request.GET[field]
+        # Pre-fill show from session if not already provided via query params
+        if "show_name" not in initial:
+            active_show_name, active_show_date = _active_show(request)
+            if active_show_name:
+                initial["show_name"] = active_show_name
+                initial["show_date"] = active_show_date
         form = ProspectForm(initial=initial)
-    return render(request, "scouting_add.html", {"form": form})
+    active_show_name, active_show_date = _active_show(request)
+    return render(request, "scouting_add.html", {
+        "form": form,
+        "active_show_name": active_show_name,
+        "active_show_date": active_show_date,
+    })
 
 
 @login_required
@@ -95,37 +116,75 @@ def scouting_edit(request, pk):
 
 
 @login_required
+def set_active_show(request):
+    """Save the active show name/date to the session."""
+    if request.method == "POST":
+        show_name = request.POST.get("show_name", "").strip()
+        show_date = request.POST.get("show_date", "").strip()
+        if show_name:
+            request.session["scouting_show_name"] = show_name
+            request.session["scouting_show_date"] = show_date
+        else:
+            request.session.pop("scouting_show_name", None)
+            request.session.pop("scouting_show_date", None)
+    return redirect(request.POST.get("next", "scouting_list"))
+
+
+@login_required
 def scouting_promote(request, pk):
-    """Pre-fills the Add Product form with scouting data."""
+    """Lean intermediate screen: pick Category + Vendor, auto-generate SKU, then create product stub."""
+    from products.models import Category, Product, Vendor
+
     prospect = get_object_or_404(Prospect, pk=pk)
 
+    errors = []
+
     if request.method == "POST":
-        form = CreateProductForm(request.POST)
-        if form.is_valid():
-            product = form.save()
-            # Mark prospect as promoted
+        sku = request.POST.get("sku", "").strip().upper()
+        category_code = request.POST.get("category", "").strip()
+        vendor_ref_id = request.POST.get("vendor_ref", "").strip()
+
+        if not sku:
+            errors.append("SKU is required.")
+        elif Product.objects.filter(sku=sku).exists():
+            errors.append(f"SKU '{sku}' already exists — please choose a different one.")
+
+        if not errors:
+            vendor_ref = None
+            if vendor_ref_id:
+                try:
+                    vendor_ref = Vendor.objects.get(pk=vendor_ref_id)
+                except Vendor.DoesNotExist:
+                    pass
+
+            product = Product(
+                sku=sku,
+                name=prospect.product_name,
+                category=category_code,
+                vendor=prospect.vendor_name,
+                vendor_ref=vendor_ref,
+                description=prospect.description or "",
+                colors=prospect.colors or "",
+                production_time=prospect.lead_time or "",
+                status="Open",
+            )
+            product.save()
+
             prospect.promoted = True
             prospect.promoted_sku = product.sku
             prospect.status = "Adding"
             prospect.save(update_fields=["promoted", "promoted_sku", "status"])
-            return redirect("view_product", pk=product.pk)
-    else:
-        # Map scouting fields → product fields
-        initial = {
-            "name": prospect.product_name,
-            "vendor": prospect.vendor_name,
-            "description": prospect.description,
-            "colors": prospect.colors,
-            "production_time": prospect.lead_time,
-            "status": "Open",
-        }
-        form = CreateProductForm(initial=initial)
+            return redirect("edit_product", pk=product.pk)
 
-    return render(
-        request,
-        "scouting_promote.html",
-        {"form": form, "prospect": prospect},
-    )
+    categories = Category.objects.all()
+    vendors = Vendor.objects.order_by("name")
+    return render(request, "scouting_promote.html", {
+        "prospect": prospect,
+        "categories": categories,
+        "vendors": vendors,
+        "errors": errors,
+        "posted": request.POST if errors else {},
+    })
 
 
 @login_required

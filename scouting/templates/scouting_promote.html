@@ -1,139 +1,96 @@
 {% extends "base.html" %}
-{% load widget_tweaks %}
 {% block title %}Promote to Product — {{ prospect.product_name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 900px;">
+<div class="container mt-4" style="max-width: 680px;">
 
     <a href="{% url 'scouting_detail' prospect.pk %}" class="text-muted small">
         <i class="bi bi-arrow-left me-1"></i>Back to Prospect
     </a>
 
-    <div class="alert alert-success mt-3 mb-4">
-        <h5 class="alert-heading mb-1">
-            <i class="bi bi-arrow-up-circle me-1"></i>
-            Promoting: {{ prospect.product_name }}
-        </h5>
-        <p class="mb-0 small">
-            Fields have been pre-filled from your scouting notes. Fill in the remaining required fields and save.
-        </p>
-    </div>
+    <h2 class="mt-2 mb-1">Promote to Product</h2>
+    <p class="text-muted mb-4">Choose a category and vendor to create the product record. You'll land on the edit page to fill in the rest.</p>
 
-    <!-- Reference card -->
-    <div class="card mb-4 shadow-sm border-success">
-        <div class="card-header bg-success text-white fw-semibold">Scouting Reference</div>
-        <div class="card-body row g-2 small">
-            <div class="col-md-3"><strong>Vendor:</strong> {{ prospect.vendor_name }}</div>
-            <div class="col-md-3"><strong>Show:</strong> {{ prospect.show_name }}</div>
-            <div class="col-md-3"><strong>Cost Seen:</strong> {{ prospect.unit_cost|default:"—" }}</div>
-            <div class="col-md-3"><strong>Lead Time:</strong> {{ prospect.lead_time|default:"—" }}</div>
-            {% if prospect.notes %}
-            <div class="col-12"><strong>Notes:</strong> {{ prospect.notes }}</div>
+    {% if errors %}
+    <div class="alert alert-danger">
+        {% for e in errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Prospect summary card -->
+    <div class="card mb-4 border-success shadow-sm">
+        <div class="card-body d-flex gap-3 align-items-start">
+            {% if prospect.image %}
+            <img src="{{ prospect.image.url }}" class="rounded"
+                 style="width:80px; height:80px; object-fit:cover; flex-shrink:0;">
             {% endif %}
+            <div>
+                <div class="fw-bold fs-5">{{ prospect.product_name }}</div>
+                <div class="text-muted small">{{ prospect.vendor_name }} &middot; {{ prospect.show_name }}</div>
+                {% if prospect.unit_cost %}<div class="small mt-1"><strong>Cost seen:</strong> {{ prospect.unit_cost }}</div>{% endif %}
+                {% if prospect.notes %}<div class="small text-muted mt-1">{{ prospect.notes }}</div>{% endif %}
+            </div>
         </div>
     </div>
 
     <form method="post">
         {% csrf_token %}
 
-        <!-- Core Info -->
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-primary text-white fw-semibold">Core Info</div>
-            <div class="card-body row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">SKU <span class="text-danger">*</span></label>
-                    {{ form.sku|add_class:"form-control" }}
-                </div>
-                <div class="col-md-8">
-                    <label class="form-label">Product Name <span class="text-danger">*</span></label>
-                    {{ form.name|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Category</label>
-                    {{ form.category|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Vendor</label>
-                    {{ form.vendor|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Vendor SKU</label>
-                    {{ form.vendor_sku|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">MOQ</label>
-                    {{ form.moq|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Production Time</label>
-                    {{ form.production_time|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Est. Launch</label>
-                    {{ form.estimated_launch|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Colors</label>
-                    {{ form.colors|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Image URL</label>
-                    {{ form.image_url|add_class:"form-control" }}
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Specifications</label>
-                    {{ form.description|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Package</label>
-                    {{ form.package|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Status</label>
-                    {{ form.status|add_class:"form-select" }}
-                </div>
-            </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+            <select name="category" id="id_category" class="form-select" required>
+                <option value="">— Select Category —</option>
+                {% for cat in categories %}
+                <option value="{{ cat.code }}" {% if posted.category == cat.code %}selected{% endif %}>
+                    {{ cat.code }} – {{ cat.description }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
 
-        <!-- Carton Info -->
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-secondary text-white fw-semibold">Master Carton</div>
-            <div class="card-body row g-3">
-                <div class="col-md-2"><label class="form-label">Qty</label>{{ form.carton_qty|add_class:"form-control" }}</div>
-                <div class="col-md-2"><label class="form-label">Weight</label>{{ form.carton_weight|add_class:"form-control" }}</div>
-                <div class="col-md-2"><label class="form-label">Width</label>{{ form.carton_width|add_class:"form-control" }}</div>
-                <div class="col-md-2"><label class="form-label">Length</label>{{ form.carton_length|add_class:"form-control" }}</div>
-                <div class="col-md-2"><label class="form-label">Height</label>{{ form.carton_height|add_class:"form-control" }}</div>
-            </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">SKU <span class="text-danger">*</span></label>
+            <input type="text" name="sku" id="id_sku" class="form-control text-uppercase"
+                   value="{{ posted.sku|default:'' }}"
+                   placeholder="Auto-fills when category is selected" required>
+            <div class="form-text">Auto-generated from category — edit if needed.</div>
         </div>
 
-        <!-- Imprint Info -->
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-info text-dark fw-semibold">Imprint</div>
-            <div class="card-body row g-3">
-                <div class="col-md-4"><label class="form-label">Location</label>{{ form.imprint_location|add_class:"form-control" }}</div>
-                <div class="col-md-4"><label class="form-label">Method</label>{{ form.imprint_method|add_class:"form-control" }}</div>
-                <div class="col-md-4"><label class="form-label">Dimension</label>{{ form.imprint_dimension|add_class:"form-control" }}</div>
-            </div>
-        </div>
-
-        <!-- Freight & Costs -->
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-warning text-dark fw-semibold">Freight & Costs</div>
-            <div class="card-body row g-3">
-                <div class="col-md-3"><label class="form-label">Air Freight</label>{{ form.air_freight|add_class:"form-control" }}</div>
-                <div class="col-md-3"><label class="form-label">Ocean Freight</label>{{ form.ocean_freight|add_class:"form-control" }}</div>
-                <div class="col-md-3"><label class="form-label">Duty %</label>{{ form.duty_percent|add_class:"form-control" }}</div>
-                <div class="col-md-3"><label class="form-label">Tariff %</label>{{ form.tariff_percent|add_class:"form-control" }}</div>
-            </div>
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Vendor</label>
+            <select name="vendor_ref" class="form-select">
+                <option value="">— Select Vendor (optional) —</option>
+                {% for v in vendors %}
+                <option value="{{ v.pk }}" {% if posted.vendor_ref == v.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ v.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Scouting vendor: <strong>{{ prospect.vendor_name }}</strong></div>
         </div>
 
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-success btn-lg">
-                <i class="bi bi-arrow-up-circle me-1"></i>Create Product
+                <i class="bi bi-arrow-up-circle me-1"></i>Create Product &amp; Edit
             </button>
             <a href="{% url 'scouting_detail' prospect.pk %}" class="btn btn-outline-secondary btn-lg">Cancel</a>
         </div>
     </form>
 </div>
+
+<script>
+// Auto-fill SKU when category is selected (same logic as add_product)
+document.getElementById('id_category').addEventListener('change', async function () {
+    const code = this.value;
+    if (!code) return;
+    const skuInput = document.getElementById('id_sku');
+    if (skuInput.value.trim()) return; // don't overwrite if already set
+    try {
+        const resp = await fetch(`/products/next-sku/?category=${encodeURIComponent(code)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.sku) skuInput.value = data.sku;
+    } catch (e) {}
+});
+</script>
 {% endblock %}
