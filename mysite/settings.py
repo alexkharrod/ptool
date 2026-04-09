@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "quotes",
     "scouting",
     "widget_tweaks",
+    "axes",
 ]
 
 # Add Cloudinary if configured
@@ -71,6 +72,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "mysite.middleware.PtoolAccessMiddleware",
@@ -109,14 +111,28 @@ DATABASES = {
 
 AUTH_USER_MODEL = "users.CustomUser"
 
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 # ─── Password validation ─────────────────────────────────────────────────────
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# ─── Axes (brute-force protection) ───────────────────────────────────────────
+# Lock account after 5 failed login attempts; auto-unlock after 1 hour.
+
+AXES_FAILURE_LIMIT        = 5          # failed attempts before lockout
+AXES_COOLOFF_TIME         = 1          # hours until auto-unlock
+AXES_RESET_ON_SUCCESS     = True       # reset counter on successful login
+AXES_LOCKOUT_TEMPLATE     = "lockout.html"
+AXES_LOCKOUT_PARAMETERS   = ["username"]  # lock by username, not IP (Railway proxies IPs)
 
 # ─── Internationalisation ────────────────────────────────────────────────────
 

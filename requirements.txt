@@ -60,3 +60,4 @@ zopfli==0.2.3.post1
 anthropic>=0.40.0
 openpyxl>=3.1.0
 playwright>=1.40.0
+django-axes>=6.4.0
