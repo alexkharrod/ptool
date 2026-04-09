@@ -82,6 +82,13 @@
 
   .item-notes { font-size: 10px; color: #666; font-style: italic;
                 margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; }
+
+  /* ── Quote footer (last item only) ──────────────────────────────────── */
+  .quote-footer { margin-top: 24px; padding-top: 12px; border-top: 2px solid #1a3c6e; }
+  .disclaimer { font-size: 9px; color: #888; font-style: italic; margin-bottom: 16px; }
+  .thankyou { text-align: center; padding: 12px 0 4px; }
+  .thankyou-msg { font-size: 15px; font-weight: 700; color: #1a3c6e; letter-spacing: 0.3px; }
+  .thankyou-rep { font-size: 12px; color: #555; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -203,6 +210,17 @@
 
     </div>{# end detail col #}
   </div>{# end item-layout #}
+
+  {# ── Footer: disclaimer + thank-you on last item only ── #}
+  {% if forloop.last %}
+  <div class="quote-footer">
+    <div class="disclaimer">Prices are Net and valid for 30 days from the date of this quote.</div>
+    <div class="thankyou">
+      <div class="thankyou-msg">Thank you for your business!</div>
+      {% if cq.rep %}<div class="thankyou-rep">{{ cq.rep.name }}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
 
 </div>{# end item-page #}
 {% endif %}

@@ -15,13 +15,16 @@ from products.models import HtsCode, Vendor
 # ── New quote system ──────────────────────────────────────────────────────────
 
 class SalesRep(models.Model):
-    """A sales rep name — not tied to a user account."""
-    name = models.CharField(max_length=100, unique=True)
+    """A sales rep — initials used in quote numbers, full name on PDFs."""
+    name     = models.CharField(max_length=100, unique=True)   # full name, e.g. "Alex Harrod"
+    initials = models.CharField(max_length=5,   unique=True, blank=True)  # e.g. "AH"
 
     class Meta:
         ordering = ['name']
 
     def __str__(self):
+        if self.initials:
+            return f"{self.name} ({self.initials})"
         return self.name
 
 
@@ -53,8 +56,8 @@ class CustomerQuote(models.Model):
         return f"{self.quote_number or 'Draft'} — {self.customer_name}"
 
     @staticmethod
-    def _next_quote_number(date, rep_name, sku):
-        """Generate MMDD-rep-SKU-NN, NN increments per calendar day."""
+    def _next_quote_number(date, rep_initials, sku):
+        """Generate MMDD-AH-SKU-NN, NN increments per calendar day."""
         mm_dd = date.strftime('%m%d')
         prefix = f"{mm_dd}-"
         existing = (
@@ -70,8 +73,8 @@ class CustomerQuote(models.Model):
                 pass
         seq = max_seq + 1
         parts = [mm_dd]
-        if rep_name:
-            parts.append(rep_name.split()[0].lower()[:12])
+        if rep_initials:
+            parts.append(rep_initials.upper())
         if sku:
             parts.append(sku.upper())
         parts.append(f"{seq:02d}")

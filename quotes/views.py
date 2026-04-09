@@ -324,12 +324,12 @@ def cq_item_add(request, quote_pk):
     for t in range(1, 4):
         QuotePriceTier.objects.create(line_item=item, tier_number=t)
 
-    # Assign quote number on first item add (MMDD-rep-SKU-NN)
+    # Assign quote number on first item add (MMDD-AH-SKU-NN)
     if not cq.quote_number:
-        rep_name = cq.rep.name if cq.rep else None
+        rep_initials = cq.rep.initials if cq.rep else None
         cq.quote_number = CustomerQuote._next_quote_number(
             date=cq.date,
-            rep_name=rep_name,
+            rep_initials=rep_initials,
             sku=product.sku,
         )
         cq.save(update_fields=['quote_number'])
@@ -395,14 +395,15 @@ def cq_rep_add(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False}, status=405)
     data = json.loads(request.body)
-    name = data.get('name', '').strip()
+    name     = data.get('name', '').strip()
+    initials = data.get('initials', '').strip().upper()
     if not name:
         return JsonResponse({'ok': False, 'error': 'Name required'}, status=400)
     existing = SalesRep.objects.filter(name__iexact=name).first()
     if existing:
-        return JsonResponse({'ok': True, 'pk': existing.pk, 'name': existing.name, 'created': False})
-    rep = SalesRep.objects.create(name=name)
-    return JsonResponse({'ok': True, 'pk': rep.pk, 'name': rep.name, 'created': True})
+        return JsonResponse({'ok': True, 'pk': existing.pk, 'name': str(existing), 'created': False})
+    rep = SalesRep.objects.create(name=name, initials=initials)
+    return JsonResponse({'ok': True, 'pk': rep.pk, 'name': str(rep), 'created': True})
 
 
 @login_required

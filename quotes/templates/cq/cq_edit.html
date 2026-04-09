@@ -44,8 +44,9 @@
                                 onclick="toggleNewRep()" title="Add new rep">＋</button>
                     </div>
                     <div id="newRepPanel" class="mt-1" style="display:none;">
-                        <div class="input-group input-group-sm">
-                            <input type="text" id="newRepName" class="form-control" placeholder="Rep name…">
+                        <div class="input-group input-group-sm mb-1">
+                            <input type="text" id="newRepName" class="form-control" placeholder="Full name…">
+                            <input type="text" id="newRepInitials" class="form-control" placeholder="Initials" style="max-width:70px;">
                             <button type="button" class="btn btn-primary" onclick="addRep()">Add</button>
                             <button type="button" class="btn btn-outline-secondary" onclick="toggleNewRep()">✕</button>
                         </div>
@@ -336,6 +337,7 @@ function toggleNewRep() {
 
 function addRep() {
     const name = document.getElementById('newRepName').value.trim();
+    const initials = document.getElementById('newRepInitials').value.trim();
     const errEl = document.getElementById('newRepError');
     if (!name) { errEl.textContent = 'Name required.'; errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
@@ -343,7 +345,7 @@ function addRep() {
     fetch('/quotes/cq/rep-add/', {
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, initials }),
     })
     .then(r => r.json())
     .then(data => {
@@ -353,11 +355,15 @@ function addRep() {
         if (!opt) { opt = new Option(data.name, data.pk); sel.appendChild(opt); }
         sel.value = data.pk;
         document.getElementById('newRepName').value = '';
+        document.getElementById('newRepInitials').value = '';
         document.getElementById('newRepPanel').style.display = 'none';
     });
 }
 
 document.getElementById('newRepName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addRep(); }
+});
+document.getElementById('newRepInitials').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addRep(); }
 });
 </script>
