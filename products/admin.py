@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ImprintMethod, Product, Vendor, HtsCode
+from .models import Category, ImprintMethod, Product, Vendor, HtsCode
 
 # Register your models here.
 # admin.site.register(Product)
@@ -37,6 +37,13 @@ class HtsCodeAdmin(admin.ModelAdmin):
     list_display = ("code", "description", "duty_percent", "section_301_percent", "extra_tariff_percent", "category_hint")
     search_fields = ("code", "description")
     list_filter = ("category_hint",)
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("code", "description")
+    search_fields = ("code", "description")
+    ordering = ("code",)
 
 
 @admin.register(Vendor)
