@@ -41,7 +41,7 @@ class HtsCodeAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("code", "description")
+    list_display = ("code", "description", "sku_seed")
     search_fields = ("code", "description")
     ordering = ("code",)
 
