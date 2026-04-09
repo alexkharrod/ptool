@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Show ROI Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+            <a href="{% url 'report_index' %}" class="text-muted small">
+                <i class="bi bi-arrow-left me-1"></i>Reports
+            </a>
+            <h1 class="mt-1 mb-0"><i class="bi bi-binoculars me-2"></i>Show ROI</h1>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+    <p class="text-muted mb-4">Scouting performance and product conversion rate by trade show.</p>
+
+    {% if shows %}
+
+    <!-- Summary cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-2 fw-bold text-primary">{{ shows|length }}</div>
+                <div class="small text-muted">Shows Attended</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-2 fw-bold text-secondary">{{ total_prospects }}</div>
+                <div class="small text-muted">Total Prospects</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-2 fw-bold text-success">{{ total_promoted }}</div>
+                <div class="small text-muted">Total Promoted</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-2 fw-bold text-info">{{ overall_rate }}%</div>
+                <div class="small text-muted">Overall Conversion</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-show table -->
+    {% for show in shows %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <div>
+                <span class="fw-bold fs-5">{{ show.show_name }}</span>
+                {% if show.show_date %}
+                <span class="text-muted ms-2 small">{{ show.show_date }}</span>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-success fs-6">{{ show.promoted }} promoted</span>
+                <span class="badge bg-secondary fs-6">{{ show.total }} total</span>
+                <span class="badge {% if show.rate >= 20 %}bg-success{% elif show.rate >= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6">
+                    {{ show.rate }}% conversion
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="row g-0 text-center border-bottom">
+                <div class="col border-end py-2">
+                    <div class="fw-bold text-secondary">{{ show.spotted }}</div>
+                    <div class="small text-muted">Spotted</div>
+                </div>
+                <div class="col border-end py-2">
+                    <div class="fw-bold text-info">{{ show.sample_ordered }}</div>
+                    <div class="small text-muted">Sample Ordered</div>
+                </div>
+                <div class="col border-end py-2">
+                    <div class="fw-bold text-warning">{{ show.evaluating }}</div>
+                    <div class="small text-muted">Evaluating</div>
+                </div>
+                <div class="col border-end py-2">
+                    <div class="fw-bold text-success">{{ show.promoted }}</div>
+                    <div class="small text-muted">Promoted</div>
+                </div>
+                <div class="col py-2">
+                    <div class="fw-bold text-danger">{{ show.rejected }}</div>
+                    <div class="small text-muted">Rejected</div>
+                </div>
+            </div>
+
+            {% if show.products %}
+            <div class="p-3">
+                <p class="small fw-semibold text-muted mb-2">Products Created from This Show</p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for p in show.products %}
+                    <a href="{% url 'view_product' p.pk %}" class="badge text-decoration-none
+                        {% if p.status == 'Published' %}bg-success
+                        {% elif p.status == 'Canceled' %}bg-secondary
+                        {% else %}bg-primary{% endif %}
+                        fs-6 fw-normal">
+                        {{ p.sku }} — {{ p.name|truncatechars:30 }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted small p-3 mb-0">No products promoted from this show yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="alert alert-info">No scouting data yet. Add prospects from the <a href="{% url 'scouting_list' %}">Scouting</a> section.</div>
+    {% endif %}
+
+</div>
+
+<style>
+@media print {
+    .navbar, .btn, a.btn { display: none !important; }
+    .card { break-inside: avoid; }
+}
+</style>
+{% endblock %}

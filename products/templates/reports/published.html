@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Published Products Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+            <a href="{% url 'report_index' %}" class="text-muted small">
+                <i class="bi bi-arrow-left me-1"></i>Reports
+            </a>
+            <h1 class="mt-1 mb-0"><i class="bi bi-check2-circle me-2"></i>Published Products</h1>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+    <p class="text-muted mb-3">Products that moved to Published status within the selected date range.</p>
+
+    <!-- Date range filter -->
+    <form method="get" class="card shadow-sm p-3 mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label fw-semibold mb-1">From</label>
+                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold mb-1">To</label>
+                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-auto d-flex gap-2 pb-1">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="{% url 'report_published' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+            <span class="text-muted small me-1 align-self-center">Quick:</span>
+            <a href="?from={{ year_start }}&to={{ today_str }}" class="btn btn-sm btn-outline-secondary">This Year</a>
+            <a href="?from={{ month_start }}&to={{ today_str }}" class="btn btn-sm btn-outline-secondary">This Month</a>
+            <a href="?from={{ days_90_ago }}&to={{ today_str }}" class="btn btn-sm btn-outline-secondary">Last 90 Days</a>
+        </div>
+    </form>
+
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-2 fw-bold text-success">{{ total }}</div>
+                <div class="small text-muted">Products Published</div>
+            </div>
+        </div>
+        {% if by_show %}
+        <div class="col-12 col-md-9">
+            <div class="card border-0 bg-light py-3 px-3 h-100">
+                <div class="small fw-semibold text-muted mb-2">By Show</div>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for s in by_show %}
+                    <span class="badge bg-primary fs-6 fw-normal">{{ s.source_show }}: {{ s.count }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Products table -->
+    {% if products %}
+    <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Source Show</th>
+                    <th>Date Published</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        <a href="{% url 'view_product' product.pk %}" class="fw-semibold text-decoration-none">
+                            {{ product.sku }}
+                        </a>
+                    </td>
+                    <td>{{ product.name }}</td>
+                    <td><span class="text-muted">{{ product.category|default:"—" }}</span></td>
+                    <td>
+                        {% if product.source_show %}
+                        <span class="badge bg-primary bg-opacity-75 fw-normal">{{ product.source_show }}</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.date_published %}
+                        {{ product.date_published|date:"M d, Y" }}
+                        {% else %}
+                        <span class="text-muted fst-italic">before tracking</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No published products found{% if date_from or date_to %} for the selected date range{% endif %}.
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+@media print {
+    .navbar, form, .btn { display: none !important; }
+}
+</style>
+{% endblock %}

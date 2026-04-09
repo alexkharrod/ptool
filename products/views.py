@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -213,6 +213,106 @@ def bulk_update_products(request):
             messages.error(request, "Please select products and a valid status.")
     params = request.POST.get("return_params", "")
     return redirect(f"/products/?{params}")
+
+
+# ── Reports ───────────────────────────────────────────────────────────────────
+
+@login_required
+def report_index(request):
+    return render(request, "reports/index.html")
+
+
+@login_required
+def report_show_roi(request):
+    from scouting.models import Prospect
+    from django.db.models import Count, Q, Min, Max
+
+    shows = (
+        Prospect.objects
+        .values("show_name")
+        .annotate(
+            show_date=Min("show_date"),
+            total=Count("id"),
+            promoted=Count("id", filter=Q(promoted=True)),
+            rejected=Count("id", filter=Q(status="Rejected")),
+            spotted=Count("id", filter=Q(status="Spotted")),
+            sample_ordered=Count("id", filter=Q(status="Sample Ordered")),
+            evaluating=Count("id", filter=Q(status="Evaluating")),
+        )
+        .order_by("-show_date", "show_name")
+    )
+
+    shows = list(shows)
+    total_prospects = sum(s["total"] for s in shows)
+    total_promoted = sum(s["promoted"] for s in shows)
+    overall_rate = round(total_promoted / total_prospects * 100, 1) if total_prospects else 0
+
+    for show in shows:
+        show["active"] = show["total"] - show["promoted"] - show["rejected"]
+        show["rate"] = (
+            round(show["promoted"] / show["total"] * 100, 1)
+            if show["total"] > 0 else 0
+        )
+        show["products"] = list(
+            Product.objects
+            .filter(source_show=show["show_name"])
+            .values("pk", "sku", "name", "status")
+            .order_by("sku")
+        )
+
+    return render(request, "reports/show_roi.html", {
+        "shows": shows,
+        "total_prospects": total_prospects,
+        "total_promoted": total_promoted,
+        "overall_rate": overall_rate,
+    })
+
+
+@login_required
+def report_published(request):
+    import datetime
+
+    date_from_str = request.GET.get("from", "")
+    date_to_str = request.GET.get("to", "")
+
+    queryset = Product.objects.filter(status="Published").order_by("-date_published", "-date_created")
+
+    if date_from_str:
+        try:
+            queryset = queryset.filter(date_published__date__gte=date_from_str)
+        except Exception:
+            pass
+    if date_to_str:
+        try:
+            queryset = queryset.filter(date_published__date__lte=date_to_str)
+        except Exception:
+            pass
+
+    total = queryset.count()
+    by_show = (
+        queryset.exclude(source_show="")
+        .values("source_show")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+
+    today = datetime.date.today()
+    days_90_ago = (today - datetime.timedelta(days=90)).isoformat()
+    month_start = today.replace(day=1).isoformat()
+    year_start = today.replace(month=1, day=1).isoformat()
+    today_str = today.isoformat()
+
+    return render(request, "reports/published.html", {
+        "products": queryset,
+        "date_from": date_from_str,
+        "date_to": date_to_str,
+        "total": total,
+        "by_show": by_show,
+        "days_90_ago": days_90_ago,
+        "month_start": month_start,
+        "year_start": year_start,
+        "today_str": today_str,
+    })
 
 
 @login_required

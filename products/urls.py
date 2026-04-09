@@ -28,4 +28,8 @@ urlpatterns = [
     path("categories/", views.category_list, name="category_list"),
     path("categories/add/", views.category_add, name="category_add"),
     path("categories/<int:pk>/edit/", views.category_edit, name="category_edit"),
+    # Reports
+    path("reports/", views.report_index, name="report_index"),
+    path("reports/show-roi/", views.report_show_roi, name="report_show_roi"),
+    path("reports/published/", views.report_published, name="report_published"),
 ]

@@ -234,6 +234,8 @@ class Product(models.Model):
         help_text="Trade show this product was scouted at (set automatically on promotion).")
 
     date_created = models.DateTimeField(default=now)
+    date_published = models.DateTimeField(null=True, blank=True,
+        help_text="Date this product was first set to Published status.")
 
     @property
     def duty_summary(self):
@@ -255,6 +257,18 @@ class Product(models.Model):
         return f"{self.sku} — {self.name}"
 
     def save(self, *args, **kwargs):
+        # Auto-set date_published when status first changes to Published
+        if self.status == "Published" and not self.date_published:
+            if self.pk:
+                try:
+                    old = Product.objects.get(pk=self.pk)
+                    if old.status != "Published":
+                        self.date_published = now()
+                except Product.DoesNotExist:
+                    self.date_published = now()
+            else:
+                self.date_published = now()
+
         # Compress image on first upload or when image changes
         if self.image and not self._is_existing_image():
             original_name = os.path.splitext(
