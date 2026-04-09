@@ -30,10 +30,8 @@ class SalesRep(models.Model):
 
 class CustomerQuote(models.Model):
     STATUS_CHOICES = [
-        ('draft',    'Draft'),
-        ('sent',     'Sent'),
-        ('accepted', 'Accepted'),
-        ('declined', 'Declined'),
+        ('draft', 'Draft'),
+        ('sent',  'Sent'),
     ]
 
     quote_number  = models.CharField(max_length=40, unique=True, null=True, blank=True)

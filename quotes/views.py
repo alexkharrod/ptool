@@ -453,6 +453,11 @@ def cq_pdf(request, pk):
         with open(logo_path, "rb") as lf:
             logo_b64 = _b64.b64encode(lf.read()).decode("utf-8")
 
+    # Mark as sent when PDF is downloaded
+    if cq.status == 'draft':
+        cq.status = 'sent'
+        cq.save(update_fields=['status'])
+
     html_string = render_to_string('cq/cq_pdf.html', {
         'cq': cq,
         'items': items,
