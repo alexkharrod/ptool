@@ -222,16 +222,24 @@ async function addSelectedItem() {
 // ── Build item payload from card DOM ─────────────────────────────────────────
 function buildItemPayload(card) {
     const tiers = [];
+    let seq = 1;
     card.querySelectorAll('.tier-row').forEach(row => {
-        const n = row.dataset.tierNumber;
+        const qty      = parseFloat(row.querySelector('.inp-qty').value)   || 0;
+        const unit     = parseFloat(row.querySelector('.inp-unit').value)  || 0;
+        const air      = parseFloat(row.querySelector('.inp-air').value)   || null;
+        const ocean    = parseFloat(row.querySelector('.inp-ocean').value) || null;
+        const airLead  = row.querySelector('.inp-air-lead').value.trim();
+        const oceanLead= row.querySelector('.inp-ocean-lead').value.trim();
+        // Skip entirely empty rows
+        if (!qty && !unit && !air && !ocean && !airLead && !oceanLead) return;
         tiers.push({
-            tier_number:     parseInt(n),
-            quantity:        parseFloat(row.querySelector('.inp-qty').value)     || 0,
-            unit_price:      parseFloat(row.querySelector('.inp-unit').value)    || 0,
-            air_total:       parseFloat(row.querySelector('.inp-air').value)     || null,
-            ocean_total:     parseFloat(row.querySelector('.inp-ocean').value)   || null,
-            air_lead_time:   row.querySelector('.inp-air-lead').value.trim(),
-            ocean_lead_time: row.querySelector('.inp-ocean-lead').value.trim(),
+            tier_number:     seq++,
+            quantity:        qty,
+            unit_price:      unit,
+            air_total:       air,
+            ocean_total:     ocean,
+            air_lead_time:   airLead,
+            ocean_lead_time: oceanLead,
         });
     });
     return {
