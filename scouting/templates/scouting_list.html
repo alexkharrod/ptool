@@ -43,14 +43,16 @@
             </select>
         </div>
         <div class="col-md-3">
-            <select name="show" class="form-select">
-                <option value="">All Shows</option>
+            <input type="text" name="show" class="form-control"
+                   placeholder="Filter by show…"
+                   value="{{ show_filter }}"
+                   list="show-suggestions"
+                   autocomplete="off">
+            <datalist id="show-suggestions">
                 {% for show in shows %}
-                <option value="{{ show }}" {% if show_filter == show %}selected{% endif %}>
-                    {{ show }}
-                </option>
+                <option value="{{ show }}">
                 {% endfor %}
-            </select>
+            </datalist>
         </div>
         <div class="col-md-2 d-flex gap-2">
             <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
