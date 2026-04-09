@@ -16,6 +16,39 @@ from .models import Category, ImprintMethod, Product, Vendor, HtsCode
 
 
 @login_required
+def next_sku(request):
+    """Return the next available SKU for a given category code."""
+    import re
+    code = request.GET.get("category", "").strip().upper()
+    if not code:
+        return JsonResponse({"error": "No category provided"}, status=400)
+    try:
+        category = Category.objects.get(code=code)
+    except Category.DoesNotExist:
+        return JsonResponse({"error": "Category not found"}, status=404)
+
+    # Find all SKUs that start with this category code followed by digits
+    pattern = re.compile(r"^" + re.escape(code) + r"(\d+)$", re.IGNORECASE)
+    existing_nums = []
+    for sku in Product.objects.filter(sku__istartswith=code).values_list("sku", flat=True):
+        m = pattern.match(sku)
+        if m:
+            existing_nums.append(int(m.group(1)))
+
+    if existing_nums:
+        next_num = max(existing_nums) + 1
+    else:
+        next_num = category.sku_seed
+
+    # Walk forward until we find a SKU that doesn't exist (handles gaps/manual entries)
+    all_skus = set(Product.objects.filter(sku__istartswith=code).values_list("sku", flat=True))
+    while f"{code}{next_num}" in all_skus:
+        next_num += 1
+
+    return JsonResponse({"sku": f"{code}{next_num}"})
+
+
+@login_required
 def view_product(request, pk):
     product = get_object_or_404(Product, pk=pk)
     return render(request, "view_product.html", {"product": product})
@@ -109,8 +142,14 @@ def add_product(request):
     if request.method == "POST":
         form = CreateProductForm(request.POST, request.FILES)
         if form.is_valid():
-            product = form.save()
-            return redirect("view_product", pk=product.pk)
+            try:
+                product = form.save()
+                return redirect("view_product", pk=product.pk)
+            except Exception as e:
+                if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+                    form.add_error("sku", "That SKU already exists — please choose a different one.")
+                else:
+                    form.add_error(None, f"Could not save product: {e}")
     else:
         form = CreateProductForm()
     hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
