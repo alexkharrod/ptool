@@ -31,13 +31,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    # Additional custom fields
+    # Section access flags — staff users bypass these automatically
+    access_products = models.BooleanField(default=False, help_text="Can access Products section")
+    access_quotes   = models.BooleanField(default=False, help_text="Can access Quotes section")
+    access_scouting = models.BooleanField(default=False, help_text="Can access Scouting section")
+
+    # Legacy fields (kept for compatibility during migration)
     role = models.CharField(
         max_length=20,
         choices=[('Admin', 'Admin'), ('Marketing', 'Marketing'), ('User', 'User')],
         default='User'
     )
-    scouting_only = models.BooleanField(default=False, help_text="Restrict user to scouting section only")
+    scouting_only = models.BooleanField(default=False, help_text="[Deprecated] Superseded by access_scouting")
     must_change_password = models.BooleanField(default=False, help_text="Force password change on next login")
 
     # User Manager
@@ -49,3 +54,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    # Convenience properties — always True for staff
+    @property
+    def can_access_products(self):
+        return self.is_staff or self.access_products
+
+    @property
+    def can_access_quotes(self):
+        return self.is_staff or self.access_quotes
+
+    @property
+    def can_access_scouting(self):
+        return self.is_staff or self.access_scouting

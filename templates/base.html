@@ -45,23 +45,27 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    {% if not user.scouting_only %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'quotes' %}">
-                            <i class="bi bi-file-text me-1"></i>Quotes
-                        </a>
-                    </li>
+                    {% if user.can_access_products %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'products' %}">
                             <i class="bi bi-box-seam me-1"></i>Products
                         </a>
                     </li>
                     {% endif %}
+                    {% if user.can_access_quotes %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'quotes' %}">
+                            <i class="bi bi-file-text me-1"></i>Quotes
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user.can_access_scouting %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'scouting_list' %}">
                             <i class="bi bi-binoculars me-1"></i>Scouting
                         </a>
                     </li>
+                    {% endif %}
                     {% if user.is_authenticated and user.is_staff %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -76,6 +80,10 @@
                             </a></li>
                             <li><a class="dropdown-item" href="{% url 'category_list' %}">
                                 <i class="bi bi-tags me-2"></i>Categories
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'user_manage' %}">
+                                <i class="bi bi-people me-2"></i>Users
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/admin/">

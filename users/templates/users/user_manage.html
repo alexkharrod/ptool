@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Users</h1>
+    <a href="{% url 'user_create' %}" class="btn btn-success">
+      <i class="bi bi-person-plus me-1"></i>New User
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th class="text-center">Products</th>
+            <th class="text-center">Quotes</th>
+            <th class="text-center">Scouting</th>
+            <th class="text-center">Active</th>
+            <th class="text-center">Staff</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              {{ u.get_full_name|default:"—" }}
+              {% if u.must_change_password %}
+                <span class="badge bg-warning text-dark ms-1" title="Must change password">pw</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ u.email }}</td>
+
+            {# Products #}
+            <td class="text-center">
+              {% if u.is_staff %}
+                <i class="bi bi-check-circle-fill text-success" title="Staff — full access"></i>
+              {% else %}
+                <input type="checkbox" class="form-check-input access-toggle"
+                       data-pk="{{ u.pk }}" data-field="access_products"
+                       {% if u.access_products %}checked{% endif %}>
+              {% endif %}
+            </td>
+            {# Quotes #}
+            <td class="text-center">
+              {% if u.is_staff %}
+                <i class="bi bi-check-circle-fill text-success" title="Staff — full access"></i>
+              {% else %}
+                <input type="checkbox" class="form-check-input access-toggle"
+                       data-pk="{{ u.pk }}" data-field="access_quotes"
+                       {% if u.access_quotes %}checked{% endif %}>
+              {% endif %}
+            </td>
+            {# Scouting #}
+            <td class="text-center">
+              {% if u.is_staff %}
+                <i class="bi bi-check-circle-fill text-success" title="Staff — full access"></i>
+              {% else %}
+                <input type="checkbox" class="form-check-input access-toggle"
+                       data-pk="{{ u.pk }}" data-field="access_scouting"
+                       {% if u.access_scouting %}checked{% endif %}>
+              {% endif %}
+            </td>
+
+            <td class="text-center">
+              {% if u.is_staff %}
+                <i class="bi bi-check-circle-fill text-success" title="Staff — always active"></i>
+              {% else %}
+                <input type="checkbox"
+                       class="form-check-input access-toggle"
+                       data-pk="{{ u.pk }}"
+                       data-field="is_active"
+                       {% if u.is_active %}checked{% endif %}>
+              {% endif %}
+            </td>
+
+            <td class="text-center">
+              {% if u.is_staff %}
+                <i class="bi bi-shield-fill-check text-primary" title="Staff"></i>
+              {% else %}
+                <i class="bi bi-dash text-muted"></i>
+              {% endif %}
+            </td>
+
+            <td class="text-end pe-3">
+              <a href="{% url 'user_edit' u.pk %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-4">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-2">Click a checkbox to instantly toggle access. Staff users always have full access.</p>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+document.querySelectorAll('.access-toggle').forEach(function(cb) {
+  cb.addEventListener('change', function() {
+    const pk    = this.dataset.pk;
+    const field = this.dataset.field;
+    const checkbox = this;
+    checkbox.disabled = true;
+
+    fetch(`/users/manage/toggle/${pk}/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ field: field }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        checkbox.checked = data.value;
+      } else {
+        checkbox.checked = !checkbox.checked;
+      }
+      checkbox.disabled = false;
+    })
+    .catch(() => {
+      checkbox.checked = !checkbox.checked;
+      checkbox.disabled = false;
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -19,10 +19,21 @@ def service_worker(request):
 
 @login_required
 def home(request):
-    if getattr(request.user, "scouting_only", False):
+    user = request.user
+    # Staff see the full dashboard
+    if user.is_staff:
+        from django.shortcuts import render
+        return render(request, "index.html")
+    # Non-staff: route to their first accessible section
+    if user.access_products:
+        return redirect("products")
+    if user.access_quotes:
+        return redirect("quotes")
+    if user.access_scouting:
         return redirect("scouting_list")
+    # No access flags set yet — show a holding page
     from django.shortcuts import render
-    return render(request, "index.html")
+    return render(request, "no_access.html")
 
 
 urlpatterns = [

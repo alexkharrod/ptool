@@ -1,18 +1,15 @@
 from django.shortcuts import redirect
 
-
 # URLs a must-change-password user can still visit
 _PASSWORD_EXEMPT = ["/users/change-password/", "/login/", "/logout/", "/sw.js", "/static/"]
-
-# URL prefixes a scouting-only user is NOT allowed to visit
-_SCOUTING_BLOCKED = ["/products/", "/quotes/", "/admin/"]
 
 
 class PtoolAccessMiddleware:
     """
     Two access rules applied after authentication:
     1. must_change_password  → redirect to change-password page until they set one.
-    2. scouting_only         → redirect away from products/quotes to scouting.
+    2. Section access flags  → staff bypass everything; non-staff are blocked from
+       sections where their access_products / access_quotes / access_scouting is False.
     """
 
     def __init__(self, get_response):
@@ -27,10 +24,15 @@ class PtoolAccessMiddleware:
             ):
                 return redirect("change_password")
 
-            # Rule 2: scouting-only access
-            if getattr(user, "scouting_only", False) and any(
-                request.path.startswith(u) for u in _SCOUTING_BLOCKED
-            ):
-                return redirect("scouting_list")
+            # Rule 2: section access control (staff always bypass)
+            if not user.is_staff:
+                if request.path.startswith("/products/") and not user.access_products:
+                    return redirect("home")
+                if request.path.startswith("/quotes/") and not user.access_quotes:
+                    return redirect("home")
+                if request.path.startswith("/scouting/") and not user.access_scouting:
+                    return redirect("home")
+                if request.path.startswith("/admin/"):
+                    return redirect("home")
 
         return self.get_response(request)
