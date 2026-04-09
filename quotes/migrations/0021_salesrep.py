@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         # 2. Remove the old User FK on CustomerQuote
         migrations.RemoveField(
             model_name="customerquote",
-            field_name="rep",
+            name="rep",
         ),
 
         # 3. Add new SalesRep FK on CustomerQuote
