@@ -137,12 +137,8 @@
                     <td>{{ product.ocean_freight }}</td>
                 </tr>
                 <tr>
-                    <th>Duty Percentage:</th>
-                    <td>{{ product.duty_percent }}%</td>
-                </tr>
-                <tr>
-                    <th>Tariff Percentage:</th>
-                    <td>{{ product.tariff_percent }}%</td>
+                    <th>Duties & Tariffs:</th>
+                    <td class="text-muted">{{ product.duty_summary }}</td>
                 </tr>
             </table>
 
@@ -186,6 +182,7 @@
             <div class="text-end mt-4">
                 <a href="{% if request.GET.back %}{{ request.GET.back }}{% else %}{% url 'products' %}{% endif %}" class="btn btn-secondary">Back to Products</a>
                 <a href="{% url 'edit_product' product.pk %}{% if request.GET.back %}?back={{ request.GET.back|urlencode }}{% endif %}" class="btn btn-warning">Edit</a>
+                <a href="{% url 'add_product' %}" class="btn btn-success">+ Create Another Product</a>
                 <button class="btn btn-success" id="genDescBtn" onclick="generateDescription()">
                     ✦ Generate Website Description
                 </button>

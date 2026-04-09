@@ -34,6 +34,7 @@ def compress_image(image_field, max_width=800, quality=72):
 class Category(models.Model):
     code = models.CharField(max_length=10, unique=True)
     description = models.CharField(max_length=100)
+    sku_seed = models.PositiveIntegerField(default=1, help_text="Starting number for auto-generated SKUs in this category")
 
     class Meta:
         ordering = ["code"]
@@ -229,6 +230,22 @@ class Product(models.Model):
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="Open")
 
     date_created = models.DateTimeField(default=now)
+
+    @property
+    def duty_summary(self):
+        """Returns a formatted duty summary string, preferring the linked HTS code for all 3 values."""
+        if self.hts_code:
+            h = self.hts_code
+            duty = h.duty_percent
+            section301 = h.section_301_percent
+            extra = h.extra_tariff_percent
+            total = h.total_percent
+        else:
+            duty = self.duty_percent or 0
+            section301 = self.tariff_percent or 0
+            extra = 0
+            total = duty + section301
+        return f"Duty: {duty}% | Section 301: {section301}% | Extra (RT): {extra}% | Total: {total}%"
 
     def __str__(self):
         return f"{self.sku} — {self.name}"
