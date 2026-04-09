@@ -19,7 +19,7 @@
     display: flex; justify-content: space-between; align-items: flex-start;
     border-bottom: 3px solid #1a3c6e; padding-bottom: 10px; margin-bottom: 12px;
   }
-  .company-logo { height: 48px; width: auto; flex-shrink: 0; margin-right: 10px; }
+  .company-logo { height: 48px; width: 48px; object-fit: contain; flex-shrink: 0; margin-right: 14px; }
   .company-left { display: flex; align-items: flex-start; }
   .company-name { font-size: 22px; font-weight: 800; color: #1a3c6e; letter-spacing: -0.5px; line-height: 1.15; }
   .company-tagline { font-size: 10px; color: #888; margin-top: 2px; }
@@ -124,7 +124,7 @@
   {% else %}
   <div class="cont-header">
     <div style="display:flex; align-items:center; gap:7px;">
-      {% if logo_b64 %}<img src="data:image/png;base64,{{ logo_b64 }}" style="height:22px; width:auto;" alt="LogoIncluded">{% endif %}
+      {% if logo_b64 %}<img src="data:image/png;base64,{{ logo_b64 }}" style="height:22px; width:22px; object-fit:contain; margin-right:6px;" alt="LogoIncluded">{% endif %}
       <span class="cont-company">LogoIncluded</span>
     </div>
     <div class="cont-qnum">{{ cq.quote_number|default:"QUOTE" }} &nbsp;·&nbsp; {{ cq.customer_name }} &nbsp;·&nbsp; {{ cq.date|date:"M j, Y" }}</div>
