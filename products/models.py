@@ -130,6 +130,7 @@ class ImprintMethod(models.Model):
 
 class Product(models.Model):
     STATUS_CHOICES = [
+        ("Quote Only", "Quote Only"),
         ("Open", "Open"),
         ("Published", "Published"),
         ("Canceled", "Canceled"),
@@ -148,8 +149,8 @@ class Product(models.Model):
     image = models.ImageField(upload_to="products/", null=True, blank=True)
     moq = models.IntegerField()
     package = models.CharField(max_length=50)
-    production_time = models.CharField(max_length=50)
-    estimated_launch = models.CharField(max_length=50)
+    production_time = models.CharField(max_length=50, blank=True)
+    estimated_launch = models.CharField(max_length=50, blank=True)
     description = models.TextField(max_length=500)
 
     # Vendor info:
@@ -157,7 +158,7 @@ class Product(models.Model):
     vendor_ref = models.ForeignKey(
         "Vendor", null=True, blank=True, on_delete=models.SET_NULL, related_name="products"
     )
-    vendor_sku = models.CharField(max_length=50)
+    vendor_sku = models.CharField(max_length=50, blank=True)
 
     # Master Carton info:
     carton_qty = models.IntegerField()
