@@ -116,7 +116,7 @@
 
 <!-- All existing vendor names as JSON for client-side fuzzy matching -->
 <script>
-const VENDOR_NAMES = {{ vendor_names_json }};
+const VENDOR_NAMES = {{ vendor_names_json|safe }};
 
 // ── Vendor dropdown change ────────────────────────────────────────────────────
 function onVendorChange(sel) {
