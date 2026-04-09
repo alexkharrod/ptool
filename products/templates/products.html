@@ -74,9 +74,21 @@
                     Category {% if sort == 'category' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
                   </a>
                 </th>
-                <th scope="col">Price List</th>
-                <th scope="col">NPDS</th>
-                <th scope="col">QB SKU</th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=price_list&dir={% if sort == 'price_list' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    Price List {% if sort == 'price_list' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=npds_done&dir={% if sort == 'npds_done' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    NPDS {% if sort == 'npds_done' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
+                <th scope="col">
+                  <a href="?{{ base_params }}&sort=qb_added&dir={% if sort == 'qb_added' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+                    QB SKU {% if sort == 'qb_added' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                  </a>
+                </th>
                 <th scope="col">
                   <a href="?{{ base_params }}&sort=status&dir={% if sort == 'status' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
                     Status {% if sort == 'status' %}{% if dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %}

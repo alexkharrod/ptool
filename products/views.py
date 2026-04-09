@@ -50,7 +50,7 @@ def products(request):
     sort = request.GET.get("sort", "date_created")
     direction = request.GET.get("dir", "desc")
 
-    allowed_sorts = {"sku", "name", "category", "status", "date_created"}
+    allowed_sorts = {"sku", "name", "category", "status", "date_created", "price_list", "npds_done", "qb_added"}
     if sort not in allowed_sorts:
         sort = "sku"
     if direction not in ("asc", "desc"):
