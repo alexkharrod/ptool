@@ -144,15 +144,15 @@ class Product(models.Model):
     ]
 
     sku = models.CharField(max_length=20, unique=True, null=False)
-    name = models.CharField(max_length=150)
+    name = models.CharField(max_length=150, blank=True)
     category = models.CharField(max_length=50, blank=True)
     image_url = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="products/", null=True, blank=True)
-    moq = models.IntegerField()
-    package = models.CharField(max_length=50)
+    moq = models.IntegerField(null=True, blank=True)
+    package = models.CharField(max_length=50, blank=True)
     production_time = models.CharField(max_length=50, blank=True)
     estimated_launch = models.CharField(max_length=50, blank=True)
-    description = models.TextField(max_length=500)
+    description = models.TextField(max_length=500, blank=True)
 
     # Vendor info:
     vendor = models.CharField(max_length=50)  # legacy text field — kept for backwards compat
@@ -162,11 +162,11 @@ class Product(models.Model):
     vendor_sku = models.CharField(max_length=50, blank=True)
 
     # Master Carton info:
-    carton_qty = models.IntegerField()
-    carton_weight = models.DecimalField(max_digits=10, decimal_places=2)
-    carton_width = models.DecimalField(max_digits=10, decimal_places=2)
-    carton_length = models.DecimalField(max_digits=10, decimal_places=2)
-    carton_height = models.DecimalField(max_digits=10, decimal_places=2)
+    carton_qty = models.IntegerField(null=True, blank=True)
+    carton_weight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    carton_width = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    carton_length = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    carton_height = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Imprint info:
     imprint_location = models.CharField(max_length=50, blank=True)
@@ -212,10 +212,10 @@ class Product(models.Model):
     )
 
     # Freight Costs
-    air_freight = models.DecimalField(max_digits=10, decimal_places=2)
-    ocean_freight = models.DecimalField(max_digits=10, decimal_places=2)
-    duty_percent = models.DecimalField(max_digits=10, decimal_places=2)
-    tariff_percent = models.DecimalField(max_digits=10, decimal_places=2)
+    air_freight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    ocean_freight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    duty_percent = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    tariff_percent = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # To add checkboxes:
     price_list = models.BooleanField(default=False)
@@ -224,7 +224,7 @@ class Product(models.Model):
     npds_done = models.BooleanField(default=False)
     qb_added = models.BooleanField(default=False)
     published = models.BooleanField(default=False)
-    colors = models.CharField(max_length=150)
+    colors = models.CharField(max_length=150, blank=True)
 
     # Product Status
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="Open")
@@ -244,7 +244,7 @@ class Product(models.Model):
             duty = self.duty_percent or 0
             section301 = self.tariff_percent or 0
             extra = 0
-            total = duty + section301
+            total = (duty or 0) + (section301 or 0)
         return f"Duty: {duty}% | Section 301: {section301}% | Extra (RT): {extra}% | Total: {total}%"
 
     def __str__(self):
