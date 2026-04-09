@@ -14,13 +14,11 @@ REPS = [
 def seed_reps(apps, schema_editor):
     SalesRep = apps.get_model("quotes", "SalesRep")
     for full_name, initials in REPS:
-        # Update by name if exists, otherwise create
         rep = SalesRep.objects.filter(name__iexact=full_name).first()
         if rep:
             rep.initials = initials
             rep.save()
         else:
-            # Also check by initials to avoid unique collision
             if not SalesRep.objects.filter(initials=initials).exists():
                 SalesRep.objects.create(name=full_name, initials=initials)
 
@@ -36,17 +34,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Add as nullable so existing rows get NULL (not ""), which is safe
+        # to have multiple of in a unique index.
         migrations.AddField(
             model_name="salesrep",
             name="initials",
-            field=models.CharField(blank=True, max_length=5, default=""),
+            field=models.CharField(blank=True, null=True, max_length=5, default=None),
             preserve_default=False,
         ),
-        # Make initials unique after seeding (can't be unique on AddField with existing rows)
+        # Seed the 6 known reps
         migrations.RunPython(seed_reps, reverse_seed),
+        # Now make unique — NULL values are fine; only non-null values must be unique
         migrations.AlterField(
             model_name="salesrep",
             name="initials",
-            field=models.CharField(blank=True, max_length=5, unique=True),
+            field=models.CharField(blank=True, null=True, max_length=5, unique=True),
         ),
     ]

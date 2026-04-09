@@ -17,7 +17,7 @@ from products.models import HtsCode, Vendor
 class SalesRep(models.Model):
     """A sales rep — initials used in quote numbers, full name on PDFs."""
     name     = models.CharField(max_length=100, unique=True)   # full name, e.g. "Alex Harrod"
-    initials = models.CharField(max_length=5,   unique=True, blank=True)  # e.g. "AH"
+    initials = models.CharField(max_length=5, unique=True, blank=True, null=True)  # e.g. "AH"
 
     class Meta:
         ordering = ['name']
