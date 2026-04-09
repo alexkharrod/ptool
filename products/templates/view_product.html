@@ -49,6 +49,12 @@
                             <th>Status:</th>
                             <td>{{ product.status }}</td>
                         </tr>
+                        {% if product.source_show %}
+                        <tr>
+                            <th>Scouted At:</th>
+                            <td>{{ product.source_show }}</td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <th>Specifications:</th>
                             <td>{{ product.description }}</td>

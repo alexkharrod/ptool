@@ -229,6 +229,10 @@ class Product(models.Model):
     # Product Status
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="Open")
 
+    # Scouting origin — set when promoted from a scouting prospect
+    source_show = models.CharField(max_length=150, blank=True,
+        help_text="Trade show this product was scouted at (set automatically on promotion).")
+
     date_created = models.DateTimeField(default=now)
 
     @property

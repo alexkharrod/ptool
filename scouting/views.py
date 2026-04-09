@@ -27,11 +27,11 @@ def scouting_list(request):
     queryset = Prospect.objects.all()
 
     if status_filter == "all":
-        pass  # Show everything including Rejected
+        pass  # Show everything
     elif status_filter:
         queryset = queryset.filter(status=status_filter)
     else:
-        queryset = queryset.exclude(status="Rejected")
+        queryset = queryset.exclude(status__in=["Rejected", "Adding"])  # default: active only
 
     if show_filter:
         queryset = queryset.filter(show_name__icontains=show_filter)
@@ -167,6 +167,7 @@ def scouting_promote(request, pk):
                 colors=prospect.colors or "",
                 production_time=prospect.lead_time or "",
                 status="Open",
+                source_show=prospect.show_name or "",
             )
             product.save()
 
