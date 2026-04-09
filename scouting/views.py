@@ -133,6 +133,7 @@ def set_active_show(request):
 @login_required
 def scouting_promote(request, pk):
     """Lean intermediate screen: pick Category + Vendor, auto-generate SKU, then create product stub."""
+    import json as _json
     from products.models import Category, Product, Vendor
 
     prospect = get_object_or_404(Prospect, pk=pk)
@@ -143,15 +144,32 @@ def scouting_promote(request, pk):
         sku = request.POST.get("sku", "").strip().upper()
         category_code = request.POST.get("category", "").strip()
         vendor_ref_id = request.POST.get("vendor_ref", "").strip()
+        new_vendor_name = request.POST.get("new_vendor_name", "").strip()
+        new_vendor_country = request.POST.get("new_vendor_country", "CN").strip()
 
         if not sku:
             errors.append("SKU is required.")
         elif Product.objects.filter(sku=sku).exists():
             errors.append(f"SKU '{sku}' already exists — please choose a different one.")
 
+        # Validate new vendor name if that path was chosen
+        if vendor_ref_id == "__new__" and not new_vendor_name:
+            errors.append("Please enter a name for the new vendor.")
+
         if not errors:
             vendor_ref = None
-            if vendor_ref_id:
+
+            if vendor_ref_id == "__new__" and new_vendor_name:
+                # Try case-insensitive exact match first to avoid true duplicates
+                existing = Vendor.objects.filter(name__iexact=new_vendor_name).first()
+                if existing:
+                    vendor_ref = existing
+                else:
+                    vendor_ref = Vendor.objects.create(
+                        name=new_vendor_name,
+                        country=new_vendor_country,
+                    )
+            elif vendor_ref_id:
                 try:
                     vendor_ref = Vendor.objects.get(pk=vendor_ref_id)
                 except Vendor.DoesNotExist:
@@ -191,10 +209,13 @@ def scouting_promote(request, pk):
 
     categories = Category.objects.all()
     vendors = Vendor.objects.order_by("name")
+    vendor_names_json = _json.dumps([v.name for v in vendors])
+
     return render(request, "scouting_promote.html", {
         "prospect": prospect,
         "categories": categories,
         "vendors": vendors,
+        "vendor_names_json": vendor_names_json,
         "errors": errors,
         "posted": request.POST if errors else {},
     })

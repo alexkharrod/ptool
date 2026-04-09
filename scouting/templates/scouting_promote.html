@@ -55,18 +55,55 @@
             <div class="form-text">Auto-generated from category — edit if needed.</div>
         </div>
 
+        <!-- ── Vendor field ──────────────────────────────────────────────── -->
         <div class="mb-4">
             <label class="form-label fw-semibold">Vendor</label>
-            <select name="vendor_ref" class="form-select">
+
+            <select name="vendor_ref" id="id_vendor_ref" class="form-select" onchange="onVendorChange(this)">
                 <option value="">— Select Vendor (optional) —</option>
                 {% for v in vendors %}
-                <option value="{{ v.pk }}" {% if posted.vendor_ref == v.pk|stringformat:"s" %}selected{% endif %}>
+                <option value="{{ v.pk }}"
+                    {% if posted.vendor_ref == v.pk|stringformat:"s" %}selected{% endif %}>
                     {{ v.name }}
                 </option>
                 {% endfor %}
+                <option value="__new__">＋ Add new vendor…</option>
             </select>
-            <div class="form-text">Scouting vendor: <strong>{{ prospect.vendor_name }}</strong></div>
+
+            <div class="form-text mb-2">
+                Scouting vendor: <strong>{{ prospect.vendor_name }}</strong>
+            </div>
+
+            <!-- New vendor panel — hidden until "＋ Add new vendor" is chosen -->
+            <div id="newVendorPanel" class="card border-primary mt-2" style="display:none;">
+                <div class="card-body py-3">
+                    <div class="fw-semibold mb-2 text-primary">New Vendor</div>
+
+                    <div class="mb-2">
+                        <input type="text" name="new_vendor_name" id="id_new_vendor_name"
+                               class="form-control"
+                               placeholder="Vendor name (e.g. Moldull)"
+                               value="{{ posted.new_vendor_name|default:'' }}"
+                               oninput="checkVendorSimilarity(this.value)">
+                    </div>
+
+                    <div class="mb-2">
+                        <select name="new_vendor_country" id="id_new_vendor_country" class="form-select form-select-sm" style="max-width:200px;">
+                            <option value="CN" {% if posted.new_vendor_country == "CN" or not posted.new_vendor_country %}selected{% endif %}>🇨🇳 China</option>
+                            <option value="US" {% if posted.new_vendor_country == "US" %}selected{% endif %}>🇺🇸 United States</option>
+                            <option value="TW" {% if posted.new_vendor_country == "TW" %}selected{% endif %}>🇹🇼 Taiwan</option>
+                            <option value="VN" {% if posted.new_vendor_country == "VN" %}selected{% endif %}>🇻🇳 Vietnam</option>
+                            <option value="IN" {% if posted.new_vendor_country == "IN" %}selected{% endif %}>🇮🇳 India</option>
+                            <option value="OTHER" {% if posted.new_vendor_country == "OTHER" %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Fuzzy match warning -->
+                    <div id="vendorSimilarWarning" style="display:none;"></div>
+                </div>
+            </div>
         </div>
+        <!-- ── End Vendor field ──────────────────────────────────────────── -->
 
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-success btn-lg">
@@ -77,13 +114,113 @@
     </form>
 </div>
 
+<!-- All existing vendor names as JSON for client-side fuzzy matching -->
 <script>
-// Auto-fill SKU when category is selected (same logic as add_product)
+const VENDOR_NAMES = {{ vendor_names_json }};
+
+// ── Vendor dropdown change ────────────────────────────────────────────────────
+function onVendorChange(sel) {
+    const panel = document.getElementById('newVendorPanel');
+    if (sel.value === '__new__') {
+        panel.style.display = 'block';
+        document.getElementById('id_new_vendor_name').focus();
+    } else {
+        panel.style.display = 'none';
+        document.getElementById('id_new_vendor_name').value = '';
+        document.getElementById('vendorSimilarWarning').style.display = 'none';
+    }
+}
+
+// ── Fuzzy vendor name check ───────────────────────────────────────────────────
+// Checks two ways:
+//   1. Any word (4+ chars) in the typed name appears inside an existing vendor name
+//   2. Simple character similarity ratio (Dice bigram coefficient) >= 0.55
+
+function diceSimilarity(a, b) {
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+    if (a === b) return 1.0;
+    if (a.length < 2 || b.length < 2) return 0;
+    const bigrams = s => {
+        const set = new Set();
+        for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i+2));
+        return set;
+    };
+    const A = bigrams(a), B = bigrams(b);
+    let overlap = 0;
+    A.forEach(bg => { if (B.has(bg)) overlap++; });
+    return (2 * overlap) / (A.size + B.size);
+}
+
+function wordOverlap(typed, existing) {
+    const typedWords   = typed.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+    const existingLow  = existing.toLowerCase();
+    return typedWords.some(w => existingLow.includes(w));
+}
+
+function checkVendorSimilarity(typed) {
+    const warningEl = document.getElementById('vendorSimilarWarning');
+    typed = typed.trim();
+    if (typed.length < 3) {
+        warningEl.style.display = 'none';
+        return;
+    }
+
+    const matches = VENDOR_NAMES
+        .map(name => ({
+            name,
+            score: Math.max(diceSimilarity(typed, name), wordOverlap(typed, name) ? 0.7 : 0),
+        }))
+        .filter(m => m.score >= 0.55)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4);
+
+    if (matches.length === 0) {
+        warningEl.style.display = 'none';
+        return;
+    }
+
+    const items = matches.map(m => {
+        const pct = Math.round(m.score * 100);
+        const badge = pct >= 85 ? 'danger' : pct >= 65 ? 'warning' : 'secondary';
+        return `<div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+            <span>${m.name}</span>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-${badge} text-${badge === 'warning' ? 'dark' : 'white'}">${pct}% match</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                    onclick="useExistingVendor(${JSON.stringify(m.name)})">Use this one</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    warningEl.innerHTML = `
+        <div class="alert alert-warning py-2 mb-0">
+            <div class="fw-semibold small mb-1">⚠ Similar vendors already exist:</div>
+            ${items}
+        </div>`;
+    warningEl.style.display = 'block';
+}
+
+function useExistingVendor(name) {
+    // Find the option in the select that matches this name and select it
+    const sel = document.getElementById('id_vendor_ref');
+    for (const opt of sel.options) {
+        if (opt.text.trim() === name) {
+            sel.value = opt.value;
+            break;
+        }
+    }
+    document.getElementById('newVendorPanel').style.display = 'none';
+    document.getElementById('id_new_vendor_name').value = '';
+    document.getElementById('vendorSimilarWarning').style.display = 'none';
+}
+
+// ── Auto-fill SKU when category is selected ───────────────────────────────────
 document.getElementById('id_category').addEventListener('change', async function () {
     const code = this.value;
     if (!code) return;
     const skuInput = document.getElementById('id_sku');
-    if (skuInput.value.trim()) return; // don't overwrite if already set
+    if (skuInput.value.trim()) return;
     try {
         const resp = await fetch(`/products/next-sku/?category=${encodeURIComponent(code)}`);
         if (!resp.ok) return;
@@ -91,5 +228,14 @@ document.getElementById('id_category').addEventListener('change', async function
         if (data.sku) skuInput.value = data.sku;
     } catch (e) {}
 });
+
+// Re-show new vendor panel if it was posted back (validation error re-render)
+{% if posted.vendor_ref == "__new__" %}
+document.getElementById('id_vendor_ref').value = '__new__';
+document.getElementById('newVendorPanel').style.display = 'block';
+{% if posted.new_vendor_name %}
+checkVendorSimilarity("{{ posted.new_vendor_name|escapejs }}");
+{% endif %}
+{% endif %}
 </script>
 {% endblock %}
