@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ cq.quote_number }}{% endblock %}
+{% block title %}{{ cq.quote_number|default:"Draft" }}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
         <div>
             <a href="{% url 'cq_list' %}" class="text-muted small">← Quotes</a>
-            <h2 class="mt-1 mb-0">{{ cq.quote_number }}</h2>
+            <h2 class="mt-1 mb-0">{{ cq.quote_number|default:"Draft" }}</h2>
         </div>
         <div class="d-flex gap-2">
             <a href="{% url 'cq_edit' cq.pk %}" class="btn btn-primary">Edit</a>
@@ -59,7 +59,7 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <!-- Image + HTS -->
+                <!-- Image only (no HTS) -->
                 <div class="col-md-3 text-center">
                     {% if item.product.image %}
                     <img src="{{ item.product.image.url }}" class="img-fluid rounded mb-2"
@@ -67,17 +67,6 @@
                     {% endif %}
                     {% if item.product.website_url %}
                     <div><a href="{{ item.product.website_url }}" target="_blank" class="small">↗ View on site</a></div>
-                    {% endif %}
-                    {% if item.product.hts_code %}
-                    <div class="mt-2 p-2 bg-light rounded border" style="font-size:11px;">
-                        <div class="fw-bold text-muted mb-1">HTS {{ item.product.hts_code.code }}</div>
-                        <div class="d-flex justify-content-around text-center">
-                            <div><div class="text-muted">Duty</div><strong>{{ item.product.hts_code.duty_percent }}%</strong></div>
-                            <div><div class="text-muted">Sec.301</div><strong>{{ item.product.hts_code.section_301_percent }}%</strong></div>
-                            <div><div class="text-muted">Extra</div><strong>{{ item.product.hts_code.extra_tariff_percent }}%</strong></div>
-                        </div>
-                        <div class="text-center border-top mt-1 pt-1">Total: <strong class="text-danger">{{ item.product.hts_code.total_percent }}%</strong></div>
-                    </div>
                     {% endif %}
                 </div>
 
@@ -108,17 +97,16 @@
                         {% endif %}
                     </div>
 
-                    <!-- Pricing table -->
+                    <!-- Pricing table — no unit cost, updated column names -->
                     {% if item.tiers.exists %}
                     <table class="table table-sm table-bordered" style="font-size:13px;">
-                        <thead class="table-light">
+                        <thead class="table-dark">
                             <tr>
                                 <th>Qty</th>
-                                <th>Unit Price</th>
-                                <th>Air (Total)</th>
-                                <th>Air Lead</th>
-                                <th>Ocean (Total)</th>
-                                <th>Ocean Lead</th>
+                                <th>Air — Total Price</th>
+                                <th>Air Production Time</th>
+                                <th>Ocean — Total Price</th>
+                                <th>Ocean Production Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -126,10 +114,9 @@
                             {% if tier.quantity %}
                             <tr>
                                 <td><strong>{{ tier.quantity }}</strong></td>
-                                <td>${{ tier.unit_price }}</td>
-                                <td>{% if tier.air_total %}<strong>${{ tier.air_total }}</strong>{% else %}-{% endif %}</td>
+                                <td>{% if tier.air_total %}<strong>${{ tier.air_total }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                                 <td class="text-muted small">{{ tier.air_lead_time|default:"—" }}</td>
-                                <td>{% if tier.ocean_total %}<strong>${{ tier.ocean_total }}</strong>{% else %}-{% endif %}</td>
+                                <td>{% if tier.ocean_total %}<strong>${{ tier.ocean_total }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                                 <td class="text-muted small">{{ tier.ocean_lead_time|default:"—" }}</td>
                             </tr>
                             {% endif %}
@@ -137,7 +124,7 @@
                         </tbody>
                     </table>
                     {% endif %}
-                    {% if item.notes %}<div class="small text-muted fst-italic">{{ item.notes }}</div>{% endif %}
+                    {% if item.notes %}<div class="small text-muted fst-italic mt-1">{{ item.notes }}</div>{% endif %}
                 </div>
             </div>
         </div>
