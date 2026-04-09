@@ -259,6 +259,24 @@ def set_product_image(product, filename, image_bytes):
 # AI content generation  (shared with generate_web_content command)
 # ---------------------------------------------------------------------------
 
+import re as _re
+
+def _sanitize_bluetooth(text, is_retail):
+    """
+    For non-retail products, replace every occurrence of the word "Bluetooth"
+    (any capitalisation) with "wireless".
+
+    Retail products pay the Bluetooth SIG licensing fees, so they may use the
+    trademarked name.  Non-retail / generic promotional products must not.
+
+    This runs as a post-generation safety net even if the AI ignores the prompt
+    instruction.
+    """
+    if is_retail or not text:
+        return text
+    return _re.sub(r'\bBluetooth\b', 'wireless', text, flags=_re.IGNORECASE)
+
+
 def generate_description_for_product(product, api_key):
     """Generate a website-ready HTML product description via Claude Haiku."""
     import anthropic
@@ -270,7 +288,7 @@ def generate_description_for_product(product, api_key):
 RETAIL PRODUCT RULES (this is a genuine retail branded product):
 - Identify the brand name and parent company from the product name/description.
 - After all other content, append a trademark disclaimer paragraph using this exact format:
-  <p class="trademark-notice"><em>[Brand] and [Product Name] are trademarks of [Parent Company], registered in the U.S. and other countries. LogoIncluded is not affiliated with or endorsed by [Parent Company].</em></p>
+  <p class="trademark-notice"><em>[Brand] and [Product Name] are trademarks or registered trademarks of [Parent Company]. All brand names, trademarks, and registered trademarks are the property of their respective owners.</em></p>
 - Fill in [Brand], [Product Name], and [Parent Company] accurately (e.g. AirPods Pro → Apple Inc.).
 - If there are multiple brand trademarks, include all in one sentence.
 - Do NOT add a "SPECIAL ORDER:" prefix for retail products.
@@ -278,6 +296,7 @@ RETAIL PRODUCT RULES (this is a genuine retail branded product):
     else:
         retail_instructions = """
 - Do NOT use any brand names (Apple, Samsung, Google, etc.) in the description.
+- Do NOT use the word "Bluetooth" — it is a registered trademark and we are not licensed to use it for non-retail products. Use "wireless" instead in every case.
 - If the product is a special/custom order, start the opening paragraph with: <strong>SPECIAL ORDER:</strong>
 """
 
@@ -335,7 +354,8 @@ Rules:
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-    return message.content[0].text.strip()
+    raw = message.content[0].text.strip()
+    return _sanitize_bluetooth(raw, is_retail)
 
 
 def generate_keywords_for_product(product, api_key):
@@ -353,7 +373,8 @@ def generate_keywords_for_product(product, api_key):
     else:
         brand_rule = (
             "5. Do NOT use brand names (e.g. Apple, Samsung, Google, MagSafe, iPhone) — "
-            "this is a generic/custom promotional product, not a retail branded item."
+            "this is a generic/custom promotional product, not a retail branded item. "
+            "Do NOT use the word 'Bluetooth' (a registered trademark) — use 'wireless' instead."
         )
 
     prompt = f"""You are a product data specialist for LogoIncluded, a promotional products distributor.
@@ -386,7 +407,7 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
     )
-    raw = message.content[0].text.strip()
+    raw = _sanitize_bluetooth(message.content[0].text.strip(), is_retail)
 
     phrases = [p.strip() for p in raw.split(",") if p.strip()]
     phrases = [p for p in phrases if len(p) <= 30]
