@@ -28,6 +28,9 @@ def edit_product(request, pk):
         form = CreateProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
             form.save()
+            back = request.POST.get("back", "")
+            if back and back.startswith("/"):
+                return redirect(back)
             return redirect("view_product", pk=product.pk)
     else:
         form = CreateProductForm(instance=product)

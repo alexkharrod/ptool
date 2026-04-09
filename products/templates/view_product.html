@@ -184,8 +184,8 @@
 
             <!-- Actions -->
             <div class="text-end mt-4">
-                <a href="{% url 'products' %}" class="btn btn-secondary">Back to Products</a>
-                <a href="{% url 'edit_product' product.pk %}" class="btn btn-warning">Edit</a>
+                <a href="{% if request.GET.back %}{{ request.GET.back }}{% else %}{% url 'products' %}{% endif %}" class="btn btn-secondary">Back to Products</a>
+                <a href="{% url 'edit_product' product.pk %}{% if request.GET.back %}?back={{ request.GET.back|urlencode }}{% endif %}" class="btn btn-warning">Edit</a>
                 <button class="btn btn-success" id="genDescBtn" onclick="generateDescription()">
                     ✦ Generate Website Description
                 </button>
