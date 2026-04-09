@@ -16,15 +16,17 @@
 
   /* ── Quote header (first item only) ─────────────────────────────────── */
   .quote-header {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    border-bottom: 3px solid #1a3c6e; padding-bottom: 8px; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 3px solid #1a3c6e; padding-bottom: 10px; margin-bottom: 12px;
   }
-  .company-logo { height: 44px; width: auto; }
-  .company-name { font-size: 22px; font-weight: 800; color: #1a3c6e; letter-spacing: -0.5px; }
-  .company-tagline { font-size: 10px; color: #888; }
+  .company-logo { height: 48px; width: auto; flex-shrink: 0; margin-right: 10px; }
+  .company-left { display: flex; align-items: flex-start; }
+  .company-name { font-size: 22px; font-weight: 800; color: #1a3c6e; letter-spacing: -0.5px; line-height: 1.15; }
+  .company-tagline { font-size: 10px; color: #888; margin-top: 2px; }
+  .company-contact { font-size: 9.5px; color: #555; margin-top: 3px; line-height: 1.5; }
   .quote-info-right { text-align: right; }
   .quote-num { font-size: 16px; font-weight: 700; color: #1a3c6e; }
-  .quote-meta-line { font-size: 10px; color: #666; }
+  .quote-meta-line { font-size: 10px; color: #666; margin-top: 2px; }
 
   /* ── Continuation header (subsequent items) ─────────────────────────── */
   .cont-header {
@@ -100,11 +102,14 @@
   {# ── Header: full on first item, compact on rest ── #}
   {% if forloop.first %}
   <div class="quote-header">
-    <div style="display:flex; align-items:center; gap:10px;">
+    <div class="company-left">
       {% if logo_b64 %}<img src="data:image/png;base64,{{ logo_b64 }}" class="company-logo" alt="LogoIncluded">{% endif %}
       <div>
         <div class="company-name">LogoIncluded</div>
         <div class="company-tagline">Custom Branded Promotional Products</div>
+        <div class="company-contact">
+          salesteam@logoincluded.com &nbsp;·&nbsp; 678-947-0993
+        </div>
       </div>
     </div>
     <div class="quote-info-right">
