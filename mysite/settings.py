@@ -132,7 +132,7 @@ AXES_FAILURE_LIMIT        = 5          # failed attempts before lockout
 AXES_COOLOFF_TIME         = 1          # hours until auto-unlock
 AXES_RESET_ON_SUCCESS     = True       # reset counter on successful login
 AXES_LOCKOUT_TEMPLATE     = "lockout.html"
-AXES_LOCKOUT_PARAMETERS   = ["username"]  # lock by username, not IP (Railway proxies IPs)
+AXES_LOCKOUT_PARAMETERS   = [["username", "ip_address"]]  # lock by username+IP pair — prevents Railway proxy from locking all users on one bad attempt
 
 # ─── Internationalisation ────────────────────────────────────────────────────
 
