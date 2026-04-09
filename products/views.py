@@ -836,6 +836,42 @@ def product_web_content(request, pk):
 
 
 @login_required
+def quick_publish(request, pk):
+    """
+    AJAX endpoint for the inline 'Set URL & Publish' panel on the product view page.
+    Accepts JSON body with:
+      - website_url (str)  — the live URL to store
+      - status (str, opt)  — if "Published", flip status to Published
+    """
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    product = get_object_or_404(Product, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+    except (ValueError, AttributeError):
+        return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+
+    update_fields = []
+
+    url = data.get("website_url", "").strip()
+    if url != product.website_url:
+        product.website_url = url
+        update_fields.append("website_url")
+
+    if data.get("status") == "Published" and product.status != "Published":
+        product.status = "Published"
+        update_fields.append("status")
+        # Let the full save() run so date_published is auto-set by the model's save() logic
+        product.save()
+    elif update_fields:
+        product.save(update_fields=update_fields)
+
+    return JsonResponse({"ok": True, "status": product.status, "website_url": product.website_url})
+
+
+@login_required
 def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":

@@ -14,6 +14,7 @@ urlpatterns = [
     path("view/<int:pk>/", views.view_product, name="view_product"),
     path("npds/<int:product_id>/pdf/", views.npds, name="npds"),
     path("toggle-flag/<int:pk>/", views.toggle_product_flag, name="toggle_product_flag"),
+    path("quick-publish/<int:pk>/", views.quick_publish, name="quick_publish"),
     path("view/<int:pk>/generate-description/", views.generate_description, name="generate_description"),
     path("view/<int:pk>/generate-keywords/", views.generate_keywords, name="generate_keywords"),
     path("view/<int:pk>/web-content/", views.product_web_content, name="product_web_content"),

@@ -149,22 +149,91 @@
             </table>
 
             <!-- Website Content -->
-            {% if product.website_description or product.website_keywords %}
-            <h5 class="text-muted mt-4">Website Content</h5>
-            {% if product.website_description %}
-            <div class="mb-3">
-                <label class="fw-bold small text-muted">HTML Description</label>
-                <div class="border rounded p-3 bg-light" style="font-size:13px;">
-                    {{ product.website_description|safe }}
+            <h5 class="text-muted mt-4 d-flex align-items-center gap-2">
+                Website
+                {% if product.website_url %}
+                <a href="{{ product.website_url }}" target="_blank" class="btn btn-sm btn-outline-primary">↗ View Live Page</a>
+                {% endif %}
+            </h5>
+
+            {% if product.status != "Published" or not product.website_url %}
+            <!-- Quick publish / URL panel -->
+            <div class="card border-warning mb-3" id="publishPanel">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="text-warning fw-semibold small">
+                            {% if product.status != "Published" %}⚠ Not yet published{% else %}⚠ No website URL set{% endif %}
+                        </span>
+                        <input type="url" id="quickUrlInput" class="form-control form-control-sm"
+                               style="max-width:420px;"
+                               placeholder="https://www.logoincluded.com/product/…"
+                               value="{{ product.website_url }}">
+                        {% if product.status != "Published" %}
+                        <button class="btn btn-sm btn-success" onclick="quickPublish(true)">Set URL &amp; Publish</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="quickPublish(false)">Save URL Only</button>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-primary" onclick="quickPublish(false)">Save URL</button>
+                        {% endif %}
+                        <span id="publishConfirm" class="text-success small" style="display:none;">✓ Saved!</span>
+                    </div>
                 </div>
             </div>
             {% endif %}
-            {% if product.website_keywords %}
-            <div class="mb-3">
-                <label class="fw-bold small text-muted">Keywords</label>
-                <div class="border rounded p-2 bg-light font-monospace" style="font-size:12px;">{{ product.website_keywords }}</div>
+
+            {% if product.website_description or product.website_keywords %}
+            <div class="row g-3">
+                {% if product.website_description %}
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="fw-bold small text-muted mb-0">HTML Description</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyWebsiteHtml()">📋 Copy HTML</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="regenerateDescription()">↺ Regenerate</button>
+                            <span id="copyHtmlConfirm" class="text-success small align-self-center" style="display:none;">✓ Copied!</span>
+                        </div>
+                    </div>
+                    <!-- Raw HTML textarea (hidden, used for copying) -->
+                    <textarea id="websiteHtmlRaw" class="d-none">{{ product.website_description }}</textarea>
+                    <!-- Toggle: rendered preview vs raw HTML -->
+                    <div class="btn-group btn-group-sm mb-2" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="btnPreview" onclick="showWebView('preview')">Preview</button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnRaw" onclick="showWebView('raw')">HTML Source</button>
+                    </div>
+                    <div id="webPreview" class="border rounded p-3 bg-light" style="font-size:13px;">
+                        {{ product.website_description|safe }}
+                    </div>
+                    <textarea id="webRaw" class="form-control font-monospace d-none" rows="12" style="font-size:11px;" readonly>{{ product.website_description }}</textarea>
+                </div>
+                {% endif %}
+
+                {% if product.website_keywords %}
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="fw-bold small text-muted mb-0">Search Keywords</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyWebsiteKeywords()">📋 Copy Keywords</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="regenerateKeywords()">↺ Regenerate</button>
+                            <span id="copyKwConfirm" class="text-success small align-self-center" style="display:none;">✓ Copied!</span>
+                        </div>
+                    </div>
+                    <div class="border rounded p-2 bg-light">
+                        {% for kw in product.website_keywords.split:',' %}
+                        <span class="badge bg-secondary me-1 mb-1">{{ kw|striptags|cut:' '|cut:' ' }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="font-monospace mt-1 text-muted" style="font-size:11px;">{{ product.website_keywords }}</div>
+                    <textarea id="websiteKwRaw" class="d-none">{{ product.website_keywords }}</textarea>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
+
+            {% else %}
+            <!-- No content generated yet -->
+            <div class="d-flex gap-2 align-items-center">
+                <span class="text-muted small">No website content generated yet.</span>
+                <button class="btn btn-sm btn-outline-primary" onclick="generateDescription()">✦ Generate Description</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="generateKeywords()">✦ Generate Keywords</button>
+            </div>
             {% endif %}
 
             <!-- Administrative Details -->
@@ -245,6 +314,108 @@
 </div>
 
 <script>
+// ── Quick publish / URL save ───────────────────────────────────────────────────
+function quickPublish(andPublish) {
+    const url = document.getElementById('quickUrlInput').value.trim();
+    const payload = { website_url: url };
+    if (andPublish) payload.status = 'Published';
+
+    fetch("{% url 'quick_publish' product.pk %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const c = document.getElementById('publishConfirm');
+            c.style.display = 'inline';
+            if (andPublish) {
+                // Reload so the "Not yet published" panel hides and status badge updates
+                setTimeout(() => location.reload(), 800);
+            } else {
+                setTimeout(() => c.style.display = 'none', 2500);
+            }
+        } else {
+            alert('Save failed: ' + (data.error || 'unknown error'));
+        }
+    });
+}
+
+// ── Website content copy helpers ──────────────────────────────────────────────
+function copyWebsiteHtml() {
+    const html = document.getElementById('websiteHtmlRaw').value;
+    navigator.clipboard.writeText(html).then(() => {
+        const c = document.getElementById('copyHtmlConfirm');
+        c.style.display = 'inline';
+        setTimeout(() => c.style.display = 'none', 2500);
+    });
+}
+
+function copyWebsiteKeywords() {
+    const kw = document.getElementById('websiteKwRaw').value;
+    navigator.clipboard.writeText(kw).then(() => {
+        const c = document.getElementById('copyKwConfirm');
+        c.style.display = 'inline';
+        setTimeout(() => c.style.display = 'none', 2500);
+    });
+}
+
+function showWebView(mode) {
+    if (mode === 'preview') {
+        document.getElementById('webPreview').classList.remove('d-none');
+        document.getElementById('webRaw').classList.add('d-none');
+        document.getElementById('btnPreview').classList.add('active');
+        document.getElementById('btnRaw').classList.remove('active');
+    } else {
+        document.getElementById('webPreview').classList.add('d-none');
+        document.getElementById('webRaw').classList.remove('d-none');
+        document.getElementById('btnPreview').classList.remove('active');
+        document.getElementById('btnRaw').classList.add('active');
+    }
+}
+
+function regenerateDescription() {
+    document.getElementById('copyHtmlConfirm').style.display = 'none';
+    fetch("{% url 'generate_description' product.pk %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.html) {
+            document.getElementById('websiteHtmlRaw').value = data.html;
+            document.getElementById('webPreview').innerHTML = data.html;
+            document.getElementById('webRaw').value = data.html;
+            const c = document.getElementById('copyHtmlConfirm');
+            c.textContent = '✓ Regenerated!';
+            c.style.display = 'inline';
+            setTimeout(() => { c.style.display = 'none'; c.textContent = '✓ Copied!'; }, 2500);
+        }
+    });
+}
+
+function regenerateKeywords() {
+    fetch("{% url 'generate_keywords' product.pk %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.raw) {
+            document.getElementById('websiteKwRaw').value = data.raw;
+            const c = document.getElementById('copyKwConfirm');
+            c.textContent = '✓ Regenerated!';
+            c.style.display = 'inline';
+            setTimeout(() => { location.reload(); }, 1200);
+        }
+    });
+}
+
+// ── Description modal (legacy — still used if triggered from product list) ────
 function generateDescription() {
     // Show modal and spinner
     document.getElementById('descSpinner').style.display = 'block';

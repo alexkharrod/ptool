@@ -187,6 +187,10 @@ class Product(models.Model):
     )
 
     # AI-generated website content
+    website_url = models.URLField(
+        blank=True,
+        help_text="Live URL of this product on logoincluded.com (e.g. https://www.logoincluded.com/product/…).",
+    )
     website_description = models.TextField(
         blank=True,
         help_text="AI-generated HTML description for the website (replaces specs on NPDS).",

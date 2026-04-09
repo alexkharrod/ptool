@@ -295,6 +295,19 @@
             </div>
         </div>
 
+        <div class="row mt-3">
+            <div class="col-md-8">
+                <label for="id_website_url" class="form-label">
+                    Website URL
+                    {% if product.website_url %}
+                    <a href="{{ product.website_url }}" target="_blank" class="ms-2 small text-muted">↗ view live</a>
+                    {% endif %}
+                </label>
+                {{ form.website_url|add_class:"form-control" }}
+                <div class="form-text">Paste the live logoincluded.com URL once the product is published on the site.</div>
+            </div>
+        </div>
+
         <div class="row mt-3 align-items-end">
             <div class="col-md-4">
                 <label for="id_sourcing" class="form-label fw-semibold">Sourcing</label>
