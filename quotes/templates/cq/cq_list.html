@@ -43,7 +43,7 @@
                     <td><strong>{{ cq.quote_number }}</strong></td>
                     <td>{{ cq.date|date:"M d, Y" }}</td>
                     <td>{{ cq.customer_name }}</td>
-                    <td>{{ cq.rep.get_full_name|default:"—" }}</td>
+                    <td>{{ cq.rep.name|default:"—" }}</td>
                     <td><span class="badge bg-secondary">{{ cq.line_items.count }}</span></td>
                     <td>
                         {% if cq.status == 'draft' %}<span class="badge bg-secondary">Draft</span>

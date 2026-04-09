@@ -30,12 +30,24 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold">Rep</label>
-                    <select name="rep" class="form-select">
-                        <option value="">— none —</option>
-                        {% for u in users %}
-                        <option value="{{ u.pk }}" {% if cq.rep_id == u.pk %}selected{% endif %}>{{ u.get_full_name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="d-flex gap-1 align-items-center">
+                        <select name="rep" id="repSelect" class="form-select form-select-sm">
+                            <option value="">— none —</option>
+                            {% for r in reps %}
+                            <option value="{{ r.pk }}" {% if cq.rep_id == r.pk %}selected{% endif %}>{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary btn-sm text-nowrap"
+                                onclick="toggleNewRep()" title="Add new rep">＋</button>
+                    </div>
+                    <div id="newRepPanel" class="mt-1" style="display:none;">
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="newRepName" class="form-control" placeholder="Rep name…">
+                            <button type="button" class="btn btn-primary" onclick="addRep()">Add</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleNewRep()">✕</button>
+                        </div>
+                        <div id="newRepError" class="text-danger" style="font-size:11px;display:none;"></div>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold">Date</label>
@@ -98,10 +110,6 @@
     </div>
 </div>
 
-<!-- Hidden template for a new item card (cloned by JS) -->
-<script id="newItemTemplate" type="text/x-template">
-{% include "cq/_item_card_template.html" %}
-</script>
 
 <script>
 const CSRF = '{{ csrf_token }}';
@@ -277,17 +285,38 @@ function tierRowHTML(n) {
         <td><input type="text" class="form-control form-control-sm inp-ocean-lead" placeholder="e.g. 6-8 wks"></td>`;
 }
 
-// Auto-copy qty to air/ocean when user types in qty field
-document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('inp-qty')) {
-        const row = e.target.closest('.tier-row');
-        if (!row) return;
-        // Only auto-fill air/ocean total if they're still zero/empty
-        const airEl   = row.querySelector('.inp-air');
-        const oceanEl = row.querySelector('.inp-ocean');
-        // We don't auto-fill totals (those are dollar amounts, not quantities)
-        // but we could highlight the row to remind user to fill in totals
-    }
+// ── Rep inline add ────────────────────────────────────────────────────────────
+function toggleNewRep() {
+    const panel = document.getElementById('newRepPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') document.getElementById('newRepName').focus();
+}
+
+function addRep() {
+    const name = document.getElementById('newRepName').value.trim();
+    const errEl = document.getElementById('newRepError');
+    if (!name) { errEl.textContent = 'Name required.'; errEl.style.display = 'block'; return; }
+    errEl.style.display = 'none';
+
+    fetch('/quotes/cq/rep-add/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.ok) { errEl.textContent = data.error || 'Error'; errEl.style.display = 'block'; return; }
+        const sel = document.getElementById('repSelect');
+        let opt = sel.querySelector(`option[value="${data.pk}"]`);
+        if (!opt) { opt = new Option(data.name, data.pk); sel.appendChild(opt); }
+        sel.value = data.pk;
+        document.getElementById('newRepName').value = '';
+        document.getElementById('newRepPanel').style.display = 'none';
+    });
+}
+
+document.getElementById('newRepName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addRep(); }
 });
 </script>
 {% endblock %}

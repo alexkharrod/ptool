@@ -14,7 +14,7 @@ from django.utils.timezone import now
 
 from products.models import HtsCode, Product
 from .forms import CreateQuoteForm
-from .models import Quote, CustomerQuote, QuoteLineItem, QuotePriceTier
+from .models import Quote, CustomerQuote, QuoteLineItem, QuotePriceTier, SalesRep
 
 
 @login_required
@@ -222,9 +222,6 @@ def cq_list(request):
 @login_required
 def cq_create(request):
     """Create a new customer quote (header only; items added on edit page)."""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
     if request.method == 'POST':
         customer_name = request.POST.get('customer_name', '').strip()
         rep_id = request.POST.get('rep', '').strip()
@@ -235,7 +232,7 @@ def cq_create(request):
         if not customer_name:
             return render(request, 'cq/cq_create.html', {
                 'error': 'Customer name is required.',
-                'users': User.objects.filter(is_active=True).order_by('first_name'),
+                'reps': SalesRep.objects.all(),
                 'posted': request.POST,
             })
 
@@ -248,14 +245,14 @@ def cq_create(request):
             cq.date = date
         if rep_id:
             try:
-                cq.rep = User.objects.get(pk=rep_id)
-            except User.DoesNotExist:
+                cq.rep = SalesRep.objects.get(pk=rep_id)
+            except SalesRep.DoesNotExist:
                 pass
         cq.save()
         return redirect('cq_edit', pk=cq.pk)
 
     return render(request, 'cq/cq_create.html', {
-        'users': User.objects.filter(is_active=True).order_by('first_name'),
+        'reps': SalesRep.objects.all(),
         'today': now().date(),
     })
 
@@ -263,9 +260,6 @@ def cq_create(request):
 @login_required
 def cq_edit(request, pk):
     """Edit quote header + manage line items."""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
     cq = get_object_or_404(CustomerQuote, pk=pk)
 
     if request.method == 'POST' and request.POST.get('_action') == 'save_header':
@@ -273,8 +267,8 @@ def cq_edit(request, pk):
         rep_id = request.POST.get('rep', '')
         if rep_id:
             try:
-                cq.rep = User.objects.get(pk=rep_id)
-            except User.DoesNotExist:
+                cq.rep = SalesRep.objects.get(pk=rep_id)
+            except SalesRep.DoesNotExist:
                 pass
         else:
             cq.rep = None
@@ -290,7 +284,7 @@ def cq_edit(request, pk):
     return render(request, 'cq/cq_edit.html', {
         'cq': cq,
         'items': items,
-        'users': User.objects.filter(is_active=True).order_by('first_name'),
+        'reps': SalesRep.objects.all(),
         'status_choices': CustomerQuote.STATUS_CHOICES,
     })
 
@@ -380,6 +374,23 @@ def cq_item_delete(request, item_pk):
     item = get_object_or_404(QuoteLineItem, pk=item_pk)
     item.delete()
     return JsonResponse({'ok': True})
+
+
+@login_required
+def cq_rep_add(request):
+    """AJAX: create a new sales rep. Returns {ok, pk, name}."""
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    data = json.loads(request.body)
+    name = data.get('name', '').strip()
+    if not name:
+        return JsonResponse({'ok': False, 'error': 'Name required'}, status=400)
+    existing = SalesRep.objects.filter(name__iexact=name).first()
+    if existing:
+        return JsonResponse({'ok': True, 'pk': existing.pk, 'name': existing.name, 'created': False})
+    rep = SalesRep.objects.create(name=name)
+    return JsonResponse({'ok': True, 'pk': rep.pk, 'name': rep.name, 'created': True})
 
 
 @login_required

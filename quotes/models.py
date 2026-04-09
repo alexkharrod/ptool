@@ -14,6 +14,17 @@ from products.models import HtsCode, Vendor
 
 # ── New quote system ──────────────────────────────────────────────────────────
 
+class SalesRep(models.Model):
+    """A sales rep name — not tied to a user account."""
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class CustomerQuote(models.Model):
     STATUS_CHOICES = [
         ('draft',    'Draft'),
@@ -26,7 +37,7 @@ class CustomerQuote(models.Model):
     date          = models.DateField(default=now)
     customer_name = models.CharField(max_length=200)
     rep           = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'SalesRep',
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='customer_quotes',
