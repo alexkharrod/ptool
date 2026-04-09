@@ -11,7 +11,15 @@ This is an internal Django web app for managing promotional products, quotes, an
 Full product catalog for LogoIncluded's line. Each product has SKU, specs, carton info, imprint details, freight/tariff costs, and an image. From a product page you can download a **NPDS (New Product Data Sheet)** as a PDF.
 
 ### Quotes (`/quotes/`)
-Customer quote builder. Each quote has pricing at up to 5 quantity levels, air and ocean freight options, and can be downloaded as a **PDF**. Alex is not fully happy with the current quote system and plans to redesign it eventually.
+Customer quote builder. Fully redesigned (April 2026). Key features:
+- **SalesRep model** (separate from Django users) — name + initials, used in quote numbers and PDFs
+- **Quote number format**: `MMDD-REP-SKU-NN` (e.g. `0409-PM-AT01-01`) — assigned when first item is added; shows "Draft" until then
+- **Pricing tiers**: default 1, up to 5 per item; empty tiers are not saved
+- **Internal fields** (never printed): Unit Cost, Our Air Freight, Our Ocean Freight
+- **Customer-facing fields**: Air Total, Ocean Total, Air Production Time, Ocean Production Time
+- **Auto-save**: Preview and PDF buttons save all unsaved item data before navigating
+- **PDF**: no cover page; one item per page; logo + contact info in header; disclaimer and rep thank-you on last page
+- **Quote-only products**: products without website URLs work fine in quotes
 
 ### Scouting / Prospective Products (`/scouting/`)
 Tool for tracking products spotted at trade shows. Alex uses this to photograph and log potential new items from vendor booths. Each prospect has vendor info, unit cost, lead time, notes, and a photo. When a prospect gets approved it can be promoted to a full Product.
@@ -65,16 +73,38 @@ DATABASE_URL="..." CLOUDINARY_URL="..." python manage.py upload_product_images
 |------|---------|
 | `mysite/settings.py` | Main settings — DB, Cloudinary, static files all configured here |
 | `products/models.py` | Product model with compress_image and ImageField |
-| `quotes/models.py` | Quote model with compress_image and ImageField |
+| `quotes/models.py` | `SalesRep`, `CustomerQuote`, `QuoteLineItem` models; `_next_quote_number()` generates MMDD-REP-SKU-NN |
 | `scouting/models.py` | Prospect model — the reference implementation for image upload pattern |
-| `products/views.py` | Includes `npds()` — PDF datasheet download |
-| `quotes/views.py` | Includes `quote_pdf()` — quote PDF download |
+| `products/views.py` | Includes `npds()` — PDF datasheet download (logo embedded as base64) |
+| `quotes/views.py` | Includes `cq_pdf()`, `cq_view()`, `cq_item_add()`, `cq_item_save()`, `cq_rep_add()` |
+| `quotes/templates/cq/cq_edit.html` | Quote edit page — item cards, pricing tiers, auto-save before navigate |
+| `quotes/templates/cq/_item_card.html` | Individual item card partial |
+| `quotes/templates/cq/cq_pdf.html` | Quote PDF template — WeasyPrint, base64 logo, disclaimer, thank-you |
+| `quotes/templates/cq/cq_view.html` | Quote preview page |
+| `quotes/migrations/` | 0021: SalesRep model + drop User FK; 0022: quote improvements; 0023: initials field + seed reps |
 | `products/management/commands/upload_product_images.py` | One-time bulk upload of legacy static images to Cloudinary |
+| `static/images/LI-Circle.png` | LogoIncluded logo — loaded as base64 in NPDS and quote PDFs |
 | `Dockerfile` | Railway build — Debian Bookworm base for WeasyPrint system libs |
+
+---
+
+## Sales Reps
+
+Seeded in migration 0023. Current reps:
+| Initials | Name |
+|----------|------|
+| AH | Alex Harrod |
+| KA | Kenny Avera |
+| PM | Peter Marks |
+| JW | Jake Wilson |
+| JG | Joey Guerrero |
+| SW | Sari Waters |
+
+`initials` field is `null=True, unique=True` — multiple NULLs allowed in Postgres unique index (safe for reps without initials set).
 
 ---
 
 ## Known issues / backlog
 - 3 products still have no image (find them by browsing products list — no image shown)
-- Quote system is functional but Alex plans to redesign it
 - `newsku` and `newskuaa` are test/placeholder SKUs that can be deleted
+- Git HEAD.lock cannot be deleted from the sandbox (FUSE mount restriction) — run `rm -f .git/HEAD.lock .git/index.lock` locally before pushing if lock errors appear
