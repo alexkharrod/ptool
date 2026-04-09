@@ -130,21 +130,16 @@
             </div>
         </div>
 
+        {{ form.duty_percent.as_hidden }}
+        {{ form.tariff_percent.as_hidden }}
+
         <div class="row mt-3">
-            <div class="col-md-3">
-                <label for="id_carton_qty" class="form-label">Duty Rate</label>
-                {{ form.duty_percent|add_class:"form-control" }}
-            </div>
-            <div class="col-md-3">
-                <label for="id_carton_weight" class="form-label">Tariff Rate</label>
-                {{ form.tariff_percent|add_class:"form-control" }}
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="id_carton_weight" class="form-label">Air Freight</label>
                 {{ form.air_freight|add_class:"form-control" }}
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="id_carton_weight" class="form-label">Ocean Freight</label>
                 {{ form.ocean_freight|add_class:"form-control" }}
             </div>
@@ -265,6 +260,29 @@ htsSelect.addEventListener('change', function() {
     document.querySelectorAll('#id_imprint_methods input[type=checkbox]')
         .forEach(cb => cb.addEventListener('change', syncMoldFeeRow));
     syncMoldFeeRow();
+})();
+
+// ── Auto-SKU: fill SKU field when category is selected ───────────────────────
+(function () {
+    const categorySelect = document.getElementById('id_category');
+    const skuInput = document.getElementById('id_sku');
+
+    async function fetchNextSku(categoryCode) {
+        if (!categoryCode) return;
+        try {
+            const resp = await fetch(`/products/next-sku/?category=${encodeURIComponent(categoryCode)}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data.sku && !skuInput.value.trim()) {
+                skuInput.value = data.sku;
+            }
+        } catch (e) { /* ignore network errors */ }
+    }
+
+    categorySelect.addEventListener('change', function () {
+        // option value is the category code directly (e.g. "EB")
+        fetchNextSku(this.value);
+    });
 })();
 
 // ── Sourcing → show/hide Overseas SKU checkbox ───────────────────────────────

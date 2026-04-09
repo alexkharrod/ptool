@@ -143,21 +143,16 @@
             </div>
         </div>
 
+        {{ form.duty_percent.as_hidden }}
+        {{ form.tariff_percent.as_hidden }}
+
         <div class="row mt-3">
-            <div class="col-md-3">
-                <label for="id_carton_qty" class="form-label">Duty Rate</label>
-                {{ form.duty_percent|add_class:"form-control" }}
-            </div>
-            <div class="col-md-3">
-                <label for="id_carton_weight" class="form-label">Tariff Rate</label>
-                {{ form.tariff_percent|add_class:"form-control" }}
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="id_carton_weight" class="form-label">Air Freight</label>
                 {{ form.air_freight|add_class:"form-control" }}
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="id_carton_weight" class="form-label">Ocean Freight</label>
                 {{ form.ocean_freight|add_class:"form-control" }}
             </div>
