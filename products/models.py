@@ -169,8 +169,8 @@ class Product(models.Model):
 
     # Imprint info:
     imprint_location = models.CharField(max_length=50)
-    imprint_method = models.CharField(max_length=50)   # legacy free-text field kept for existing data
-    imprint_dimension = models.CharField(max_length=50)
+    imprint_method = models.CharField(max_length=50, blank=True)   # legacy free-text field kept for existing data
+    imprint_dimension = models.CharField(max_length=50, blank=True)
 
     # Structured imprint methods (checkboxes on form, table on NPDS)
     imprint_methods = models.ManyToManyField(

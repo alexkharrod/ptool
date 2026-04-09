@@ -228,10 +228,12 @@
                     <div id="tabPreview" style="display:none; border:1px solid #dee2e6; border-radius:4px; padding:16px; background:#fff;">
                         <div id="descPreviewContent"></div>
                     </div>
-                    <div class="mt-3 d-flex gap-2">
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
                         <button class="btn btn-primary" onclick="copyHtml()">📋 Copy HTML</button>
+                        <button class="btn btn-outline-primary" onclick="copyDescription()">📋 Copy Description</button>
                         <button class="btn btn-outline-secondary" onclick="generateDescription()">↻ Regenerate</button>
                         <span id="copyConfirm" class="text-success align-self-center" style="display:none;">Copied!</span>
+                        <span id="copyDescConfirm" class="text-success align-self-center" style="display:none;">Copied!</span>
                     </div>
                 </div>
             </div>
@@ -288,6 +290,19 @@ function copyHtml() {
     ta.select();
     navigator.clipboard.writeText(ta.value).then(() => {
         const c = document.getElementById('copyConfirm');
+        c.style.display = 'inline';
+        setTimeout(() => c.style.display = 'none', 2000);
+    });
+}
+
+function copyDescription() {
+    // Strip HTML tags and copy plain text
+    const html = document.getElementById('descHtml').value;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const plain = tmp.innerText || tmp.textContent || '';
+    navigator.clipboard.writeText(plain.trim()).then(() => {
+        const c = document.getElementById('copyDescConfirm');
         c.style.display = 'inline';
         setTimeout(() => c.style.display = 'none', 2000);
     });

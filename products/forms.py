@@ -36,6 +36,8 @@ class CreateProductForm(forms.ModelForm):
         self.fields["vendor_sku"].required = False
         self.fields["production_time"].required = False
         self.fields["estimated_launch"].required = False
+        self.fields["imprint_method"].required = False
+        self.fields["imprint_dimension"].required = False
         # Render imprint methods as plain checkboxes (styled in the template)
         self.fields["imprint_methods"].queryset = ImprintMethod.objects.all()
         self.fields["imprint_methods"].required = False
