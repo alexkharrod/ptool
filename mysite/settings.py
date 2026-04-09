@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "users",
     "quotes",
     "scouting",
+    "shipments",
     "widget_tweaks",
     "axes",
 ]

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Shipment #{{ shipment.shipment_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2 class="mb-0">
+      {% if shipment.mode == "Air" %}
+        <i class="bi bi-airplane me-2 text-info"></i>
+      {% else %}
+        <i class="bi bi-ship me-2 text-primary"></i>
+      {% endif %}
+      Shipment #{{ shipment.shipment_number }}
+      {% if shipment.ags_number %}
+        <small class="text-muted fs-5 ms-2">{{ shipment.ags_number }}</small>
+      {% endif %}
+    </h2>
+    <span class="badge
+      {% if shipment.status == 'Delivered' %}bg-success
+      {% elif shipment.status == 'Cancelled' %}bg-secondary
+      {% elif shipment.status == 'In Customs' %}bg-warning text-dark
+      {% elif shipment.status == 'Arrived Port' %}bg-info text-dark
+      {% else %}bg-primary{% endif %} mt-1">
+      {{ shipment.status }}
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'shipment_edit' shipment.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+    <a href="{% url 'shipment_list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  {# ── Main info ─────────────────────────────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-1"></i>Shipment Details</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Mode</dt>
+          <dd class="col-sm-7">{{ shipment.mode }}</dd>
+
+          <dt class="col-sm-5">Carrier</dt>
+          <dd class="col-sm-7">{{ shipment.carrier|default:"—" }}</dd>
+
+          {% if shipment.vessel %}
+          <dt class="col-sm-5">Vessel</dt>
+          <dd class="col-sm-7">{{ shipment.vessel }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-5">Tracking #</dt>
+          <dd class="col-sm-7">{{ shipment.tracking_number|default:"—" }}</dd>
+
+          <dt class="col-sm-5">PO Numbers</dt>
+          <dd class="col-sm-7">{{ shipment.po_numbers|default:"—" }}</dd>
+
+          <dt class="col-sm-5">Port of Loading</dt>
+          <dd class="col-sm-7">{{ shipment.port_of_loading|default:"—" }}</dd>
+
+          <dt class="col-sm-5">Port of Arrival</dt>
+          <dd class="col-sm-7">{{ shipment.port_of_arrival|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  {# ── Dates ─────────────────────────────────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-calendar3 me-1"></i>Timeline</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">ETD</dt>
+          <dd class="col-sm-7">{{ shipment.etd|date:"N j, Y"|default:"—" }}</dd>
+
+          <dt class="col-sm-5">ETA Port</dt>
+          <dd class="col-sm-7">{{ shipment.eta_port|date:"N j, Y"|default:"—" }}</dd>
+
+          <dt class="col-sm-5">ETA Warehouse</dt>
+          <dd class="col-sm-7 fw-semibold">{{ shipment.eta_warehouse|date:"N j, Y"|default:"—" }}</dd>
+
+          <dt class="col-sm-5">Delivered</dt>
+          <dd class="col-sm-7">{{ shipment.date_delivered|date:"N j, Y"|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  {# ── Totals ────────────────────────────────────────────────────────── #}
+  {% if shipment.total_cartons or shipment.total_pieces or shipment.total_cbm %}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="bi bi-boxes me-1"></i>Totals</div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col">
+            <div class="fs-4 fw-bold">{{ shipment.total_cartons|default:"—" }}</div>
+            <div class="text-muted small">Cartons</div>
+          </div>
+          <div class="col">
+            <div class="fs-4 fw-bold">{{ shipment.total_pieces|default:"—" }}</div>
+            <div class="text-muted small">Pieces</div>
+          </div>
+          <div class="col">
+            <div class="fs-4 fw-bold">{{ shipment.total_cbm|default:"—" }}</div>
+            <div class="text-muted small">CBM</div>
+          </div>
+          <div class="col">
+            <div class="fs-4 fw-bold">{{ shipment.total_gw_kg|default:"—" }}</div>
+            <div class="text-muted small">GW (kg)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Line items ────────────────────────────────────────────────────── #}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header fw-semibold d-flex justify-content-between">
+        <span><i class="bi bi-list-ul me-1"></i>Packing List Items</span>
+        <span class="text-muted small">{{ shipment.items.count }} line{% if shipment.items.count != 1 %}s{% endif %}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if shipment.items.all %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>PO #</th>
+                <th>SKU / P/N</th>
+                <th>Description</th>
+                <th class="text-end">Cartons</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">NW (kg)</th>
+                <th class="text-end">GW (kg)</th>
+                <th class="text-end">CBM</th>
+                <th>Dims (cm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in shipment.items.all %}
+              <tr>
+                <td class="small">{{ item.po_number|default:"—" }}</td>
+                <td class="fw-semibold">{{ item.sku|default:"—" }}</td>
+                <td class="small">{{ item.description|default:"—" }}</td>
+                <td class="text-end small">{{ item.cartons|default:"—" }}</td>
+                <td class="text-end small">{{ item.qty|default:"—" }}</td>
+                <td class="text-end small">{{ item.nw_kg|default:"—" }}</td>
+                <td class="text-end small">{{ item.gw_kg|default:"—" }}</td>
+                <td class="text-end small">{{ item.cbm|default:"—" }}</td>
+                <td class="small text-muted">{{ item.dimensions_cm|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted p-3 mb-0">No line items yet. <a href="{% url 'shipment_edit' shipment.pk %}">Edit this shipment</a> to add them.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Notes ─────────────────────────────────────────────────────────── #}
+  {% if shipment.notes %}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="bi bi-chat-left-text me-1"></i>Notes</div>
+      <div class="card-body">{{ shipment.notes|linebreaksbr }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Documents ─────────────────────────────────────────────────────── #}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="bi bi-paperclip me-1"></i>Documents</div>
+      <div class="card-body">
+        {% if shipment.documents.all %}
+        <ul class="list-group list-group-flush mb-3">
+          {% for doc in shipment.documents.all %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div>
+              <span class="badge bg-secondary me-2">{{ doc.doc_type }}</span>
+              <a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none">
+                {{ doc.filename|default:doc.doc_type }}
+              </a>
+              <small class="text-muted ms-2">{{ doc.uploaded_at|date:"M j, Y" }}</small>
+            </div>
+            <form method="post" action="{% url 'shipment_delete_doc' shipment.pk doc.pk %}"
+                  onsubmit="return confirm('Delete this document?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted small mb-2">No documents attached yet.</p>
+        {% endif %}
+
+        {# Upload form #}
+        <form method="post" action="{% url 'shipment_upload_doc' shipment.pk %}"
+              enctype="multipart/form-data" class="d-flex gap-2 align-items-end flex-wrap mt-2">
+          {% csrf_token %}
+          <div>
+            <label class="form-label small mb-1">Doc type</label>
+            {{ doc_form.doc_type }}
+          </div>
+          <div>
+            <label class="form-label small mb-1">File</label>
+            {{ doc_form.file }}
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-upload me-1"></i>Upload
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row -->
+{% endblock %}
