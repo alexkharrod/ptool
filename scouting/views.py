@@ -170,6 +170,18 @@ def scouting_promote(request, pk):
             )
             product.save()
 
+            # Copy image from prospect to product
+            if prospect.image:
+                try:
+                    import os
+                    import urllib.request
+                    from django.core.files.base import ContentFile
+                    filename = os.path.basename(prospect.image.name) or "product.jpg"
+                    with urllib.request.urlopen(prospect.image.url) as resp:
+                        product.image.save(filename, ContentFile(resp.read()), save=True)
+                except Exception:
+                    pass  # Don't fail the promotion if image copy fails
+
             prospect.promoted = True
             prospect.promoted_sku = product.sku
             prospect.status = "Adding"

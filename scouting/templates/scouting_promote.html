@@ -19,17 +19,16 @@
 
     <!-- Prospect summary card -->
     <div class="card mb-4 border-success shadow-sm">
-        <div class="card-body d-flex gap-3 align-items-start">
-            {% if prospect.image %}
-            <img src="{{ prospect.image.url }}" class="rounded"
-                 style="width:80px; height:80px; object-fit:cover; flex-shrink:0;">
-            {% endif %}
-            <div>
-                <div class="fw-bold fs-5">{{ prospect.product_name }}</div>
-                <div class="text-muted small">{{ prospect.vendor_name }} &middot; {{ prospect.show_name }}</div>
-                {% if prospect.unit_cost %}<div class="small mt-1"><strong>Cost seen:</strong> {{ prospect.unit_cost }}</div>{% endif %}
-                {% if prospect.notes %}<div class="small text-muted mt-1">{{ prospect.notes }}</div>{% endif %}
-            </div>
+        {% if prospect.image %}
+        <img src="{{ prospect.image.url }}" class="card-img-top"
+             alt="{{ prospect.product_name }}"
+             style="max-height: 220px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+            <div class="fw-bold fs-5">{{ prospect.product_name }}</div>
+            <div class="text-muted small">{{ prospect.vendor_name }} &middot; {{ prospect.show_name }}</div>
+            {% if prospect.unit_cost %}<div class="small mt-1"><strong>Cost seen:</strong> {{ prospect.unit_cost }}</div>{% endif %}
+            {% if prospect.notes %}<div class="small text-muted mt-1 fst-italic">{{ prospect.notes }}</div>{% endif %}
         </div>
     </div>
 
