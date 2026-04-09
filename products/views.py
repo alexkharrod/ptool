@@ -184,7 +184,14 @@ def npds(request, product_id):
             with open(image_path, "rb") as img_file:
                 encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
 
-    context = {"product": product, "encoded_image": encoded_image}
+    # Embed logo as base64 so WeasyPrint doesn't need to fetch it over HTTP
+    logo_b64 = ""
+    logo_path = os.path.join(settings.BASE_DIR, "static", "images", "LI-Circle.png")
+    if os.path.isfile(logo_path):
+        with open(logo_path, "rb") as lf:
+            logo_b64 = base64.b64encode(lf.read()).decode("utf-8")
+
+    context = {"product": product, "encoded_image": encoded_image, "logo_b64": logo_b64}
 
     html_string = render_to_string("npds.html", context)
 

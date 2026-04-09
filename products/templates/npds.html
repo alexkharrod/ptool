@@ -121,7 +121,7 @@
     <!-- Header -->
     <div class="header">
         <div class="header-logo">
-            <img src="{{ base_url }}/static/images/li-circle.png" alt="Logo">
+            {% if logo_b64 %}<img src="data:image/png;base64,{{ logo_b64 }}" alt="LogoIncluded">{% endif %}
         </div>
         <div class="header-details">
             <strong>LogoIncluded</strong><br>

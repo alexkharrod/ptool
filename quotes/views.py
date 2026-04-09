@@ -444,10 +444,19 @@ def cq_pdf(request, pk):
     cq = get_object_or_404(CustomerQuote, pk=pk)
     items = list(cq.line_items.select_related('product__hts_code').prefetch_related('tiers', 'product__imprint_methods'))
 
+    # Embed logo as base64 for reliable WeasyPrint rendering
+    logo_b64 = ""
+    logo_path = os.path.join(settings.BASE_DIR, "static", "images", "LI-Circle.png")
+    if os.path.isfile(logo_path):
+        import base64 as _b64
+        with open(logo_path, "rb") as lf:
+            logo_b64 = _b64.b64encode(lf.read()).decode("utf-8")
+
     html_string = render_to_string('cq/cq_pdf.html', {
         'cq': cq,
         'items': items,
         'request': request,
+        'logo_b64': logo_b64,
     })
 
     response = HttpResponse(content_type='application/pdf')
