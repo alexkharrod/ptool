@@ -168,7 +168,7 @@ class Product(models.Model):
     carton_height = models.DecimalField(max_digits=10, decimal_places=2)
 
     # Imprint info:
-    imprint_location = models.CharField(max_length=50)
+    imprint_location = models.CharField(max_length=50, blank=True)
     imprint_method = models.CharField(max_length=50, blank=True)   # legacy free-text field kept for existing data
     imprint_dimension = models.CharField(max_length=50, blank=True)
 

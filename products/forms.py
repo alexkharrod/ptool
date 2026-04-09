@@ -37,6 +37,7 @@ class CreateProductForm(forms.ModelForm):
         self.fields["production_time"].required = False
         self.fields["estimated_launch"].required = False
         self.fields["imprint_dimension"].required = False
+        self.fields["imprint_location"].required = False
         # imprint_method is a legacy field not included in Meta.fields — blank=True on the model is sufficient
         # Render imprint methods as plain checkboxes (styled in the template)
         self.fields["imprint_methods"].queryset = ImprintMethod.objects.all()
