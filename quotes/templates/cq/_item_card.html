@@ -1,0 +1,149 @@
+{% load static %}
+<div class="card mb-3 shadow-sm" id="item-card-{{ item.pk }}">
+    <div class="card-header d-flex align-items-center justify-content-between py-2 bg-light">
+        <span class="fw-bold">
+            Item {{ item.display_number }}
+            {% if item.product %}
+            — <span class="text-primary">{{ item.product.sku }}</span>
+            <span class="text-muted ms-1 small">{{ item.product.name }}</span>
+            {% endif %}
+        </span>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary btn-save-item" onclick="saveItem({{ item.pk }})">Save</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteItem({{ item.pk }})">✕</button>
+        </div>
+    </div>
+
+    <div class="card-body">
+        {% if item.product %}
+        <div class="row g-3">
+            <!-- Left: product thumbnail + info -->
+            <div class="col-md-3">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}"
+                     class="img-fluid rounded mb-2" style="max-height:140px; object-fit:contain;">
+                {% endif %}
+                <div class="small text-muted">
+                    {% if item.product.website_url %}
+                    <a href="{{ item.product.website_url }}" target="_blank">↗ View on site</a>
+                    {% endif %}
+                </div>
+                {% if item.product.hts_code %}
+                <div class="mt-2 p-2 bg-light rounded border" style="font-size:11px;">
+                    <div class="fw-bold mb-1 text-muted">HTS {{ item.product.hts_code.code }}</div>
+                    <div class="d-flex gap-2 text-center">
+                        <div><div class="text-muted">Duty</div><strong>{{ item.product.hts_code.duty_percent }}%</strong></div>
+                        <div><div class="text-muted">301</div><strong>{{ item.product.hts_code.section_301_percent }}%</strong></div>
+                        <div><div class="text-muted">Extra</div><strong>{{ item.product.hts_code.extra_tariff_percent }}%</strong></div>
+                    </div>
+                    <div class="text-center mt-1 border-top pt-1">
+                        <span class="text-muted">Total: </span>
+                        <strong class="text-danger">{{ item.product.hts_code.total_percent }}%</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right: editable fields -->
+            <div class="col-md-9">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Imprint Method</label>
+                        <input type="text" class="form-control form-control-sm inp-imprint"
+                               value="{{ item.imprint_method }}"
+                               list="imprint-methods-{{ item.pk }}"
+                               placeholder="e.g. Screen Print">
+                        <datalist id="imprint-methods-{{ item.pk }}">
+                            {% for m in item.product.imprint_methods.all %}
+                            <option value="{{ m.name }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Setup Charge</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control inp-setup"
+                                   step="0.01" min="0"
+                                   value="{{ item.setup_charge }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Run Charge <span class="text-muted">(opt)</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control inp-run"
+                                   step="0.01" min="0"
+                                   value="{{ item.run_charge|default:'' }}"
+                                   placeholder="per piece">
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Notes <span class="text-muted">(optional)</span></label>
+                        <input type="text" class="form-control form-control-sm inp-notes"
+                               value="{{ item.notes }}" placeholder="Any item-specific notes">
+                    </div>
+                </div>
+
+                <!-- Pricing table -->
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label small fw-semibold mb-0">Pricing Tiers</label>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0"
+                                onclick="addTierRow({{ item.pk }})">＋ Tier</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0"
+                                onclick="removeTierRow({{ item.pk }})">− Tier</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0" style="font-size:12px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:24px;"></th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Air Total</th>
+                                <th>Ocean Total</th>
+                                <th>Air Lead</th>
+                                <th>Ocean Lead</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tier-tbody">
+                            {% for tier in item.tiers.all %}
+                            <tr class="tier-row" data-tier-number="{{ tier.tier_number }}">
+                                <td class="ps-1 text-muted align-middle"><small>{{ tier.tier_number }}</small></td>
+                                <td><input type="number" class="form-control form-control-sm inp-qty" min="0"
+                                           value="{{ tier.quantity|default:'' }}" placeholder="qty"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-unit" step="0.001" min="0"
+                                           value="{{ tier.unit_price|default:'' }}" placeholder="0.000"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-air" step="0.01" min="0"
+                                           value="{{ tier.air_total|default:'' }}" placeholder="—"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-ocean" step="0.01" min="0"
+                                           value="{{ tier.ocean_total|default:'' }}" placeholder="—"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-air-lead"
+                                           value="{{ tier.air_lead_time }}" placeholder="3-4 wks"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-ocean-lead"
+                                           value="{{ tier.ocean_lead_time }}" placeholder="6-8 wks"></td>
+                            </tr>
+                            {% empty %}
+                            <tr class="tier-row" data-tier-number="1">
+                                <td class="ps-1 text-muted align-middle"><small>1</small></td>
+                                <td><input type="number" class="form-control form-control-sm inp-qty" min="0" placeholder="qty"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-unit" step="0.001" min="0" placeholder="0.000"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-air" step="0.01" min="0" placeholder="—"></td>
+                                <td><input type="number" class="form-control form-control-sm inp-ocean" step="0.01" min="0" placeholder="—"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-air-lead" placeholder="3-4 wks"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-ocean-lead" placeholder="6-8 wks"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-text mt-1">Qty is shared across unit, air, and ocean. Air/Ocean Total = full landed cost for that qty.</div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">No product linked.</p>
+        {% endif %}
+    </div>
+</div>

@@ -12,9 +12,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.timezone import now
 
-from products.models import HtsCode
+from products.models import HtsCode, Product
 from .forms import CreateQuoteForm
-from .models import Quote
+from .models import Quote, CustomerQuote, QuoteLineItem, QuotePriceTier
 
 
 @login_required
@@ -194,4 +194,241 @@ def quote_pdf(request, quote_id):
         response, presentational_hints=True
     )
 
+    return response
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  NEW QUOTE SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def cq_list(request):
+    """List all customer quotes."""
+    quotes = CustomerQuote.objects.select_related('rep').prefetch_related('line_items')
+    status = request.GET.get('status', '')
+    if status:
+        quotes = quotes.filter(status=status)
+    search = request.GET.get('q', '').strip()
+    if search:
+        quotes = quotes.filter(customer_name__icontains=search)
+    return render(request, 'cq/cq_list.html', {
+        'quotes': quotes,
+        'status_filter': status,
+        'search': search,
+        'status_choices': CustomerQuote.STATUS_CHOICES,
+    })
+
+
+@login_required
+def cq_create(request):
+    """Create a new customer quote (header only; items added on edit page)."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    if request.method == 'POST':
+        customer_name = request.POST.get('customer_name', '').strip()
+        rep_id = request.POST.get('rep', '').strip()
+        date = request.POST.get('date', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        status = request.POST.get('status', 'draft').strip()
+
+        if not customer_name:
+            return render(request, 'cq/cq_create.html', {
+                'error': 'Customer name is required.',
+                'users': User.objects.filter(is_active=True).order_by('first_name'),
+                'posted': request.POST,
+            })
+
+        cq = CustomerQuote(
+            customer_name=customer_name,
+            notes=notes,
+            status=status,
+        )
+        if date:
+            cq.date = date
+        if rep_id:
+            try:
+                cq.rep = User.objects.get(pk=rep_id)
+            except User.DoesNotExist:
+                pass
+        cq.save()
+        return redirect('cq_edit', pk=cq.pk)
+
+    return render(request, 'cq/cq_create.html', {
+        'users': User.objects.filter(is_active=True).order_by('first_name'),
+        'today': now().date(),
+    })
+
+
+@login_required
+def cq_edit(request, pk):
+    """Edit quote header + manage line items."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    cq = get_object_or_404(CustomerQuote, pk=pk)
+
+    if request.method == 'POST' and request.POST.get('_action') == 'save_header':
+        cq.customer_name = request.POST.get('customer_name', cq.customer_name).strip()
+        rep_id = request.POST.get('rep', '')
+        if rep_id:
+            try:
+                cq.rep = User.objects.get(pk=rep_id)
+            except User.DoesNotExist:
+                pass
+        else:
+            cq.rep = None
+        date_val = request.POST.get('date', '')
+        if date_val:
+            cq.date = date_val
+        cq.notes = request.POST.get('notes', '').strip()
+        cq.status = request.POST.get('status', cq.status)
+        cq.save()
+        return redirect('cq_edit', pk=cq.pk)
+
+    items = cq.line_items.select_related('product__hts_code').prefetch_related('tiers', 'product__imprint_methods')
+    return render(request, 'cq/cq_edit.html', {
+        'cq': cq,
+        'items': items,
+        'users': User.objects.filter(is_active=True).order_by('first_name'),
+        'status_choices': CustomerQuote.STATUS_CHOICES,
+    })
+
+
+@login_required
+def cq_item_add(request, quote_pk):
+    """AJAX: add a line item to a quote from a product SKU. Returns rendered item card HTML."""
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    cq = get_object_or_404(CustomerQuote, pk=quote_pk)
+    data = json.loads(request.body)
+    product_pk = data.get('product_pk')
+
+    try:
+        product = Product.objects.get(pk=product_pk)
+    except Product.DoesNotExist:
+        from django.http import JsonResponse
+        return JsonResponse({'ok': False, 'error': 'Product not found'}, status=404)
+
+    # Next sort order
+    last = cq.line_items.order_by('-sort_order').values_list('sort_order', flat=True).first()
+    sort = (last or 0) + 1
+
+    # Default imprint method: first from product's methods, or free-text field
+    methods = list(product.imprint_methods.values_list('name', flat=True))
+    default_method = methods[0] if methods else (product.imprint_method or '')
+
+    item = QuoteLineItem.objects.create(
+        quote=cq,
+        product=product,
+        sort_order=sort,
+        imprint_method=default_method,
+        setup_charge=0,
+    )
+    # Create 3 blank tiers by default
+    for t in range(1, 4):
+        QuotePriceTier.objects.create(line_item=item, tier_number=t)
+
+    from django.http import JsonResponse
+    return JsonResponse({'ok': True, 'item_pk': item.pk})
+
+
+@login_required
+def cq_item_save(request, item_pk):
+    """AJAX: save edits to a single line item and its price tiers."""
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+
+    item = get_object_or_404(QuoteLineItem, pk=item_pk)
+    data = json.loads(request.body)
+
+    item.imprint_method = data.get('imprint_method', item.imprint_method)
+    item.setup_charge   = data.get('setup_charge') or 0
+    item.run_charge     = data.get('run_charge') or None
+    item.notes          = data.get('notes', '')
+    item.save()
+
+    # Upsert tiers
+    for t_data in data.get('tiers', []):
+        tier_num = int(t_data.get('tier_number', 0))
+        if not tier_num:
+            continue
+        tier, _ = QuotePriceTier.objects.get_or_create(line_item=item, tier_number=tier_num)
+        tier.quantity        = t_data.get('quantity') or 0
+        tier.unit_price      = t_data.get('unit_price') or 0
+        tier.air_total       = t_data.get('air_total') or None
+        tier.ocean_total     = t_data.get('ocean_total') or None
+        tier.air_lead_time   = t_data.get('air_lead_time', '')
+        tier.ocean_lead_time = t_data.get('ocean_lead_time', '')
+        tier.save()
+
+    # Remove tiers that were deleted (tier_number not in the posted list)
+    posted_tier_nums = {int(t.get('tier_number', 0)) for t in data.get('tiers', []) if t.get('tier_number')}
+    item.tiers.exclude(tier_number__in=posted_tier_nums).delete()
+
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def cq_item_delete(request, item_pk):
+    """AJAX: delete a line item."""
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    item = get_object_or_404(QuoteLineItem, pk=item_pk)
+    item.delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def cq_product_search(request):
+    """AJAX: search products by SKU or name for the item picker."""
+    from django.http import JsonResponse
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+    qs = Product.objects.filter(
+        Q(sku__icontains=q) | Q(name__icontains=q)
+    ).exclude(status='Canceled').order_by('sku')[:20]
+    results = []
+    for p in qs:
+        results.append({
+            'pk': p.pk,
+            'sku': p.sku,
+            'name': p.name or '',
+            'image_url': p.image.url if p.image else (p.image_url or ''),
+            'imprint_methods': list(p.imprint_methods.values_list('name', flat=True)),
+            'imprint_method': p.imprint_method or '',
+            'setup_charge': 0,
+        })
+    return JsonResponse({'results': results})
+
+
+@login_required
+def cq_view(request, pk):
+    """Read-only view of a quote with download PDF button."""
+    cq = get_object_or_404(CustomerQuote, pk=pk)
+    items = cq.line_items.select_related('product__hts_code').prefetch_related('tiers', 'product__imprint_methods')
+    return render(request, 'cq/cq_view.html', {'cq': cq, 'items': items})
+
+
+@login_required
+def cq_pdf(request, pk):
+    """Generate and download the quote PDF."""
+    from weasyprint import HTML as WP_HTML
+    cq = get_object_or_404(CustomerQuote, pk=pk)
+    items = list(cq.line_items.select_related('product__hts_code').prefetch_related('tiers', 'product__imprint_methods'))
+
+    html_string = render_to_string('cq/cq_pdf.html', {
+        'cq': cq,
+        'items': items,
+        'request': request,
+    })
+
+    response = HttpResponse(content_type='application/pdf')
+    safe_customer = cq.customer_name.replace(' ', '_').replace('/', '-')[:30]
+    response['Content-Disposition'] = f'attachment; filename="{cq.quote_number}_{safe_customer}.pdf"'
+    WP_HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(response, presentational_hints=True)
     return response

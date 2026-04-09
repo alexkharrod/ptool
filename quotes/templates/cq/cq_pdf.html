@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* ── Base ───────────────────────────────────────────────────────────── */
+  @page { size: letter; margin: 0.6in 0.65in; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #222; margin: 0; }
+  h1, h2, h3, h4 { margin: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { padding: 4px 6px; }
+
+  /* ── Page breaks ────────────────────────────────────────────────────── */
+  .page-break { page-break-before: always; }
+
+  /* ── Cover page ─────────────────────────────────────────────────────── */
+  .cover-header { display: flex; justify-content: space-between; align-items: flex-end;
+                  border-bottom: 3px solid #1a3c6e; padding-bottom: 10px; margin-bottom: 20px; }
+  .company-name { font-size: 26px; font-weight: 800; color: #1a3c6e; letter-spacing: -0.5px; }
+  .company-tagline { font-size: 11px; color: #666; }
+  .quote-badge { font-size: 28px; font-weight: 700; color: #1a3c6e; text-align: right; }
+  .quote-meta { font-size: 11px; color: #555; text-align: right; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .info-box { background: #f5f7fa; border-radius: 6px; padding: 12px 14px; }
+  .info-box .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 3px; }
+  .info-box .val { font-size: 13px; font-weight: 600; color: #1a3c6e; }
+
+  .notes-box { background: #fffbec; border: 1px solid #f0d060; border-radius: 6px;
+               padding: 10px 14px; margin-bottom: 24px; font-size: 11px; }
+  .notes-box strong { color: #b8860b; }
+
+  /* Cover summary table */
+  .summary-table th { background: #1a3c6e; color: #fff; font-size: 10px; text-align: left; padding: 6px 8px; }
+  .summary-table td { border-bottom: 1px solid #e0e0e0; vertical-align: middle; padding: 6px 8px; }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .sku-chip { background: #e8f0fe; color: #1a3c6e; border-radius: 3px; padding: 1px 5px;
+              font-size: 10px; font-weight: 600; }
+  .thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 4px; }
+
+  /* ── Item pages ─────────────────────────────────────────────────────── */
+  .item-page-header { display: flex; justify-content: space-between; align-items: center;
+                      border-bottom: 2px solid #1a3c6e; margin-bottom: 14px; padding-bottom: 6px; }
+  .item-page-header .qnum { font-size: 10px; color: #888; }
+  .item-page-header .sku-name { font-size: 16px; font-weight: 700; color: #1a3c6e; }
+
+  .item-layout { display: flex; gap: 20px; }
+  .item-img-col { flex: 0 0 200px; }
+  .item-img-col img { width: 200px; height: 200px; object-fit: contain; border-radius: 6px; border: 1px solid #e0e0e0; }
+  .item-detail-col { flex: 1; }
+
+  .desc-box { font-size: 10px; color: #555; line-height: 1.4; margin-bottom: 10px;
+              max-height: 70px; overflow: hidden; }
+
+  .hts-box { border: 1px solid #cde; background: #f0f7ff; border-radius: 5px;
+             padding: 8px; margin-bottom: 10px; font-size: 10px; }
+  .hts-box .hts-title { font-weight: 700; color: #1a3c6e; margin-bottom: 4px; }
+  .hts-rates { display: flex; gap: 16px; }
+  .hts-rate { text-align: center; }
+  .hts-rate .rate-lbl { font-size: 9px; color: #888; }
+  .hts-rate .rate-val { font-size: 13px; font-weight: 700; color: #1a3c6e; }
+  .hts-total { border-top: 1px solid #bcd; margin-top: 5px; padding-top: 4px;
+               font-size: 10px; text-align: right; }
+  .hts-total strong { color: #c0392b; font-size: 12px; }
+
+  .imprint-row { display: flex; gap: 20px; margin-bottom: 10px; font-size: 10px; }
+  .imprint-row .lbl { color: #888; }
+  .imprint-row .val { font-weight: 600; }
+
+  /* Pricing table */
+  .pricing-table { margin-top: 12px; }
+  .pricing-table .section-head {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #888; margin-bottom: 4px; font-weight: 600;
+  }
+  .pricing-table table { width: 100%; }
+  .pricing-table th { background: #1a3c6e; color: #fff; font-size: 9px;
+                       text-align: center; padding: 5px 4px; }
+  .pricing-table td { border-bottom: 1px solid #eee; text-align: center;
+                       padding: 5px 4px; font-size: 10px; }
+  .pricing-table td:first-child { font-weight: 700; }
+  .pricing-table tr:last-child td { border-bottom: none; }
+  .pricing-table .subtext { font-size: 9px; color: #888; }
+  .no-price { color: #ccc; }
+
+  .item-notes { font-size: 10px; color: #666; font-style: italic; margin-top: 8px;
+                border-top: 1px solid #eee; padding-top: 6px; }
+
+  .item-url { font-size: 9px; color: #1a73e8; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+{# ═══ COVER PAGE ════════════════════════════════════════════════════════════ #}
+<div class="cover-header">
+  <div>
+    <div class="company-name">LogoIncluded</div>
+    <div class="company-tagline">Custom Branded Promotional Products</div>
+  </div>
+  <div>
+    <div class="quote-badge">QUOTE</div>
+    <div class="quote-meta">{{ cq.quote_number }}</div>
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-box">
+    <div class="lbl">Prepared For</div>
+    <div class="val">{{ cq.customer_name }}</div>
+  </div>
+  <div class="info-box">
+    <div class="lbl">Date</div>
+    <div class="val">{{ cq.date|date:"F j, Y" }}</div>
+  </div>
+  {% if cq.rep %}
+  <div class="info-box">
+    <div class="lbl">Sales Representative</div>
+    <div class="val">{{ cq.rep.get_full_name }}</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if cq.notes %}
+<div class="notes-box">
+  <strong>Notes:</strong> {{ cq.notes }}
+</div>
+{% endif %}
+
+{# Summary table #}
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th></th>
+      <th>SKU</th>
+      <th>Product</th>
+      <th>Qty Options</th>
+      <th>Imprint</th>
+      <th>Setup</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    {% if item.product %}
+    <tr>
+      <td style="color:#888;">{{ forloop.counter }}</td>
+      <td>
+        {% if item.product.image %}
+        <img src="{{ item.product.image.url }}" class="thumb" alt="">
+        {% endif %}
+      </td>
+      <td><span class="sku-chip">{{ item.product.sku }}</span></td>
+      <td>{{ item.product.name }}</td>
+      <td style="font-size:10px; color:#555;">
+        {% for tier in item.tiers.all %}{% if tier.quantity %}{{ tier.quantity }}{% if not forloop.last %} / {% endif %}{% endif %}{% endfor %}
+      </td>
+      <td style="font-size:10px;">{{ item.imprint_method|default:"—" }}</td>
+      <td style="font-size:10px;">${{ item.setup_charge }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+
+{# ═══ ITEM PAGES (one per item) ═════════════════════════════════════════════ #}
+{% for item in items %}
+{% if item.product %}
+<div class="page-break">
+
+  <div class="item-page-header">
+    <div>
+      <div class="sku-name">{{ item.product.sku }} — {{ item.product.name }}</div>
+      {% if item.product.website_url %}
+      <div class="item-url">{{ item.product.website_url }}</div>
+      {% endif %}
+    </div>
+    <div class="qnum">{{ cq.quote_number }} &nbsp;·&nbsp; Item {{ forloop.counter }} of {{ items|length }}</div>
+  </div>
+
+  <div class="item-layout">
+
+    {# Left column: image #}
+    <div class="item-img-col">
+      {% if item.product.image %}
+      <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+      {% endif %}
+
+      {# HTS panel #}
+      {% if item.product.hts_code %}
+      <div class="hts-box" style="margin-top:12px;">
+        <div class="hts-title">HTS {{ item.product.hts_code.code }}</div>
+        <div class="hts-rates">
+          <div class="hts-rate">
+            <div class="rate-lbl">Duty</div>
+            <div class="rate-val">{{ item.product.hts_code.duty_percent }}%</div>
+          </div>
+          <div class="hts-rate">
+            <div class="rate-lbl">Sec. 301</div>
+            <div class="rate-val">{{ item.product.hts_code.section_301_percent }}%</div>
+          </div>
+          <div class="hts-rate">
+            <div class="rate-lbl">Extra</div>
+            <div class="rate-val">{{ item.product.hts_code.extra_tariff_percent }}%</div>
+          </div>
+        </div>
+        <div class="hts-total">Combined tariff: <strong>{{ item.product.hts_code.total_percent }}%</strong></div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Right column: description + imprint + pricing #}
+    <div class="item-detail-col">
+
+      {# Description #}
+      {% if item.product.website_description %}
+      <div class="desc-box">{{ item.product.website_description|striptags|truncatewords:55 }}</div>
+      {% elif item.product.description %}
+      <div class="desc-box">{{ item.product.description|truncatewords:55 }}</div>
+      {% endif %}
+
+      {# Imprint / charges #}
+      <div class="imprint-row">
+        <div><span class="lbl">Imprint Method: </span><span class="val">{{ item.imprint_method|default:"TBD" }}</span></div>
+        <div><span class="lbl">Setup Charge: </span><span class="val">${{ item.setup_charge }}</span></div>
+        {% if item.run_charge %}
+        <div><span class="lbl">Run Charge: </span><span class="val">${{ item.run_charge }}/pc</span></div>
+        {% endif %}
+      </div>
+
+      {# Pricing table #}
+      {% if item.tiers.exists %}
+      <div class="pricing-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Air — Total</th>
+              <th>Air Lead Time</th>
+              <th>Ocean — Total</th>
+              <th>Ocean Lead Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tier in item.tiers.all %}
+            {% if tier.quantity %}
+            <tr>
+              <td>{{ tier.quantity }}</td>
+              <td>${{ tier.unit_price }}</td>
+              {% if tier.air_total %}
+              <td><strong>${{ tier.air_total }}</strong></td>
+              {% else %}
+              <td class="no-price">—</td>
+              {% endif %}
+              <td class="subtext">{{ tier.air_lead_time|default:"—" }}</td>
+              {% if tier.ocean_total %}
+              <td><strong>${{ tier.ocean_total }}</strong></td>
+              {% else %}
+              <td class="no-price">—</td>
+              {% endif %}
+              <td class="subtext">{{ tier.ocean_lead_time|default:"—" }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if item.notes %}
+      <div class="item-notes">Note: {{ item.notes }}</div>
+      {% endif %}
+
+    </div>{# end detail col #}
+  </div>{# end item-layout #}
+</div>
+{% endif %}
+{% endfor %}
+
+</body>
+</html>

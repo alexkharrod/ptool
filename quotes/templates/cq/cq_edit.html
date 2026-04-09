@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}{{ cq.quote_number }} — Edit{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header bar -->
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div>
+            <a href="{% url 'cq_list' %}" class="text-muted small">← Quotes</a>
+            <h2 class="mb-0 mt-1">{{ cq.quote_number }}
+                <span class="fs-6 fw-normal text-muted ms-2">{{ cq.customer_name }}</span>
+            </h2>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'cq_view' cq.pk %}" class="btn btn-outline-secondary">Preview</a>
+            <a href="{% url 'cq_pdf' cq.pk %}" class="btn btn-outline-dark">↓ PDF</a>
+        </div>
+    </div>
+
+    <!-- Quote Header form -->
+    <form method="post" class="card mb-4 shadow-sm">
+        {% csrf_token %}
+        <input type="hidden" name="_action" value="save_header">
+        <div class="card-header bg-light fw-semibold py-2">Quote Details</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold">Customer Name</label>
+                    <input type="text" name="customer_name" class="form-control" value="{{ cq.customer_name }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Rep</label>
+                    <select name="rep" class="form-select">
+                        <option value="">— none —</option>
+                        {% for u in users %}
+                        <option value="{{ u.pk }}" {% if cq.rep_id == u.pk %}selected{% endif %}>{{ u.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Date</label>
+                    <input type="date" name="date" class="form-control" value="{{ cq.date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Status</label>
+                    <select name="status" class="form-select">
+                        {% for val, label in status_choices %}
+                        <option value="{{ val }}" {% if cq.status == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">Notes</label>
+                    <textarea name="notes" class="form-control" rows="2">{{ cq.notes }}</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top-0 pt-0 pb-3 px-3">
+            <button type="submit" class="btn btn-primary btn-sm">Save Header</button>
+        </div>
+    </form>
+
+    <!-- Line Items -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Items <span id="itemCount" class="badge bg-secondary ms-1">{{ items|length }}</span></h5>
+    </div>
+
+    <div id="itemsContainer">
+        {% for item in items %}
+        {% include "cq/_item_card.html" with item=item %}
+        {% endfor %}
+    </div>
+
+    <!-- Add Item picker -->
+    <div class="card border-dashed mt-3" style="border:2px dashed #ced4da;">
+        <div class="card-body py-3">
+            <div class="fw-semibold mb-2">＋ Add Product to Quote</div>
+            <div class="d-flex gap-2 align-items-start flex-wrap">
+                <div style="flex:1; min-width:260px; position:relative;">
+                    <input type="text" id="productSearch" class="form-control"
+                           placeholder="Search by SKU or product name…"
+                           autocomplete="off">
+                    <div id="searchDropdown" class="list-group shadow"
+                         style="position:absolute; z-index:100; width:100%; display:none; max-height:320px; overflow-y:auto;"></div>
+                </div>
+                <button id="btnAddItem" class="btn btn-success" disabled onclick="addSelectedItem()">Add Item</button>
+            </div>
+            <div id="selectedProductPreview" class="mt-2" style="display:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <img id="prevImg" src="" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:4px;">
+                    <div>
+                        <div id="prevSku" class="fw-bold small"></div>
+                        <div id="prevName" class="text-muted small"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden template for a new item card (cloned by JS) -->
+<script id="newItemTemplate" type="text/x-template">
+{% include "cq/_item_card_template.html" %}
+</script>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const QUOTE_PK = {{ cq.pk }};
+let selectedProduct = null;
+
+// ── Product search autocomplete ───────────────────────────────────────────────
+let searchTimer;
+document.getElementById('productSearch').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    const q = this.value.trim();
+    if (q.length < 2) {
+        document.getElementById('searchDropdown').style.display = 'none';
+        return;
+    }
+    searchTimer = setTimeout(() => fetchProducts(q), 250);
+});
+
+function fetchProducts(q) {
+    fetch(`/quotes/cq/product-search/?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+            const dd = document.getElementById('searchDropdown');
+            if (!data.results.length) { dd.style.display = 'none'; return; }
+            dd.innerHTML = data.results.map(p => `
+                <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                        onclick="selectProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                    <div class="d-flex align-items-center gap-2">
+                        ${p.image_url ? `<img src="${p.image_url}" style="width:36px;height:36px;object-fit:cover;border-radius:3px;">` : '<div style="width:36px;height:36px;background:#eee;border-radius:3px;"></div>'}
+                        <div>
+                            <span class="fw-bold small">${p.sku}</span>
+                            <span class="text-muted small ms-1">${p.name}</span>
+                        </div>
+                    </div>
+                </button>`).join('');
+            dd.style.display = 'block';
+        });
+}
+
+function selectProduct(p) {
+    selectedProduct = p;
+    document.getElementById('searchDropdown').style.display = 'none';
+    document.getElementById('productSearch').value = `${p.sku} — ${p.name}`;
+    document.getElementById('btnAddItem').disabled = false;
+    const prev = document.getElementById('selectedProductPreview');
+    document.getElementById('prevSku').textContent = p.sku;
+    document.getElementById('prevName').textContent = p.name;
+    const img = document.getElementById('prevImg');
+    if (p.image_url) { img.src = p.image_url; prev.style.display = 'block'; }
+    else prev.style.display = 'none';
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+    if (!e.target.closest('#productSearch') && !e.target.closest('#searchDropdown'))
+        document.getElementById('searchDropdown').style.display = 'none';
+});
+
+// ── Add item ──────────────────────────────────────────────────────────────────
+function addSelectedItem() {
+    if (!selectedProduct) return;
+    const btn = document.getElementById('btnAddItem');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+
+    fetch(`/quotes/cq/${QUOTE_PK}/item-add/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_pk: selectedProduct.pk }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            // Reload page to show new item (simple and reliable)
+            location.reload();
+        } else {
+            alert('Could not add item: ' + (data.error || 'unknown error'));
+            btn.disabled = false;
+            btn.textContent = 'Add Item';
+        }
+    });
+}
+
+// ── Save item ─────────────────────────────────────────────────────────────────
+function saveItem(itemPk) {
+    const card = document.getElementById(`item-card-${itemPk}`);
+    const tiers = [];
+    card.querySelectorAll('.tier-row').forEach(row => {
+        const n = row.dataset.tierNumber;
+        tiers.push({
+            tier_number:     parseInt(n),
+            quantity:        parseFloat(row.querySelector('.inp-qty').value)     || 0,
+            unit_price:      parseFloat(row.querySelector('.inp-unit').value)    || 0,
+            air_total:       parseFloat(row.querySelector('.inp-air').value)     || null,
+            ocean_total:     parseFloat(row.querySelector('.inp-ocean').value)   || null,
+            air_lead_time:   row.querySelector('.inp-air-lead').value.trim(),
+            ocean_lead_time: row.querySelector('.inp-ocean-lead').value.trim(),
+        });
+    });
+    const payload = {
+        imprint_method: card.querySelector('.inp-imprint').value.trim(),
+        setup_charge:   parseFloat(card.querySelector('.inp-setup').value) || 0,
+        run_charge:     parseFloat(card.querySelector('.inp-run').value)   || null,
+        notes:          card.querySelector('.inp-notes').value.trim(),
+        tiers,
+    };
+    const btn = card.querySelector('.btn-save-item');
+    btn.textContent = 'Saving…';
+    btn.disabled = true;
+
+    fetch(`/quotes/cq/item/${itemPk}/save/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.textContent = data.ok ? '✓ Saved' : '✗ Error';
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = 'Save'; }, 2000);
+    });
+}
+
+// ── Delete item ───────────────────────────────────────────────────────────────
+function deleteItem(itemPk) {
+    if (!confirm('Remove this item from the quote?')) return;
+    fetch(`/quotes/cq/item/${itemPk}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: '{}',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const card = document.getElementById(`item-card-${itemPk}`);
+            card.remove();
+            const cnt = document.getElementById('itemCount');
+            cnt.textContent = parseInt(cnt.textContent) - 1;
+        }
+    });
+}
+
+// ── Add/remove tier rows ──────────────────────────────────────────────────────
+function addTierRow(itemPk) {
+    const tbody = document.querySelector(`#item-card-${itemPk} .tier-tbody`);
+    const existing = tbody.querySelectorAll('.tier-row');
+    if (existing.length >= 5) { alert('Maximum 5 quantity tiers.'); return; }
+    const n = existing.length + 1;
+    const row = document.createElement('tr');
+    row.className = 'tier-row';
+    row.dataset.tierNumber = n;
+    row.innerHTML = tierRowHTML(n);
+    tbody.appendChild(row);
+}
+
+function removeTierRow(itemPk) {
+    const tbody = document.querySelector(`#item-card-${itemPk} .tier-tbody`);
+    const rows = tbody.querySelectorAll('.tier-row');
+    if (rows.length <= 1) return;
+    rows[rows.length - 1].remove();
+    // Renumber
+    tbody.querySelectorAll('.tier-row').forEach((r, i) => r.dataset.tierNumber = i + 1);
+}
+
+function tierRowHTML(n) {
+    return `
+        <td class="ps-0"><small class="text-muted">${n}</small></td>
+        <td><input type="number" class="form-control form-control-sm inp-qty" min="0" placeholder="qty"></td>
+        <td><input type="number" class="form-control form-control-sm inp-unit" step="0.001" min="0" placeholder="0.000"></td>
+        <td><input type="number" class="form-control form-control-sm inp-air" step="0.01" min="0" placeholder="—"></td>
+        <td><input type="number" class="form-control form-control-sm inp-ocean" step="0.01" min="0" placeholder="—"></td>
+        <td><input type="text" class="form-control form-control-sm inp-air-lead" placeholder="e.g. 3-4 wks"></td>
+        <td><input type="text" class="form-control form-control-sm inp-ocean-lead" placeholder="e.g. 6-8 wks"></td>`;
+}
+
+// Auto-copy qty to air/ocean when user types in qty field
+document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('inp-qty')) {
+        const row = e.target.closest('.tier-row');
+        if (!row) return;
+        // Only auto-fill air/ocean total if they're still zero/empty
+        const airEl   = row.querySelector('.inp-air');
+        const oceanEl = row.querySelector('.inp-ocean');
+        // We don't auto-fill totals (those are dollar amounts, not quantities)
+        // but we could highlight the row to remind user to fill in totals
+    }
+});
+</script>
+{% endblock %}

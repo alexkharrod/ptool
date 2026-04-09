@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}New Quote{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:640px;">
+    <a href="{% url 'cq_list' %}" class="text-muted small">← Back to Quotes</a>
+    <h2 class="mt-2 mb-4">New Quote</h2>
+
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer_name" class="form-control"
+                   value="{{ posted.customer_name|default:'' }}" required autofocus>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Rep</label>
+                <select name="rep" class="form-select">
+                    <option value="">— Select Rep —</option>
+                    {% for u in users %}
+                    <option value="{{ u.pk }}" {% if posted.rep == u.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ u.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Date</label>
+                <input type="date" name="date" class="form-control"
+                       value="{{ posted.date|default:today|date:'Y-m-d' }}">
+            </div>
+        </div>
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" rows="3">{{ posted.notes|default:'' }}</textarea>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-lg">Create &amp; Add Items →</button>
+            <a href="{% url 'cq_list' %}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

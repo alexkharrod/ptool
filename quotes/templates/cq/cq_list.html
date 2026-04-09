@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Quotes{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Quotes</h2>
+        <a href="{% url 'cq_create' %}" class="btn btn-success">＋ New Quote</a>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search customer…">
+        </div>
+        <div class="col-auto">
+            <select name="status" class="form-select">
+                <option value="">All statuses</option>
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto"><button class="btn btn-outline-secondary" type="submit">Filter</button></div>
+        {% if search or status_filter %}<div class="col-auto"><a href="{% url 'cq_list' %}" class="btn btn-link">Clear</a></div>{% endif %}
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Quote #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Rep</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cq in quotes %}
+                <tr>
+                    <td><strong>{{ cq.quote_number }}</strong></td>
+                    <td>{{ cq.date|date:"M d, Y" }}</td>
+                    <td>{{ cq.customer_name }}</td>
+                    <td>{{ cq.rep.get_full_name|default:"—" }}</td>
+                    <td><span class="badge bg-secondary">{{ cq.line_items.count }}</span></td>
+                    <td>
+                        {% if cq.status == 'draft' %}<span class="badge bg-secondary">Draft</span>
+                        {% elif cq.status == 'sent' %}<span class="badge bg-primary">Sent</span>
+                        {% elif cq.status == 'accepted' %}<span class="badge bg-success">Accepted</span>
+                        {% elif cq.status == 'declined' %}<span class="badge bg-danger">Declined</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'cq_edit' cq.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a href="{% url 'cq_view' cq.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+                        <a href="{% url 'cq_pdf' cq.pk %}" class="btn btn-sm btn-outline-dark">PDF</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No quotes yet. <a href="{% url 'cq_create' %}">Create one</a>.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

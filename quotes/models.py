@@ -2,6 +2,7 @@ import os
 from io import BytesIO
 
 from django.apps import apps
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models.signals import pre_save
@@ -9,6 +10,110 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 
 from products.models import HtsCode, Vendor
+
+
+# ── New quote system ──────────────────────────────────────────────────────────
+
+class CustomerQuote(models.Model):
+    STATUS_CHOICES = [
+        ('draft',    'Draft'),
+        ('sent',     'Sent'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    ]
+
+    quote_number  = models.CharField(max_length=20, unique=True, blank=True)
+    date          = models.DateField(default=now)
+    customer_name = models.CharField(max_length=200)
+    rep           = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='customer_quotes',
+    )
+    notes  = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.quote_number} — {self.customer_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.quote_number:
+            self.quote_number = self._next_quote_number()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def _next_quote_number():
+        from django.utils import timezone
+        year = timezone.now().year
+        prefix = f"Q-{year}-"
+        last = (
+            CustomerQuote.objects
+            .filter(quote_number__startswith=prefix)
+            .order_by('-quote_number')
+            .values_list('quote_number', flat=True)
+            .first()
+        )
+        if last:
+            try:
+                seq = int(last.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                seq = 1
+        else:
+            seq = 1
+        return f"{prefix}{seq:04d}"
+
+
+class QuoteLineItem(models.Model):
+    quote       = models.ForeignKey(CustomerQuote, related_name='line_items', on_delete=models.CASCADE)
+    product     = models.ForeignKey('products.Product', null=True, blank=True, on_delete=models.SET_NULL)
+    sort_order  = models.PositiveIntegerField(default=0)
+
+    # Overrides (pre-filled from product, editable per-quote)
+    imprint_method = models.CharField(max_length=200, blank=True)
+    setup_charge   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    run_charge     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    notes          = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['sort_order', 'pk']
+
+    def __str__(self):
+        return f"Item {self.sort_order + 1}: {self.product}"
+
+    @property
+    def display_number(self):
+        items = list(self.quote.line_items.values_list('pk', flat=True))
+        try:
+            return items.index(self.pk) + 1
+        except ValueError:
+            return '?'
+
+
+class QuotePriceTier(models.Model):
+    line_item   = models.ForeignKey(QuoteLineItem, related_name='tiers', on_delete=models.CASCADE)
+    tier_number = models.PositiveSmallIntegerField()  # 1–5
+
+    quantity     = models.PositiveIntegerField(default=0)
+    unit_price   = models.DecimalField(max_digits=10, decimal_places=3, default=0)
+
+    # Totals (not per-unit) — customer-facing landed cost for this qty
+    air_total    = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    ocean_total  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    air_lead_time   = models.CharField(max_length=100, blank=True)
+    ocean_lead_time = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['tier_number']
+        unique_together = [('line_item', 'tier_number')]
+
+    def __str__(self):
+        return f"Tier {self.tier_number}: qty {self.quantity}"
 
 
 def compress_image(image_field, max_width=800, quality=72):

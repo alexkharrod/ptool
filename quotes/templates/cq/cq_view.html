@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ cq.quote_number }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div>
+            <a href="{% url 'cq_list' %}" class="text-muted small">← Quotes</a>
+            <h2 class="mt-1 mb-0">{{ cq.quote_number }}</h2>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'cq_edit' cq.pk %}" class="btn btn-primary">Edit</a>
+            <a href="{% url 'cq_pdf' cq.pk %}" class="btn btn-outline-dark">↓ Download PDF</a>
+        </div>
+    </div>
+
+    <!-- Quote header summary -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="text-muted small">Customer</div>
+                    <div class="fw-bold fs-5">{{ cq.customer_name }}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-muted small">Rep</div>
+                    <div>{{ cq.rep.get_full_name|default:"—" }}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-muted small">Date</div>
+                    <div>{{ cq.date|date:"M d, Y" }}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-muted small">Status</div>
+                    <div>
+                        {% if cq.status == 'draft' %}<span class="badge bg-secondary">Draft</span>
+                        {% elif cq.status == 'sent' %}<span class="badge bg-primary">Sent</span>
+                        {% elif cq.status == 'accepted' %}<span class="badge bg-success">Accepted</span>
+                        {% elif cq.status == 'declined' %}<span class="badge bg-danger">Declined</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if cq.notes %}
+                <div class="col-12">
+                    <div class="text-muted small">Notes</div>
+                    <div>{{ cq.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Items -->
+    {% for item in items %}
+    {% if item.product %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between">
+            <span class="fw-bold">Item {{ forloop.counter }} — {{ item.product.sku }}</span>
+            <span>{{ item.product.name }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Image + HTS -->
+                <div class="col-md-3 text-center">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" class="img-fluid rounded mb-2"
+                         style="max-height:180px; object-fit:contain;">
+                    {% endif %}
+                    {% if item.product.website_url %}
+                    <div><a href="{{ item.product.website_url }}" target="_blank" class="small">↗ View on site</a></div>
+                    {% endif %}
+                    {% if item.product.hts_code %}
+                    <div class="mt-2 p-2 bg-light rounded border" style="font-size:11px;">
+                        <div class="fw-bold text-muted mb-1">HTS {{ item.product.hts_code.code }}</div>
+                        <div class="d-flex justify-content-around text-center">
+                            <div><div class="text-muted">Duty</div><strong>{{ item.product.hts_code.duty_percent }}%</strong></div>
+                            <div><div class="text-muted">Sec.301</div><strong>{{ item.product.hts_code.section_301_percent }}%</strong></div>
+                            <div><div class="text-muted">Extra</div><strong>{{ item.product.hts_code.extra_tariff_percent }}%</strong></div>
+                        </div>
+                        <div class="text-center border-top mt-1 pt-1">Total: <strong class="text-danger">{{ item.product.hts_code.total_percent }}%</strong></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Details + pricing -->
+                <div class="col-md-9">
+                    {% if item.product.website_description %}
+                    <div class="mb-2 small text-muted border-bottom pb-2">
+                        {{ item.product.website_description|striptags|truncatewords:40 }}
+                    </div>
+                    {% elif item.product.description %}
+                    <div class="mb-2 small text-muted border-bottom pb-2">{{ item.product.description|truncatewords:40 }}</div>
+                    {% endif %}
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-auto">
+                            <span class="text-muted small">Imprint:</span>
+                            <strong class="small">{{ item.imprint_method|default:"—" }}</strong>
+                        </div>
+                        <div class="col-auto">
+                            <span class="text-muted small">Setup:</span>
+                            <strong class="small">${{ item.setup_charge }}</strong>
+                        </div>
+                        {% if item.run_charge %}
+                        <div class="col-auto">
+                            <span class="text-muted small">Run:</span>
+                            <strong class="small">${{ item.run_charge }}/pc</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pricing table -->
+                    {% if item.tiers.exists %}
+                    <table class="table table-sm table-bordered" style="font-size:13px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Air (Total)</th>
+                                <th>Air Lead</th>
+                                <th>Ocean (Total)</th>
+                                <th>Ocean Lead</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tier in item.tiers.all %}
+                            {% if tier.quantity %}
+                            <tr>
+                                <td><strong>{{ tier.quantity }}</strong></td>
+                                <td>${{ tier.unit_price }}</td>
+                                <td>{% if tier.air_total %}<strong>${{ tier.air_total }}</strong>{% else %}-{% endif %}</td>
+                                <td class="text-muted small">{{ tier.air_lead_time|default:"—" }}</td>
+                                <td>{% if tier.ocean_total %}<strong>${{ tier.ocean_total }}</strong>{% else %}-{% endif %}</td>
+                                <td class="text-muted small">{{ tier.ocean_lead_time|default:"—" }}</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                    {% if item.notes %}<div class="small text-muted fst-italic">{{ item.notes }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% empty %}
+    <p class="text-muted">No items yet. <a href="{% url 'cq_edit' cq.pk %}">Add items</a>.</p>
+    {% endfor %}
+</div>
+{% endblock %}
