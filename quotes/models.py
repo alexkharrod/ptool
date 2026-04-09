@@ -33,7 +33,7 @@ class CustomerQuote(models.Model):
         ('declined', 'Declined'),
     ]
 
-    quote_number  = models.CharField(max_length=20, unique=True, blank=True)
+    quote_number  = models.CharField(max_length=40, unique=True, null=True, blank=True)
     date          = models.DateField(default=now)
     customer_name = models.CharField(max_length=200)
     rep           = models.ForeignKey(
@@ -50,33 +50,32 @@ class CustomerQuote(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.quote_number} — {self.customer_name}"
-
-    def save(self, *args, **kwargs):
-        if not self.quote_number:
-            self.quote_number = self._next_quote_number()
-        super().save(*args, **kwargs)
+        return f"{self.quote_number or 'Draft'} — {self.customer_name}"
 
     @staticmethod
-    def _next_quote_number():
-        from django.utils import timezone
-        year = timezone.now().year
-        prefix = f"Q-{year}-"
-        last = (
+    def _next_quote_number(date, rep_name, sku):
+        """Generate MMDD-rep-SKU-NN, NN increments per calendar day."""
+        mm_dd = date.strftime('%m%d')
+        prefix = f"{mm_dd}-"
+        existing = (
             CustomerQuote.objects
             .filter(quote_number__startswith=prefix)
-            .order_by('-quote_number')
             .values_list('quote_number', flat=True)
-            .first()
         )
-        if last:
+        max_seq = 0
+        for qnum in existing:
             try:
-                seq = int(last.split('-')[-1]) + 1
+                max_seq = max(max_seq, int(qnum.split('-')[-1]))
             except (ValueError, IndexError):
-                seq = 1
-        else:
-            seq = 1
-        return f"{prefix}{seq:04d}"
+                pass
+        seq = max_seq + 1
+        parts = [mm_dd]
+        if rep_name:
+            parts.append(rep_name.split()[0].lower()[:12])
+        if sku:
+            parts.append(sku.upper())
+        parts.append(f"{seq:02d}")
+        return '-'.join(parts)
 
 
 class QuoteLineItem(models.Model):
@@ -89,6 +88,10 @@ class QuoteLineItem(models.Model):
     setup_charge   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     run_charge     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     notes          = models.TextField(blank=True)
+
+    # Internal freight costs (not shown on customer PDF)
+    our_air_freight   = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    our_ocean_freight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ['sort_order', 'pk']

@@ -17,37 +17,23 @@
     <div class="card-body">
         {% if item.product %}
         <div class="row g-3">
-            <!-- Left: product thumbnail + info -->
-            <div class="col-md-3">
+            <!-- Left: product thumbnail -->
+            <div class="col-md-2">
                 {% if item.product.image %}
                 <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}"
-                     class="img-fluid rounded mb-2" style="max-height:140px; object-fit:contain;">
+                     class="img-fluid rounded mb-2" style="max-height:120px; object-fit:contain;">
                 {% endif %}
                 <div class="small text-muted">
                     {% if item.product.website_url %}
                     <a href="{{ item.product.website_url }}" target="_blank">↗ View on site</a>
                     {% endif %}
                 </div>
-                {% if item.product.hts_code %}
-                <div class="mt-2 p-2 bg-light rounded border" style="font-size:11px;">
-                    <div class="fw-bold mb-1 text-muted">HTS {{ item.product.hts_code.code }}</div>
-                    <div class="d-flex gap-2 text-center">
-                        <div><div class="text-muted">Duty</div><strong>{{ item.product.hts_code.duty_percent }}%</strong></div>
-                        <div><div class="text-muted">301</div><strong>{{ item.product.hts_code.section_301_percent }}%</strong></div>
-                        <div><div class="text-muted">Extra</div><strong>{{ item.product.hts_code.extra_tariff_percent }}%</strong></div>
-                    </div>
-                    <div class="text-center mt-1 border-top pt-1">
-                        <span class="text-muted">Total: </span>
-                        <strong class="text-danger">{{ item.product.hts_code.total_percent }}%</strong>
-                    </div>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Right: editable fields -->
-            <div class="col-md-9">
+            <div class="col-md-10">
                 <div class="row g-2 mb-3">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label small fw-semibold">Imprint Method</label>
                         <input type="text" class="form-control form-control-sm inp-imprint"
                                value="{{ item.imprint_method }}"
@@ -59,7 +45,7 @@
                             {% endfor %}
                         </datalist>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-semibold">Setup Charge</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">$</span>
@@ -68,14 +54,35 @@
                                    value="{{ item.setup_charge }}">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-semibold">Run Charge <span class="text-muted">(opt)</span></label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control inp-run"
                                    step="0.01" min="0"
                                    value="{{ item.run_charge|default:'' }}"
-                                   placeholder="per piece">
+                                   placeholder="per pc">
+                        </div>
+                    </div>
+                    <!-- Internal freight costs — not printed on customer PDF -->
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-secondary">Our Air Freight <span class="badge bg-secondary" style="font-size:9px;">internal</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control inp-our-air"
+                                   step="0.01" min="0"
+                                   value="{{ item.our_air_freight|default:'' }}"
+                                   placeholder="cost">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-secondary">Our Ocean Freight <span class="badge bg-secondary" style="font-size:9px;">internal</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control inp-our-ocean"
+                                   step="0.01" min="0"
+                                   value="{{ item.our_ocean_freight|default:'' }}"
+                                   placeholder="cost">
                         </div>
                     </div>
                     <div class="col-12">
@@ -101,11 +108,11 @@
                             <tr>
                                 <th style="width:24px;"></th>
                                 <th>Qty</th>
-                                <th>Unit Price</th>
+                                <th class="text-secondary">Unit Cost <span class="badge bg-secondary" style="font-size:9px;">internal</span></th>
                                 <th>Air Total</th>
                                 <th>Ocean Total</th>
-                                <th>Air Lead</th>
-                                <th>Ocean Lead</th>
+                                <th>Air Prod Time</th>
+                                <th>Ocean Prod Time</th>
                             </tr>
                         </thead>
                         <tbody class="tier-tbody">
@@ -121,9 +128,9 @@
                                 <td><input type="number" class="form-control form-control-sm inp-ocean" step="0.01" min="0"
                                            value="{{ tier.ocean_total|default:'' }}" placeholder="—"></td>
                                 <td><input type="text" class="form-control form-control-sm inp-air-lead"
-                                           value="{{ tier.air_lead_time }}" placeholder="3-4 wks"></td>
+                                           value="{{ tier.air_lead_time }}" placeholder="e.g. 3-4 wks"></td>
                                 <td><input type="text" class="form-control form-control-sm inp-ocean-lead"
-                                           value="{{ tier.ocean_lead_time }}" placeholder="6-8 wks"></td>
+                                           value="{{ tier.ocean_lead_time }}" placeholder="e.g. 6-8 wks"></td>
                             </tr>
                             {% empty %}
                             <tr class="tier-row" data-tier-number="1">
@@ -132,14 +139,14 @@
                                 <td><input type="number" class="form-control form-control-sm inp-unit" step="0.001" min="0" placeholder="0.000"></td>
                                 <td><input type="number" class="form-control form-control-sm inp-air" step="0.01" min="0" placeholder="—"></td>
                                 <td><input type="number" class="form-control form-control-sm inp-ocean" step="0.01" min="0" placeholder="—"></td>
-                                <td><input type="text" class="form-control form-control-sm inp-air-lead" placeholder="3-4 wks"></td>
-                                <td><input type="text" class="form-control form-control-sm inp-ocean-lead" placeholder="6-8 wks"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-air-lead" placeholder="e.g. 3-4 wks"></td>
+                                <td><input type="text" class="form-control form-control-sm inp-ocean-lead" placeholder="e.g. 6-8 wks"></td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                <div class="form-text mt-1">Qty is shared across unit, air, and ocean. Air/Ocean Total = full landed cost for that qty.</div>
+                <div class="form-text mt-1">Qty shared across unit cost, air, and ocean. <span class="text-secondary">Unit Cost and freight fields are internal — not printed on the customer PDF.</span></div>
             </div>
         </div>
         {% else %}

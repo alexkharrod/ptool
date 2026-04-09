@@ -7,9 +7,12 @@
     <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
         <div>
             <a href="{% url 'cq_list' %}" class="text-muted small">← Quotes</a>
-            <h2 class="mb-0 mt-1">{{ cq.quote_number }}
+            <h2 class="mb-0 mt-1">{{ cq.quote_number|default:"Draft" }}
                 <span class="fs-6 fw-normal text-muted ms-2">{{ cq.customer_name }}</span>
             </h2>
+            {% if not cq.quote_number %}
+            <div class="text-muted small">Quote # assigned when first item is added</div>
+            {% endif %}
         </div>
         <div class="d-flex gap-2">
             <a href="{% url 'cq_view' cq.pk %}" class="btn btn-outline-secondary">Preview</a>
@@ -168,13 +171,21 @@ document.addEventListener('click', e => {
         document.getElementById('searchDropdown').style.display = 'none';
 });
 
-// ── Add item ──────────────────────────────────────────────────────────────────
-function addSelectedItem() {
+// ── Add item (auto-saves all existing items first) ────────────────────────────
+async function addSelectedItem() {
     if (!selectedProduct) return;
     const btn = document.getElementById('btnAddItem');
     btn.disabled = true;
-    btn.textContent = 'Adding…';
+    btn.textContent = 'Saving…';
 
+    // Save all existing items before adding the new one
+    const itemCards = document.querySelectorAll('[id^="item-card-"]');
+    for (const card of itemCards) {
+        const itemPk = card.id.replace('item-card-', '');
+        await saveItemSilent(itemPk);
+    }
+
+    btn.textContent = 'Adding…';
     fetch(`/quotes/cq/${QUOTE_PK}/item-add/`, {
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
@@ -183,7 +194,6 @@ function addSelectedItem() {
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
-            // Reload page to show new item (simple and reliable)
             location.reload();
         } else {
             alert('Could not add item: ' + (data.error || 'unknown error'));
@@ -193,9 +203,8 @@ function addSelectedItem() {
     });
 }
 
-// ── Save item ─────────────────────────────────────────────────────────────────
-function saveItem(itemPk) {
-    const card = document.getElementById(`item-card-${itemPk}`);
+// ── Build item payload from card DOM ─────────────────────────────────────────
+function buildItemPayload(card) {
     const tiers = [];
     card.querySelectorAll('.tier-row').forEach(row => {
         const n = row.dataset.tierNumber;
@@ -209,13 +218,31 @@ function saveItem(itemPk) {
             ocean_lead_time: row.querySelector('.inp-ocean-lead').value.trim(),
         });
     });
-    const payload = {
-        imprint_method: card.querySelector('.inp-imprint').value.trim(),
-        setup_charge:   parseFloat(card.querySelector('.inp-setup').value) || 0,
-        run_charge:     parseFloat(card.querySelector('.inp-run').value)   || null,
-        notes:          card.querySelector('.inp-notes').value.trim(),
+    return {
+        imprint_method:   card.querySelector('.inp-imprint').value.trim(),
+        setup_charge:     parseFloat(card.querySelector('.inp-setup').value) || 0,
+        run_charge:       parseFloat(card.querySelector('.inp-run').value)   || null,
+        our_air_freight:  parseFloat(card.querySelector('.inp-our-air').value)   || null,
+        our_ocean_freight:parseFloat(card.querySelector('.inp-our-ocean').value) || null,
+        notes:            card.querySelector('.inp-notes').value.trim(),
         tiers,
     };
+}
+
+// Silent save (returns promise, no UI feedback — used during auto-save)
+function saveItemSilent(itemPk) {
+    const card = document.getElementById(`item-card-${itemPk}`);
+    if (!card) return Promise.resolve();
+    return fetch(`/quotes/cq/item/${itemPk}/save/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildItemPayload(card)),
+    }).then(r => r.json());
+}
+
+// ── Save item (with UI feedback) ──────────────────────────────────────────────
+function saveItem(itemPk) {
+    const card = document.getElementById(`item-card-${itemPk}`);
     const btn = card.querySelector('.btn-save-item');
     btn.textContent = 'Saving…';
     btn.disabled = true;
@@ -223,7 +250,7 @@ function saveItem(itemPk) {
     fetch(`/quotes/cq/item/${itemPk}/save/`, {
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(buildItemPayload(card)),
     })
     .then(r => r.json())
     .then(data => {

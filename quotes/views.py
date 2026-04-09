@@ -324,8 +324,18 @@ def cq_item_add(request, quote_pk):
     for t in range(1, 4):
         QuotePriceTier.objects.create(line_item=item, tier_number=t)
 
+    # Assign quote number on first item add (MMDD-rep-SKU-NN)
+    if not cq.quote_number:
+        rep_name = cq.rep.name if cq.rep else None
+        cq.quote_number = CustomerQuote._next_quote_number(
+            date=cq.date,
+            rep_name=rep_name,
+            sku=product.sku,
+        )
+        cq.save(update_fields=['quote_number'])
+
     from django.http import JsonResponse
-    return JsonResponse({'ok': True, 'item_pk': item.pk})
+    return JsonResponse({'ok': True, 'item_pk': item.pk, 'quote_number': cq.quote_number})
 
 
 @login_required
@@ -338,10 +348,12 @@ def cq_item_save(request, item_pk):
     item = get_object_or_404(QuoteLineItem, pk=item_pk)
     data = json.loads(request.body)
 
-    item.imprint_method = data.get('imprint_method', item.imprint_method)
-    item.setup_charge   = data.get('setup_charge') or 0
-    item.run_charge     = data.get('run_charge') or None
-    item.notes          = data.get('notes', '')
+    item.imprint_method   = data.get('imprint_method', item.imprint_method)
+    item.setup_charge     = data.get('setup_charge') or 0
+    item.run_charge       = data.get('run_charge') or None
+    item.our_air_freight  = data.get('our_air_freight') or None
+    item.our_ocean_freight= data.get('our_ocean_freight') or None
+    item.notes            = data.get('notes', '')
     item.save()
 
     # Upsert tiers

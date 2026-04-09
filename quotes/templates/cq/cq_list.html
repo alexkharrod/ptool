@@ -40,7 +40,7 @@
             <tbody>
                 {% for cq in quotes %}
                 <tr>
-                    <td><strong>{{ cq.quote_number }}</strong></td>
+                    <td><strong>{{ cq.quote_number|default:"Draft" }}</strong></td>
                     <td>{{ cq.date|date:"M d, Y" }}</td>
                     <td>{{ cq.customer_name }}</td>
                     <td>{{ cq.rep.name|default:"—" }}</td>
