@@ -21,6 +21,25 @@ Customer quote builder. Fully redesigned (April 2026). Key features:
 - **PDF**: no cover page; one item per page; logo + contact info in header; disclaimer and rep thank-you on last page
 - **Quote-only products**: products without website URLs work fine in quotes
 
+### Shipments (`/shipments/`)
+Inbound shipment tracker for air and ocean freight (added April 2026, `feature/shipments` branch). Key features:
+- **Shipment** model: sequential shipment_number, AGS#, mode (Air/Ocean), carrier, vessel, tracking#/AWB, ETD, ETA port, ETA warehouse, port of arrival, status, totals (cartons, pieces, CBM, GW kg), notes
+- **ShipmentItem** model: per-line-item from packing list — PO#, SKU, description, cartons, qty, NW/GW (kg), CBM, dimensions
+- **ShipmentDocument** model: file attachments (packing list, invoice, BOL, etc.) stored via Cloudinary
+- **Status choices**: Ordered → In Transit → Arrived Port → In Customs → Out for Delivery → Delivered / Cancelled
+- **Access control**: `access_shipments` flag on CustomUser (migration 0004); staff always have access
+- **Quick status update**: inline dropdown on list view posts to `/shipments/<pk>/update-status/` via AJAX
+- Default list view excludes Delivered/Cancelled; checkbox shows all
+
+Key files:
+| File | Purpose |
+|------|---------|
+| `shipments/models.py` | Shipment, ShipmentItem, ShipmentDocument |
+| `shipments/views.py` | list, detail, add, edit, upload_doc, delete_doc, update_status |
+| `shipments/templates/shipments/` | shipment_list, shipment_detail, shipment_add, shipment_edit |
+| `shipments/migrations/0001_initial.py` | Creates all three shipment tables |
+| `users/migrations/0004_add_access_shipments.py` | Adds access_shipments to CustomUser |
+
 ### Scouting / Prospective Products (`/scouting/`)
 Tool for tracking products spotted at trade shows. Alex uses this to photograph and log potential new items from vendor booths. Each prospect has vendor info, unit cost, lead time, notes, and a photo. When a prospect gets approved it can be promoted to a full Product.
 
@@ -85,6 +104,8 @@ DATABASE_URL="..." CLOUDINARY_URL="..." python manage.py upload_product_images
 | `products/management/commands/upload_product_images.py` | One-time bulk upload of legacy static images to Cloudinary |
 | `static/images/LI-Circle.png` | LogoIncluded logo — loaded as base64 in NPDS and quote PDFs |
 | `Dockerfile` | Railway build — Debian Bookworm base for WeasyPrint system libs |
+| `shipments/models.py` | Shipment, ShipmentItem, ShipmentDocument |
+| `shipments/views.py` | list, detail, add, edit, upload_doc, delete_doc, update_status |
 
 ---
 

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Shipments{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2><i class="bi bi-ship me-2"></i>Shipments</h2>
+  <a href="{% url 'shipment_add' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>New Shipment
+  </a>
+</div>
+
+{# ── Filters ──────────────────────────────────────────────────────────── #}
+<form method="get" class="row g-2 mb-4">
+  <div class="col-sm-4">
+    <input type="text" name="search" value="{{ search }}" class="form-control"
+           placeholder="Search AGS#, PO#, SKU, carrier…">
+  </div>
+  <div class="col-sm-2">
+    <select name="mode" class="form-select">
+      <option value="">All modes</option>
+      {% for val, label in mode_choices %}
+      <option value="{{ val }}" {% if mode_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-3">
+    <select name="status" class="form-select">
+      <option value="">All statuses</option>
+      {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-auto d-flex align-items-center gap-2">
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox" name="show_closed" id="showClosed"
+             value="1" {% if show_closed %}checked{% endif %} onchange="this.form.submit()">
+      <label class="form-check-label" for="showClosed">Show delivered/cancelled</label>
+    </div>
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+    <a href="{% url 'shipment_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+  </div>
+</form>
+
+{# ── Table ────────────────────────────────────────────────────────────── #}
+{% if shipments %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>AGS #</th>
+        <th>Mode</th>
+        <th>Carrier / Vessel</th>
+        <th>ETD</th>
+        <th>ETA Port</th>
+        <th>Port</th>
+        <th>ETA Warehouse</th>
+        <th>SKUs / POs</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in shipments %}
+      <tr>
+        <td><a href="{% url 'shipment_detail' s.pk %}" class="fw-semibold text-decoration-none">#{{ s.shipment_number }}</a></td>
+        <td class="text-muted small">{{ s.ags_number|default:"—" }}</td>
+        <td>
+          {% if s.mode == "Air" %}
+            <span class="badge bg-info text-dark"><i class="bi bi-airplane me-1"></i>Air</span>
+          {% else %}
+            <span class="badge bg-primary"><i class="bi bi-ship me-1"></i>Ocean</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="fw-semibold">{{ s.carrier|default:"—" }}</span>
+          {% if s.vessel %}<br><small class="text-muted">{{ s.vessel }}</small>{% endif %}
+        </td>
+        <td class="small">{{ s.etd|date:"M j, Y"|default:"—" }}</td>
+        <td class="small">{{ s.eta_port|date:"M j, Y"|default:"—" }}</td>
+        <td class="small">{{ s.port_of_arrival|default:"—" }}</td>
+        <td class="small">
+          {% if s.eta_warehouse %}
+            <span class="{% if s.status != 'Delivered' %}fw-semibold{% endif %}">
+              {{ s.eta_warehouse|date:"M j, Y" }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="small">
+          {% for item in s.items.all %}
+            <span class="badge bg-light text-dark border me-1">{{ item.sku }}</span>
+          {% empty %}
+            {% if s.po_numbers %}<span class="text-muted">{{ s.po_numbers }}</span>{% else %}—{% endif %}
+          {% endfor %}
+        </td>
+        <td>
+          <select class="form-select form-select-sm status-select" data-pk="{{ s.pk }}"
+                  style="min-width:130px;">
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if s.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <a href="{% url 'shipment_edit' s.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-ship" style="font-size:3rem;"></i>
+  <p class="mt-2">No shipments found.</p>
+  <a href="{% url 'shipment_add' %}" class="btn btn-primary">Add your first shipment</a>
+</div>
+{% endif %}
+
+<script>
+document.querySelectorAll('.status-select').forEach(sel => {
+  sel.addEventListener('change', function() {
+    const pk = this.dataset.pk;
+    fetch(`/shipments/${pk}/update-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({status: this.value}),
+    }).then(r => r.json()).then(data => {
+      if (!data.ok) alert('Could not update status.');
+    });
+  });
+});
+</script>
+{% endblock %}

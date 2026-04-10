@@ -31,6 +31,8 @@ def home(request):
         return redirect("quotes")
     if user.access_scouting:
         return redirect("scouting_list")
+    if user.access_shipments:
+        return redirect("shipment_list")
     # No access flags set yet — show a holding page
     from django.shortcuts import render
     return render(request, "no_access.html")
@@ -43,6 +45,7 @@ urlpatterns = [
     path("quotes/", include("quotes.urls")),
     path("users/", include("users.urls")),
     path("scouting/", include("scouting.urls")),
+    path("shipments/", include("shipments.urls")),
     path(
         "login/",
         LoginView.as_view(template_name="registration/login.html"),

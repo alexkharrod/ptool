@@ -17,7 +17,7 @@
     <div class="card-body">
         {% if item.product %}
         <div class="row g-3">
-            <!-- Left: product thumbnail -->
+            <!-- Left: product thumbnail + HTS reference -->
             <div class="col-md-2">
                 {% if item.product.image %}
                 <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}"
@@ -28,6 +28,18 @@
                     <a href="{{ item.product.website_url }}" target="_blank">↗ View on site</a>
                     {% endif %}
                 </div>
+                {% if item.product.hts_code %}
+                <div class="mt-2 p-2 rounded" style="background:#f8f9fa; font-size:11px; border:1px solid #dee2e6;">
+                    <div class="fw-semibold text-secondary mb-1">HTS / Tariffs <span class="badge bg-secondary" style="font-size:9px;">internal</span></div>
+                    <div><span class="text-muted">HTS:</span> {{ item.product.hts_code.code }}</div>
+                    <div><span class="text-muted">Duty:</span> {{ item.product.hts_code.duty_percent }}%</div>
+                    <div><span class="text-muted">Sec 301:</span> {{ item.product.hts_code.section_301_percent }}%</div>
+                    {% if item.product.hts_code.extra_tariff_percent %}
+                    <div><span class="text-muted">Extra:</span> {{ item.product.hts_code.extra_tariff_percent }}%</div>
+                    {% endif %}
+                    <div class="fw-semibold mt-1"><span class="text-muted">Total:</span> {{ item.product.hts_code.total_percent }}%</div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Right: editable fields -->

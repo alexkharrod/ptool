@@ -32,9 +32,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
 
     # Section access flags — staff users bypass these automatically
-    access_products = models.BooleanField(default=False, help_text="Can access Products section")
-    access_quotes   = models.BooleanField(default=False, help_text="Can access Quotes section")
-    access_scouting = models.BooleanField(default=False, help_text="Can access Scouting section")
+    access_products  = models.BooleanField(default=False, help_text="Can access Products section")
+    access_quotes    = models.BooleanField(default=False, help_text="Can access Quotes section")
+    access_scouting  = models.BooleanField(default=False, help_text="Can access Scouting section")
+    access_shipments = models.BooleanField(default=False, help_text="Can access Shipments section")
 
     # Legacy fields (kept for compatibility during migration)
     role = models.CharField(
@@ -73,3 +74,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     @property
     def can_access_scouting(self):
         return self.is_staff or self.access_scouting
+
+    @property
+    def can_access_shipments(self):
+        return self.is_staff or self.access_shipments
