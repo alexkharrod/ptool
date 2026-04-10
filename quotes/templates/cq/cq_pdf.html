@@ -11,8 +11,9 @@
   td, th { padding: 4px 6px; }
 
   /* ── Page break between items ────────────────────────────────────────── */
-  .item-page { page-break-before: always; }
-  .item-page.first-item { page-break-before: avoid; }
+  /* Items flow naturally — no forced breaks. Each item is kept together   */
+  /* where possible; WeasyPrint will break between items when needed.      */
+  .item-page { break-inside: avoid; margin-bottom: 24px; }
 
   /* ── Quote header (first item only) ─────────────────────────────────── */
   .quote-header {
@@ -215,20 +216,19 @@
     </div>{# end detail col #}
   </div>{# end item-layout #}
 
-  {# ── Footer: disclaimer + thank-you on last item only ── #}
-  {% if forloop.last %}
-  <div class="quote-footer">
-    <div class="disclaimer">Prices are Net and valid for 30 days from the date of this quote.</div>
-    <div class="thankyou">
-      <div class="thankyou-msg">Thank you for your business!</div>
-      {% if cq.rep %}<div class="thankyou-rep">{{ cq.rep.name }}</div>{% endif %}
-    </div>
-  </div>
-  {% endif %}
 
 </div>{# end item-page #}
 {% endif %}
 {% endfor %}
+
+{# ── Footer: disclaimer + thank-you — always after the last item ── #}
+<div class="quote-footer">
+  <div class="disclaimer">Prices are Net and valid for 30 days from the date of this quote.</div>
+  <div class="thankyou">
+    <div class="thankyou-msg">Thank you for your business!</div>
+    {% if cq.rep %}<div class="thankyou-rep">{{ cq.rep.name }}</div>{% endif %}
+  </div>
+</div>
 
 </body>
 </html>
