@@ -35,13 +35,11 @@ def next_sku(request):
         if m:
             existing_nums.append(int(m.group(1)))
 
-    if existing_nums:
-        next_num = max(existing_nums) + 1
-    else:
-        next_num = category.sku_seed
-
-    # Walk forward until we find a SKU that doesn't exist (handles gaps/manual entries)
-    all_skus = set(Product.objects.filter(sku__istartswith=code).values_list("sku", flat=True))
+    # Start from the seed and walk forward to the first unused SKU.
+    # Using max() breaks when outlier SKUs exist (e.g. RT299 would force RT300
+    # even though RT46 is the correct next sequential slot).
+    all_skus = set(s.upper() for s in Product.objects.filter(sku__istartswith=code).values_list("sku", flat=True))
+    next_num = category.sku_seed
     while f"{code}{next_num}" in all_skus:
         next_num += 1
 
