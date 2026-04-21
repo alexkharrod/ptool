@@ -42,6 +42,7 @@ def shipment_list(request):
             | Q(notes__icontains=search)
             | Q(items__sku__icontains=search)
             | Q(items__description__icontains=search)
+            | Q(items__po_number__icontains=search)
         ).distinct()
 
     context = {
@@ -142,6 +143,26 @@ def shipment_delete_doc(request, pk, doc_pk):
     if request.method == "POST":
         doc.delete()
     return redirect("shipment_detail", pk=pk)
+
+
+@login_required
+def shipment_parse_doc(request):
+    """
+    AJAX POST — accepts an uploaded XLS/XLSX packing list / CI file and returns
+    parsed shipment items as JSON so the add/edit form can be pre-populated.
+    """
+    if not _can_access(request.user):
+        return JsonResponse({"ok": False, "error": "Access denied"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return JsonResponse({"ok": False, "error": "No file uploaded"}, status=400)
+
+    from .parse_doc import parse_shipment_doc
+    result = parse_shipment_doc(uploaded)
+    return JsonResponse({"ok": True, **result})
 
 
 @login_required

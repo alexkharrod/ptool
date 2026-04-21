@@ -91,6 +91,10 @@ class Shipment(models.Model):
     total_cbm = models.DecimalField(
         max_digits=10, decimal_places=4, null=True, blank=True
     )
+    total_nw_kg = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Total net weight (kg)",
+    )
     total_gw_kg = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
         help_text="Total gross weight (kg)",
@@ -139,6 +143,10 @@ class ShipmentItem(models.Model):
     )
     dimensions_cm = models.CharField(
         max_length=50, blank=True, help_text="e.g. 34.5×34.5×21.5"
+    )
+    unit_cost_usd = models.DecimalField(
+        max_digits=10, decimal_places=4, null=True, blank=True,
+        help_text="Unit cost from CI (USD) — internal, not shown to non-staff",
     )
 
     class Meta:
