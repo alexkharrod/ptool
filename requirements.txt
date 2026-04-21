@@ -41,6 +41,7 @@ jmespath==1.0.1
 load-dotenv==0.1.0
 lxml==5.3.1
 openpyxl==3.1.5
+xlrd==2.0.1
 packaging==24.2
 parsel==1.10.0
 pillow==11.1.0
