@@ -24,7 +24,6 @@ class ShipmentForm(forms.ModelForm):
             "total_cartons",
             "total_pieces",
             "total_cbm",
-            "total_nw_kg",
             "total_gw_kg",
             "notes",
         ]
@@ -60,7 +59,6 @@ class ShipmentItemForm(forms.ModelForm):
             "gw_kg",
             "cbm",
             "dimensions_cm",
-            "unit_cost_usd",
         ]
         widgets = {
             "description": forms.TextInput(attrs={"placeholder": "Product description"}),

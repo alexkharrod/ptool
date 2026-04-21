@@ -10,62 +10,8 @@
   </a>
 </div>
 
-{# ── Import PL / CI card ─────────────────────────────────────────────────── #}
-<div class="card mb-4 border-primary">
-  <div class="card-header fw-semibold bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-file-earmark-spreadsheet me-2"></i>Import from Packing List / CI</span>
-    <button type="button" class="btn btn-sm btn-link p-0 text-muted" onclick="toggleImport()">
-      <i class="bi bi-chevron-down" id="importChevron"></i>
-    </button>
-  </div>
-  <div class="card-body" id="importPanel">
-    <p class="text-muted small mb-2">Upload your XLS or XLSX packing list (and/or commercial invoice) to auto-fill the items below. Unit costs from the CI are only visible to admin users.</p>
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <input type="file" id="plFile" accept=".xls,.xlsx" class="form-control" style="max-width:320px;">
-      <button type="button" class="btn btn-primary" onclick="parsePL()" id="parseBtn">
-        <i class="bi bi-upload me-1"></i>Parse &amp; Preview
-      </button>
-    </div>
-    <div id="parseStatus" class="mt-2"></div>
-
-    {# Preview table — shown after parse #}
-    <div id="previewSection" class="mt-3" style="display:none;">
-      <h6 class="mb-2">Parsed Items <span id="parsedCount" class="badge bg-secondary"></span></h6>
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered mb-2" id="previewTable">
-          <thead class="table-light">
-            <tr>
-              <th>PO #</th><th>SKU</th><th>Description</th>
-              <th>Ctns</th><th>Qty</th><th>NW</th><th>GW</th><th>CBM</th><th>Dims</th>
-              <th>Unit $</th>
-            </tr>
-          </thead>
-          <tbody id="previewBody"></tbody>
-        </table>
-      </div>
-      <div id="parsedTotals" class="small text-muted mb-2"></div>
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-success" onclick="applyParsed()">
-          <i class="bi bi-check-lg me-1"></i>Apply to Form
-        </button>
-        <button type="button" class="btn btn-outline-secondary" onclick="clearPreview()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <form method="post">
   {% csrf_token %}
-
-  {# ── Form errors ────────────────────────────────────────────────────── #}
-  {% if form.errors or formset.errors %}
-  <div class="alert alert-danger">
-    <strong>Please fix the following errors:</strong>
-    {{ form.errors }}
-    {% if formset.non_form_errors %}<div>{{ formset.non_form_errors }}</div>{% endif %}
-    {% for f in formset %}{% if f.errors %}<div>Row {{ forloop.counter }}: {{ f.errors }}</div>{% endif %}{% endfor %}
-  </div>
-  {% endif %}
 
   {# ── Shipment header ────────────────────────────────────────────────── #}
   <div class="card mb-4">
@@ -141,10 +87,6 @@
           {{ form.total_cbm|add_class:"form-control" }}
         </div>
         <div class="col-sm-2">
-          <label class="form-label">Total NW (kg)</label>
-          {{ form.total_nw_kg|add_class:"form-control" }}
-        </div>
-        <div class="col-sm-2">
           <label class="form-label">Total GW (kg)</label>
           {{ form.total_gw_kg|add_class:"form-control" }}
         </div>
@@ -158,12 +100,7 @@
 
   {# ── Line items ─────────────────────────────────────────────────────── #}
   <div class="card mb-4">
-    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-      <span>Packing List Items</span>
-      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addItemRow()">
-        <i class="bi bi-plus me-1"></i>Add Row
-      </button>
-    </div>
+    <div class="card-header fw-semibold">Packing List Items</div>
     <div class="card-body p-0">
       {{ formset.management_form }}
       <div class="table-responsive">
@@ -173,19 +110,17 @@
               <th>PO #</th>
               <th>SKU / P/N</th>
               <th>Description</th>
-              <th>Ctns</th>
+              <th>Cartons</th>
               <th>Qty</th>
               <th>NW (kg)</th>
               <th>GW (kg)</th>
               <th>CBM</th>
               <th>Dims (cm)</th>
-              {% if request.user.is_staff %}<th>Unit $</th>{% endif %}
-              <th></th>
             </tr>
           </thead>
-          <tbody id="item-tbody">
+          <tbody>
             {% for item_form in formset %}
-            <tr class="item-row">
+            <tr>
               <td>{{ item_form.id }}{{ item_form.po_number|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.sku|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.description|add_class:"form-control form-control-sm" }}</td>
@@ -195,12 +130,6 @@
               <td>{{ item_form.gw_kg|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.cbm|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.dimensions_cm|add_class:"form-control form-control-sm" }}</td>
-              {% if request.user.is_staff %}<td>{{ item_form.unit_cost_usd|add_class:"form-control form-control-sm" }}</td>{% endif %}
-              <td>
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)" title="Remove row">
-                  <i class="bi bi-x"></i>
-                </button>
-              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -216,238 +145,4 @@
     <a href="{% url 'shipment_list' %}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>
-
-<script>
-const CSRF = '{{ csrf_token }}';
-const IS_STAFF = {{ request.user.is_staff|yesno:"true,false" }};
-let parsedData = null;
-
-// ── Import panel toggle ───────────────────────────────────────────────────
-function toggleImport() {
-  const panel = document.getElementById('importPanel');
-  const icon = document.getElementById('importChevron');
-  const hidden = panel.style.display === 'none';
-  panel.style.display = hidden ? '' : 'none';
-  icon.className = hidden ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
-}
-
-// ── Parse PL/CI ───────────────────────────────────────────────────────────
-async function parsePL() {
-  const fileInput = document.getElementById('plFile');
-  const statusEl = document.getElementById('parseStatus');
-  if (!fileInput.files.length) {
-    statusEl.innerHTML = '<div class="alert alert-warning py-1">Please select a file first.</div>';
-    return;
-  }
-
-  const btn = document.getElementById('parseBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Parsing…';
-  statusEl.innerHTML = '';
-
-  const fd = new FormData();
-  fd.append('file', fileInput.files[0]);
-  fd.append('csrfmiddlewaretoken', CSRF);
-
-  try {
-    const resp = await fetch('{% url "shipment_parse_doc" %}', { method: 'POST', body: fd });
-    const data = await resp.json();
-
-    if (!data.ok) {
-      statusEl.innerHTML = `<div class="alert alert-danger py-1">${data.error}</div>`;
-      return;
-    }
-
-    parsedData = data;
-    showPreview(data);
-
-    if (data.warnings && data.warnings.length) {
-      statusEl.innerHTML = data.warnings.map(w =>
-        `<div class="alert alert-warning py-1 mb-1 small">${w}</div>`
-      ).join('');
-    }
-  } catch (e) {
-    statusEl.innerHTML = `<div class="alert alert-danger py-1">Request failed: ${e}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-upload me-1"></i>Parse &amp; Preview';
-  }
-}
-
-function showPreview(data) {
-  const tbody = document.getElementById('previewBody');
-  tbody.innerHTML = '';
-  (data.items || []).forEach(item => {
-    const tr = document.createElement('tr');
-    const costCell = IS_STAFF ? `<td>${item.unit_cost_usd || '—'}</td>` : '<td class="text-muted">—</td>';
-    tr.innerHTML = `
-      <td>${item.po_number || ''}</td>
-      <td>${item.sku || ''}</td>
-      <td>${item.description || ''}</td>
-      <td>${item.cartons || ''}</td>
-      <td>${item.qty || ''}</td>
-      <td>${item.nw_kg || ''}</td>
-      <td>${item.gw_kg || ''}</td>
-      <td>${item.cbm || ''}</td>
-      <td>${item.dimensions_cm || ''}</td>
-      ${costCell}
-    `;
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById('parsedCount').textContent = `${(data.items || []).length} items`;
-
-  const t = data.totals || {};
-  const parts = [];
-  if (t.cartons) parts.push(`${t.cartons} cartons`);
-  if (t.pieces)  parts.push(`${t.pieces} pcs`);
-  if (t.nw_kg)   parts.push(`NW ${t.nw_kg} kg`);
-  if (t.gw_kg)   parts.push(`GW ${t.gw_kg} kg`);
-  if (t.cbm)     parts.push(`${t.cbm} CBM`);
-  document.getElementById('parsedTotals').textContent = parts.join(' · ');
-
-  document.getElementById('previewSection').style.display = '';
-}
-
-function clearPreview() {
-  parsedData = null;
-  document.getElementById('previewSection').style.display = 'none';
-  document.getElementById('previewBody').innerHTML = '';
-  document.getElementById('parseStatus').innerHTML = '';
-}
-
-// ── Apply parsed items to formset ─────────────────────────────────────────
-function applyParsed() {
-  if (!parsedData) return;
-  const items = parsedData.items || [];
-  const totals = parsedData.totals || {};
-  const tbody = document.getElementById('item-tbody');
-
-  // Clear existing rows
-  tbody.innerHTML = '';
-
-  // Update TOTAL_FORMS
-  const totalForms = document.getElementById('id_items-TOTAL_FORMS');
-  totalForms.value = items.length;
-
-  items.forEach((item, idx) => {
-    const tr = buildItemRow(idx, item);
-    tbody.appendChild(tr);
-  });
-
-  // Fill totals into header fields
-  if (totals.cartons) setField('id_total_cartons', totals.cartons);
-  if (totals.pieces)  setField('id_total_pieces',  totals.pieces);
-  if (totals.cbm)     setField('id_total_cbm',     totals.cbm);
-  if (totals.nw_kg)   setField('id_total_nw_kg',   totals.nw_kg);
-  if (totals.gw_kg)   setField('id_total_gw_kg',   totals.gw_kg);
-
-  clearPreview();
-
-  // Scroll to items card
-  document.getElementById('item-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function setField(id, val) {
-  const el = document.getElementById(id);
-  if (el && val !== null && val !== undefined) el.value = val;
-}
-
-function buildItemRow(idx, item) {
-  const prefix = `items-${idx}`;
-  const tr = document.createElement('tr');
-  tr.className = 'item-row';
-
-  const fields = [
-    ['po_number',     item.po_number     || '', 'text'],
-    ['sku',           item.sku           || '', 'text'],
-    ['description',   item.description   || '', 'text'],
-    ['cartons',       item.cartons       || '', 'number'],
-    ['qty',           item.qty           || '', 'number'],
-    ['nw_kg',         item.nw_kg         || '', 'text'],
-    ['gw_kg',         item.gw_kg         || '', 'text'],
-    ['cbm',           item.cbm           || '', 'text'],
-    ['dimensions_cm', item.dimensions_cm || '', 'text'],
-  ];
-
-  // Hidden id field
-  const idInput = document.createElement('input');
-  idInput.type = 'hidden';
-  idInput.name = `${prefix}-id`;
-  idInput.id = `id_${prefix}-id`;
-
-  let html = `<td>${idInput.outerHTML}`;
-  html += inputHTML(prefix, 'po_number', item.po_number || '');
-  html += `</td>`;
-
-  fields.slice(1).forEach(([name, val]) => {
-    html += `<td>${inputHTML(prefix, name, val)}</td>`;
-  });
-
-  if (IS_STAFF) {
-    html += `<td>${inputHTML(prefix, 'unit_cost_usd', item.unit_cost_usd || '')}</td>`;
-  }
-  html += `<td><button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)" title="Remove"><i class="bi bi-x"></i></button></td>`;
-
-  tr.innerHTML = html;
-  return tr;
-}
-
-function inputHTML(prefix, name, val) {
-  const escaped = String(val).replace(/"/g, '&quot;');
-  return `<input type="text" name="${prefix}-${name}" id="id_${prefix}-${name}" value="${escaped}" class="form-control form-control-sm">`;
-}
-
-// ── Add / remove rows ─────────────────────────────────────────────────────
-function addItemRow() {
-  const tbody = document.getElementById('item-tbody');
-  const totalForms = document.getElementById('id_items-TOTAL_FORMS');
-  const idx = parseInt(totalForms.value);
-  const tr = buildItemRow(idx, {});
-  tbody.appendChild(tr);
-  totalForms.value = idx + 1;
-}
-
-function removeRow(btn) {
-  const tr = btn.closest('tr');
-  // If it's a Django-existing row (has a hidden id with a value), mark DELETE
-  const idInput = tr.querySelector('input[name$="-id"]');
-  if (idInput && idInput.value) {
-    // Mark for deletion via hidden DELETE checkbox
-    const delInput = document.createElement('input');
-    delInput.type = 'hidden';
-    const prefix = idInput.name.replace('-id', '');
-    delInput.name = `${prefix}-DELETE`;
-    delInput.value = 'on';
-    tr.appendChild(delInput);
-    tr.style.display = 'none';
-  } else {
-    tr.remove();
-    // Reindex remaining rows and update TOTAL_FORMS
-    reindexRows();
-  }
-}
-
-// ── ETA Warehouse auto-fill (+12 days from ETA Port) ─────────────────────
-document.getElementById('id_eta_port').addEventListener('change', function() {
-  const warehouse = document.getElementById('id_eta_warehouse');
-  if (this.value && !warehouse.value) {
-    const d = new Date(this.value);
-    d.setDate(d.getDate() + 12);
-    warehouse.value = d.toISOString().slice(0, 10);
-  }
-});
-
-function reindexRows() {
-  const tbody = document.getElementById('item-tbody');
-  const rows = [...tbody.querySelectorAll('tr.item-row:not([style*="display: none"])')];
-  rows.forEach((tr, newIdx) => {
-    tr.querySelectorAll('input').forEach(input => {
-      input.name = input.name.replace(/items-\d+/, `items-${newIdx}`);
-      input.id   = input.id.replace(/items-\d+/, `items-${newIdx}`);
-    });
-  });
-  document.getElementById('id_items-TOTAL_FORMS').value = rows.length;
-}
-</script>
 {% endblock %}

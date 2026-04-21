@@ -10,5 +10,4 @@ urlpatterns = [
     path("<int:pk>/upload-doc/", views.shipment_upload_doc, name="shipment_upload_doc"),
     path("<int:pk>/delete-doc/<int:doc_pk>/", views.shipment_delete_doc, name="shipment_delete_doc"),
     path("<int:pk>/update-status/", views.shipment_update_status, name="shipment_update_status"),
-    path("parse-doc/", views.shipment_parse_doc, name="shipment_parse_doc"),
 ]

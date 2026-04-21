@@ -10,48 +10,6 @@
   </a>
 </div>
 
-{# ── Import PL / CI card ─────────────────────────────────────────────────── #}
-<div class="card mb-4 border-primary">
-  <div class="card-header fw-semibold bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-file-earmark-spreadsheet me-2"></i>Import from Packing List / CI</span>
-    <button type="button" class="btn btn-sm btn-link p-0 text-muted" onclick="toggleImport()">
-      <i class="bi bi-chevron-down" id="importChevron"></i>
-    </button>
-  </div>
-  <div class="card-body" id="importPanel" style="display:none;">
-    <p class="text-muted small mb-2">Upload your XLS or XLSX to re-import items. <strong>This will replace all existing line items.</strong> Unit costs are only visible to admin users.</p>
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <input type="file" id="plFile" accept=".xls,.xlsx" class="form-control" style="max-width:320px;">
-      <button type="button" class="btn btn-primary" onclick="parsePL()" id="parseBtn">
-        <i class="bi bi-upload me-1"></i>Parse &amp; Preview
-      </button>
-    </div>
-    <div id="parseStatus" class="mt-2"></div>
-    <div id="previewSection" class="mt-3" style="display:none;">
-      <h6 class="mb-2">Parsed Items <span id="parsedCount" class="badge bg-secondary"></span></h6>
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered mb-2" id="previewTable">
-          <thead class="table-light">
-            <tr>
-              <th>PO #</th><th>SKU</th><th>Description</th>
-              <th>Ctns</th><th>Qty</th><th>NW</th><th>GW</th><th>CBM</th><th>Dims</th>
-              <th>Unit $</th>
-            </tr>
-          </thead>
-          <tbody id="previewBody"></tbody>
-        </table>
-      </div>
-      <div id="parsedTotals" class="small text-muted mb-2"></div>
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-success" onclick="applyParsed()">
-          <i class="bi bi-check-lg me-1"></i>Apply to Form
-        </button>
-        <button type="button" class="btn btn-outline-secondary" onclick="clearPreview()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <form method="post">
   {% csrf_token %}
 
@@ -129,10 +87,6 @@
           {{ form.total_cbm|add_class:"form-control" }}
         </div>
         <div class="col-sm-2">
-          <label class="form-label">Total NW (kg)</label>
-          {{ form.total_nw_kg|add_class:"form-control" }}
-        </div>
-        <div class="col-sm-2">
           <label class="form-label">Total GW (kg)</label>
           {{ form.total_gw_kg|add_class:"form-control" }}
         </div>
@@ -146,9 +100,9 @@
 
   {# ── Line items ─────────────────────────────────────────────────────── #}
   <div class="card mb-4">
-    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <div class="card-header fw-semibold d-flex justify-content-between">
       <span>Packing List Items</span>
-      <small class="text-muted">Check "Del" to remove a row on save</small>
+      <small class="text-muted">Empty rows are ignored on save</small>
     </div>
     <div class="card-body p-0">
       {{ formset.management_form }}
@@ -159,13 +113,12 @@
               <th>PO #</th>
               <th>SKU / P/N</th>
               <th>Description</th>
-              <th>Ctns</th>
+              <th>Cartons</th>
               <th>Qty</th>
               <th>NW (kg)</th>
               <th>GW (kg)</th>
               <th>CBM</th>
               <th>Dims (cm)</th>
-              {% if request.user.is_staff %}<th>Unit $</th>{% endif %}
               <th>Del?</th>
             </tr>
           </thead>
@@ -181,7 +134,6 @@
               <td>{{ item_form.gw_kg|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.cbm|add_class:"form-control form-control-sm" }}</td>
               <td>{{ item_form.dimensions_cm|add_class:"form-control form-control-sm" }}</td>
-              {% if request.user.is_staff %}<td>{{ item_form.unit_cost_usd|add_class:"form-control form-control-sm" }}</td>{% endif %}
               <td class="text-center">{{ item_form.DELETE }}</td>
             </tr>
             {% endfor %}
@@ -198,142 +150,4 @@
     <a href="{% url 'shipment_detail' shipment.pk %}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>
-
-<script>
-const CSRF = '{{ csrf_token }}';
-const IS_STAFF = {{ request.user.is_staff|yesno:"true,false" }};
-let parsedData = null;
-
-function toggleImport() {
-  const panel = document.getElementById('importPanel');
-  const icon = document.getElementById('importChevron');
-  const hidden = panel.style.display === 'none';
-  panel.style.display = hidden ? '' : 'none';
-  icon.className = hidden ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
-}
-
-async function parsePL() {
-  const fileInput = document.getElementById('plFile');
-  const statusEl = document.getElementById('parseStatus');
-  if (!fileInput.files.length) {
-    statusEl.innerHTML = '<div class="alert alert-warning py-1">Please select a file first.</div>';
-    return;
-  }
-  const btn = document.getElementById('parseBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Parsing…';
-  statusEl.innerHTML = '';
-  const fd = new FormData();
-  fd.append('file', fileInput.files[0]);
-  fd.append('csrfmiddlewaretoken', CSRF);
-  try {
-    const resp = await fetch('{% url "shipment_parse_doc" %}', { method: 'POST', body: fd });
-    const data = await resp.json();
-    if (!data.ok) { statusEl.innerHTML = `<div class="alert alert-danger py-1">${data.error}</div>`; return; }
-    parsedData = data;
-    showPreview(data);
-    if (data.warnings && data.warnings.length) {
-      statusEl.innerHTML = data.warnings.map(w => `<div class="alert alert-warning py-1 mb-1 small">${w}</div>`).join('');
-    }
-  } catch(e) {
-    statusEl.innerHTML = `<div class="alert alert-danger py-1">Request failed: ${e}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-upload me-1"></i>Parse &amp; Preview';
-  }
-}
-
-function showPreview(data) {
-  const tbody = document.getElementById('previewBody');
-  tbody.innerHTML = '';
-  (data.items || []).forEach(item => {
-    const tr = document.createElement('tr');
-    const costCell = IS_STAFF ? `<td>${item.unit_cost_usd || '—'}</td>` : '<td>—</td>';
-    tr.innerHTML = `<td>${item.po_number||''}</td><td>${item.sku||''}</td><td>${item.description||''}</td><td>${item.cartons||''}</td><td>${item.qty||''}</td><td>${item.nw_kg||''}</td><td>${item.gw_kg||''}</td><td>${item.cbm||''}</td><td>${item.dimensions_cm||''}</td>${costCell}`;
-    tbody.appendChild(tr);
-  });
-  document.getElementById('parsedCount').textContent = `${(data.items||[]).length} items`;
-  const t = data.totals || {};
-  const parts = [];
-  if (t.cartons) parts.push(`${t.cartons} cartons`);
-  if (t.pieces)  parts.push(`${t.pieces} pcs`);
-  if (t.nw_kg)   parts.push(`NW ${t.nw_kg} kg`);
-  if (t.gw_kg)   parts.push(`GW ${t.gw_kg} kg`);
-  if (t.cbm)     parts.push(`${t.cbm} CBM`);
-  document.getElementById('parsedTotals').textContent = parts.join(' · ');
-  document.getElementById('previewSection').style.display = '';
-}
-
-function clearPreview() {
-  parsedData = null;
-  document.getElementById('previewSection').style.display = 'none';
-  document.getElementById('previewBody').innerHTML = '';
-  document.getElementById('parseStatus').innerHTML = '';
-}
-
-function applyParsed() {
-  if (!parsedData) return;
-  const items = parsedData.items || [];
-  const totals = parsedData.totals || {};
-
-  // Mark all existing rows for deletion
-  document.querySelectorAll('[name$="-DELETE"]').forEach(cb => { cb.checked = true; });
-
-  // Get current INITIAL_FORMS count (existing rows we're deleting)
-  const initialForms = parseInt(document.getElementById('id_items-INITIAL_FORMS').value || 0);
-  document.getElementById('id_items-TOTAL_FORMS').value = initialForms + items.length;
-
-  // Append new rows after existing (deleted) rows
-  const tbody = document.querySelector('tbody');
-  items.forEach((item, i) => {
-    const idx = initialForms + i;
-    const tr = document.createElement('tr');
-    tr.innerHTML = buildRowHTML(idx, item);
-    tbody.appendChild(tr);
-  });
-
-  if (totals.cartons) setField('id_total_cartons', totals.cartons);
-  if (totals.pieces)  setField('id_total_pieces',  totals.pieces);
-  if (totals.cbm)     setField('id_total_cbm',     totals.cbm);
-  if (totals.nw_kg)   setField('id_total_nw_kg',   totals.nw_kg);
-  if (totals.gw_kg)   setField('id_total_gw_kg',   totals.gw_kg);
-
-  clearPreview();
-  document.querySelector('.card.mb-4:last-of-type').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function setField(id, val) {
-  const el = document.getElementById(id);
-  if (el && val !== null && val !== undefined) el.value = val;
-}
-
-// ── ETA Warehouse auto-fill (+12 days from ETA Port) ─────────────────────
-document.getElementById('id_eta_port').addEventListener('change', function() {
-  const warehouse = document.getElementById('id_eta_warehouse');
-  if (this.value && !warehouse.value) {
-    const d = new Date(this.value);
-    d.setDate(d.getDate() + 12);
-    warehouse.value = d.toISOString().slice(0, 10);
-  }
-});
-
-function buildRowHTML(idx, item) {
-  const p = `items-${idx}`;
-  const inp = (name, val) => `<input type="text" name="${p}-${name}" id="id_${p}-${name}" value="${String(val||'').replace(/"/g,'&quot;')}" class="form-control form-control-sm">`;
-  const costCol = IS_STAFF ? `<td>${inp('unit_cost_usd', item.unit_cost_usd||'')}</td>` : '';
-  return `
-    <td><input type="hidden" name="${p}-id" id="id_${p}-id">${inp('po_number', item.po_number)}</td>
-    <td>${inp('sku', item.sku)}</td>
-    <td>${inp('description', item.description)}</td>
-    <td>${inp('cartons', item.cartons)}</td>
-    <td>${inp('qty', item.qty)}</td>
-    <td>${inp('nw_kg', item.nw_kg)}</td>
-    <td>${inp('gw_kg', item.gw_kg)}</td>
-    <td>${inp('cbm', item.cbm)}</td>
-    <td>${inp('dimensions_cm', item.dimensions_cm)}</td>
-    ${costCol}
-    <td class="text-center"><input type="checkbox" name="${p}-DELETE" id="id_${p}-DELETE"></td>
-  `;
-}
-</script>
 {% endblock %}

@@ -25,9 +25,11 @@
     </span>
   </div>
   <div class="d-flex gap-2">
+    {% if can_edit %}
     <a href="{% url 'shipment_edit' shipment.pk %}" class="btn btn-outline-secondary">
       <i class="bi bi-pencil me-1"></i>Edit
     </a>
+    {% endif %}
     <a href="{% url 'shipment_list' %}" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Back
     </a>
@@ -146,7 +148,7 @@
                 <th class="text-end">GW (kg)</th>
                 <th class="text-end">CBM</th>
                 <th>Dims (cm)</th>
-                {% if request.user.is_staff %}<th class="text-end">Unit Cost</th>{% endif %}
+                {% if can_edit %}<th class="text-end">Unit Cost</th>{% endif %}
               </tr>
             </thead>
             <tbody>
@@ -161,7 +163,7 @@
                 <td class="text-end small">{{ item.gw_kg|default:"—" }}</td>
                 <td class="text-end small">{{ item.cbm|default:"—" }}</td>
                 <td class="small text-muted">{{ item.dimensions_cm|default:"—" }}</td>
-                {% if request.user.is_staff %}
+                {% if can_edit %}
                 <td class="text-end small">{% if item.unit_cost_usd %}${{ item.unit_cost_usd }}{% else %}—{% endif %}</td>
                 {% endif %}
               </tr>
@@ -170,7 +172,7 @@
           </table>
         </div>
         {% else %}
-        <p class="text-muted p-3 mb-0">No line items yet. <a href="{% url 'shipment_edit' shipment.pk %}">Edit this shipment</a> to add them.</p>
+        <p class="text-muted p-3 mb-0">No line items yet.{% if can_edit %} <a href="{% url 'shipment_edit' shipment.pk %}">Edit this shipment</a> to add them.{% endif %}</p>
         {% endif %}
       </div>
     </div>
@@ -202,6 +204,7 @@
               </a>
               <small class="text-muted ms-2">{{ doc.uploaded_at|date:"M j, Y" }}</small>
             </div>
+            {% if can_edit %}
             <form method="post" action="{% url 'shipment_delete_doc' shipment.pk doc.pk %}"
                   onsubmit="return confirm('Delete this document?')">
               {% csrf_token %}
@@ -209,6 +212,7 @@
                 <i class="bi bi-trash"></i>
               </button>
             </form>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>
@@ -216,7 +220,8 @@
         <p class="text-muted small mb-2">No documents attached yet.</p>
         {% endif %}
 
-        {# Upload form #}
+        {% if can_edit %}
+        {# Upload form — logistics/staff only #}
         <form method="post" action="{% url 'shipment_upload_doc' shipment.pk %}"
               enctype="multipart/form-data" class="d-flex gap-2 align-items-end flex-wrap mt-2">
           {% csrf_token %}
@@ -232,6 +237,7 @@
             <i class="bi bi-upload me-1"></i>Upload
           </button>
         </form>
+        {% endif %}
       </div>
     </div>
   </div>
