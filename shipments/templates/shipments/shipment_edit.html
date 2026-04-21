@@ -307,6 +307,16 @@ function setField(id, val) {
   if (el && val !== null && val !== undefined) el.value = val;
 }
 
+// ── ETA Warehouse auto-fill (+12 days from ETA Port) ─────────────────────
+document.getElementById('id_eta_port').addEventListener('change', function() {
+  const warehouse = document.getElementById('id_eta_warehouse');
+  if (this.value && !warehouse.value) {
+    const d = new Date(this.value);
+    d.setDate(d.getDate() + 12);
+    warehouse.value = d.toISOString().slice(0, 10);
+  }
+});
+
 function buildRowHTML(idx, item) {
   const p = `items-${idx}`;
   const inp = (name, val) => `<input type="text" name="${p}-${name}" id="id_${p}-${name}" value="${String(val||'').replace(/"/g,'&quot;')}" class="form-control form-control-sm">`;

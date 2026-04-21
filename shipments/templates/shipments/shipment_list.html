@@ -102,8 +102,11 @@
             {% endfor %}
           </select>
         </td>
-        <td>
-          <a href="{% url 'shipment_edit' s.pk %}" class="btn btn-outline-secondary btn-sm">
+        <td class="text-nowrap">
+          <a href="{% url 'shipment_detail' s.pk %}" class="btn btn-outline-primary btn-sm" title="View">
+            <i class="bi bi-eye"></i>
+          </a>
+          <a href="{% url 'shipment_edit' s.pk %}" class="btn btn-outline-secondary btn-sm ms-1" title="Edit">
             <i class="bi bi-pencil"></i>
           </a>
         </td>

@@ -418,6 +418,16 @@ function removeRow(btn) {
   }
 }
 
+// ── ETA Warehouse auto-fill (+12 days from ETA Port) ─────────────────────
+document.getElementById('id_eta_port').addEventListener('change', function() {
+  const warehouse = document.getElementById('id_eta_warehouse');
+  if (this.value && !warehouse.value) {
+    const d = new Date(this.value);
+    d.setDate(d.getDate() + 12);
+    warehouse.value = d.toISOString().slice(0, 10);
+  }
+});
+
 function reindexRows() {
   const tbody = document.getElementById('item-tbody');
   const rows = [...tbody.querySelectorAll('tr.item-row:not([style*="display: none"])')];
