@@ -112,13 +112,15 @@ def user_create(request):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                access_products=access_products,
-                access_quotes=access_quotes,
-                access_scouting=access_scouting,
-                access_shipments=access_shipments,
-                access_shipments_logistics=access_shipments_logistics,
                 must_change_password=True,
             )
+            user.access_products            = access_products
+            user.access_quotes              = access_quotes
+            user.access_scouting            = access_scouting
+            user.access_shipments           = access_shipments
+            user.access_shipments_logistics = access_shipments_logistics
+            user.save(update_fields=["access_products", "access_quotes", "access_scouting",
+                                     "access_shipments", "access_shipments_logistics"])
         except Exception as e:
             messages.error(request, f"Could not create user: {e}")
             return render(request, "users/user_create.html", {"post": request.POST})
