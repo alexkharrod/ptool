@@ -285,6 +285,7 @@
                 <label for="id_status" class="form-label">Status</label>
                 <select name="status" id="id_status" class="form-select">
                     <option value="Open" {% if product.status == 'Open' %}selected{% endif %}>Open</option>
+                    <option value="Quote Only" {% if product.status == 'Quote Only' %}selected{% endif %}>Quote Only</option>
                     <option value="Published" {% if product.status == 'Published' %}selected{% endif %}>Published</option>
                     <option value="Canceled" {% if product.status == 'Canceled' %}selected{% endif %}>Canceled</option>
                 </select>
