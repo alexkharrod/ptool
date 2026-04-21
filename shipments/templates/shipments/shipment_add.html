@@ -57,6 +57,16 @@
 <form method="post">
   {% csrf_token %}
 
+  {# ── Form errors ────────────────────────────────────────────────────── #}
+  {% if form.errors or formset.errors %}
+  <div class="alert alert-danger">
+    <strong>Please fix the following errors:</strong>
+    {{ form.errors }}
+    {% if formset.non_form_errors %}<div>{{ formset.non_form_errors }}</div>{% endif %}
+    {% for f in formset %}{% if f.errors %}<div>Row {{ forloop.counter }}: {{ f.errors }}</div>{% endif %}{% endfor %}
+  </div>
+  {% endif %}
+
   {# ── Shipment header ────────────────────────────────────────────────── #}
   <div class="card mb-4">
     <div class="card-header fw-semibold">Shipment Info</div>
