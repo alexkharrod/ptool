@@ -58,6 +58,12 @@
           {% endfor %}
         </select>
       </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Rates Verified Date</label>
+        <input type="date" name="rates_verified_date" class="form-control"
+               value="{{ post.rates_verified_date|default:hts.rates_verified_date|date:'Y-m-d' }}">
+        <div class="form-text">Date you last confirmed these rates are current.</div>
+      </div>
       <div class="col-12">
         <label class="form-label fw-bold">Notes <span class="text-muted fw-normal">(tariff conditions, exemptions, copper content rules, etc.)</span></label>
         <textarea name="other_tariff_notes" class="form-control" rows="3">{{ post.other_tariff_notes|default:hts.other_tariff_notes }}</textarea>

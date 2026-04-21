@@ -562,6 +562,7 @@ def hts_edit(request, pk):
         extra = request.POST.get("extra_tariff_percent", "0")
         notes = request.POST.get("other_tariff_notes", "").strip()
         category_hint = request.POST.get("category_hint", "")
+        rates_verified_date = request.POST.get("rates_verified_date", "").strip() or None
         if not code or not description:
             error = "HTS code and description are required."
         elif HtsCode.objects.filter(code=code).exclude(pk=pk).exists():
@@ -574,6 +575,7 @@ def hts_edit(request, pk):
             hts.extra_tariff_percent = extra
             hts.other_tariff_notes = notes
             hts.category_hint = category_hint
+            hts.rates_verified_date = rates_verified_date
             hts.save()
             return redirect("hts_list")
     return render(request, "hts/hts_edit.html", {

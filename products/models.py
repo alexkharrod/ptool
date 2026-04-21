@@ -86,6 +86,10 @@ class HtsCode(models.Model):
     other_tariff_notes = models.TextField(blank=True, help_text="Notes on additional tariffs, exemptions, or conditions (e.g. copper content rules)")
     category_hint = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, help_text="Suggested product category for auto-suggest")
     date_added = models.DateTimeField(default=now)
+    rates_verified_date = models.DateField(
+        null=True, blank=True,
+        help_text="Date rates were last verified against official sources. Leave blank or update when you confirm rates are current.",
+    )
 
     class Meta:
         ordering = ["code"]
@@ -98,6 +102,14 @@ class HtsCode(models.Model):
     @property
     def total_percent(self):
         return self.duty_percent + self.section_301_percent + self.extra_tariff_percent
+
+    @property
+    def rates_are_stale(self):
+        """Returns True if rates_verified_date is missing or more than 60 days old."""
+        from datetime import date, timedelta
+        if not self.rates_verified_date:
+            return True
+        return (date.today() - self.rates_verified_date) > timedelta(days=60)
 
 
 class ImprintMethod(models.Model):

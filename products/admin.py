@@ -34,9 +34,10 @@ class ImprintMethodAdmin(admin.ModelAdmin):
 
 @admin.register(HtsCode)
 class HtsCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "description", "duty_percent", "section_301_percent", "extra_tariff_percent", "category_hint")
+    list_display = ("code", "description", "duty_percent", "section_301_percent", "extra_tariff_percent", "category_hint", "rates_verified_date")
     search_fields = ("code", "description")
     list_filter = ("category_hint",)
+    fields = ("code", "description", "duty_percent", "section_301_percent", "extra_tariff_percent", "other_tariff_notes", "category_hint", "rates_verified_date")
 
 
 @admin.register(Category)
