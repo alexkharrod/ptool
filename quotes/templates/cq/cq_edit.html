@@ -14,9 +14,10 @@
             <div class="text-muted small">Quote # assigned when first item is added</div>
             {% endif %}
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
             <button type="button" class="btn btn-outline-secondary" onclick="saveAllThenGo('{% url 'cq_view' cq.pk %}')">Preview</button>
             <button type="button" class="btn btn-outline-dark" onclick="saveAllThenGo('{% url 'cq_pdf' cq.pk %}')">↓ PDF</button>
+            <button type="button" class="btn btn-link text-danger btn-sm ms-2 p-0" onclick="deleteQuote()" title="Delete this quote">🗑 Delete quote</button>
         </div>
     </div>
 
@@ -281,6 +282,21 @@ function saveItem(itemPk) {
         btn.textContent = data.ok ? '✓ Saved' : '✗ Error';
         btn.disabled = false;
         setTimeout(() => { btn.textContent = 'Save'; }, 2000);
+    });
+}
+
+// ── Delete entire quote ───────────────────────────────────────────────────────
+function deleteQuote() {
+    if (!confirm('Delete this entire quote? This cannot be undone.')) return;
+    fetch(`/quotes/cq/${QUOTE_PK}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: '{}',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) window.location.href = '{% url "cq_list" %}';
+        else alert('Could not delete quote.');
     });
 }
 

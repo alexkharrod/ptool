@@ -389,6 +389,17 @@ def cq_item_delete(request, item_pk):
 
 
 @login_required
+def cq_delete(request, pk):
+    """Delete an entire quote and redirect to the list."""
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    cq = get_object_or_404(CustomerQuote, pk=pk)
+    cq.delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
 def cq_rep_add(request):
     """AJAX: create a new sales rep. Returns {ok, pk, name}."""
     from django.http import JsonResponse

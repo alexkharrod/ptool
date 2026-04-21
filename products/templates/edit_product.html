@@ -487,8 +487,12 @@ async function applyHts(mode) {
             });
             const result = await resp.json();
             if (result.ok) {
-                // Reload the page — the new HTS code will be in the dropdown
-                // Preserve the suggestion so user can apply after reload
+                // Save all form fields before reload so user doesn't lose unsaved edits
+                const formData = {};
+                document.querySelector('form.needs-validation')
+                    .querySelectorAll('input:not([type=file]):not([type=hidden]), select, textarea')
+                    .forEach(el => { if (el.name) formData[el.name] = el.value; });
+                sessionStorage.setItem('editProductFormRestore', JSON.stringify(formData));
                 sessionStorage.setItem('pendingHtsId', result.id);
                 location.reload();
             } else {
@@ -501,8 +505,23 @@ async function applyHts(mode) {
     document.getElementById('hts-suggest-panel').style.display = 'none';
 }
 
-// After reload, auto-select the newly created HTS code
+// After reload: restore form fields, then select the new HTS code
 window.addEventListener('load', () => {
+    // Restore any form fields saved before the HTS reload
+    const savedForm = sessionStorage.getItem('editProductFormRestore');
+    if (savedForm) {
+        sessionStorage.removeItem('editProductFormRestore');
+        const data = JSON.parse(savedForm);
+        const form = document.querySelector('form.needs-validation');
+        if (form) {
+            Object.entries(data).forEach(([name, value]) => {
+                const el = form.querySelector(`[name="${name}"]`);
+                if (el) el.value = value;
+            });
+        }
+    }
+
+    // Select the newly created HTS code in the dropdown
     const pendingId = sessionStorage.getItem('pendingHtsId');
     if (pendingId) {
         sessionStorage.removeItem('pendingHtsId');

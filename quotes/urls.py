@@ -24,4 +24,5 @@ urlpatterns = [
     path("cq/item/<int:item_pk>/delete/", views.cq_item_delete, name="cq_item_delete"),
     path("cq/product-search/", views.cq_product_search, name="cq_product_search"),
     path("cq/rep-add/", views.cq_rep_add, name="cq_rep_add"),
+    path("cq/<int:pk>/delete/", views.cq_delete, name="cq_delete"),
 ]
