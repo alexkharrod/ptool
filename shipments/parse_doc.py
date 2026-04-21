@@ -42,13 +42,19 @@ from typing import Any
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _safe_dec(val) -> Decimal | None:
+def _safe_dec(val, places: int = 4) -> Decimal | None:
     if val is None or val == "":
         return None
     try:
-        return Decimal(str(val)).quantize(Decimal("0.0001"))
+        q = Decimal("0." + "0" * places)
+        return Decimal(str(val)).quantize(q)
     except (InvalidOperation, ValueError):
         return None
+
+
+def _dec2(val) -> Decimal | None:
+    """Convenience wrapper — 2 decimal places for weight fields."""
+    return _safe_dec(val, places=2)
 
 
 def _safe_int(val) -> int | None:
@@ -142,6 +148,10 @@ def _parse_pl_sheet(sheet) -> tuple[list[dict], dict, list[str]]:
         if len(sub_indices) >= 2:
             gw_sub_col = sub_indices[1]
 
+        # CBM often only appears in the sub-header row — check there if not found above
+        if col_cbm is None:
+            col_cbm = _col_idx(sub_hdrs, "cbm")
+
     # Fallback: look for NW/GW columns in main header
     if nw_sub_col is None:
         nw_sub_col = _col_idx(hdrs, "nw(kgs)", "nw (kgs)", "nw(kg)", "n.w", "nw")
@@ -176,9 +186,9 @@ def _parse_pl_sheet(sheet) -> tuple[list[dict], dict, list[str]]:
                             _cell_str(sheet, r, col_qty)
                         )
                     if nw_sub_col is not None:
-                        totals["nw_kg"] = _safe_dec(row_vals[nw_sub_col])
+                        totals["nw_kg"] = _dec2(row_vals[nw_sub_col])
                     if gw_sub_col is not None:
-                        totals["gw_kg"] = _safe_dec(row_vals[gw_sub_col])
+                        totals["gw_kg"] = _dec2(row_vals[gw_sub_col])
                     if col_cbm is not None:
                         totals["cbm"] = _safe_dec(row_vals[col_cbm])
             except (ValueError, TypeError):
@@ -196,8 +206,8 @@ def _parse_pl_sheet(sheet) -> tuple[list[dict], dict, list[str]]:
             "description":  (row_vals[col_desc].strip() if col_desc is not None else ""),
             "cartons":      _safe_int(ctn_val),
             "qty":          _safe_int(row_vals[col_qty]) if col_qty is not None else None,
-            "nw_kg":        str(_safe_dec(row_vals[nw_sub_col])) if nw_sub_col is not None and _safe_dec(row_vals[nw_sub_col]) else None,
-            "gw_kg":        str(_safe_dec(row_vals[gw_sub_col])) if gw_sub_col is not None and _safe_dec(row_vals[gw_sub_col]) else None,
+            "nw_kg":        str(_dec2(row_vals[nw_sub_col])) if nw_sub_col is not None and _dec2(row_vals[nw_sub_col]) else None,
+            "gw_kg":        str(_dec2(row_vals[gw_sub_col])) if gw_sub_col is not None and _dec2(row_vals[gw_sub_col]) else None,
             "dimensions_cm": (row_vals[col_dims].replace("*", "×") if col_dims is not None else ""),
             "cbm":          str(_safe_dec(row_vals[col_cbm])) if col_cbm is not None and _safe_dec(row_vals[col_cbm]) else None,
             "unit_cost_usd": None,
