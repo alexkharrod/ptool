@@ -7,10 +7,14 @@ from django.utils.timezone import now
 
 
 def compress_image(image_field, max_width=800, quality=72):
-    """Resize and compress an image in-place. Converts to JPEG."""
-    from PIL import Image
+    """Resize and compress an image in-place. Converts to JPEG.
+    Applies EXIF orientation so portrait phone photos stay portrait."""
+    from PIL import Image, ImageOps
 
     img = Image.open(image_field)
+
+    # Honour EXIF rotation tag (fixes phone photos appearing sideways/upside-down)
+    img = ImageOps.exif_transpose(img)
 
     # Convert palette/transparency modes to RGB for JPEG
     if img.mode in ("RGBA", "P", "LA"):

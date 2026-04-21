@@ -6,10 +6,14 @@ from django.db import models
 
 
 def compress_image(image_field, max_width=800, quality=72):
-    """Resize and compress an image in-place. Converts to JPEG."""
-    from PIL import Image
+    """Resize and compress an image in-place. Converts to JPEG.
+    Applies EXIF orientation so portrait phone photos stay portrait."""
+    from PIL import Image, ImageOps
 
     img = Image.open(image_field)
+
+    # Honour EXIF rotation tag (fixes phone photos appearing sideways/upside-down)
+    img = ImageOps.exif_transpose(img)
 
     # Convert palette/transparency modes to RGB for JPEG
     if img.mode in ("RGBA", "P", "LA"):
@@ -60,6 +64,9 @@ class Prospect(models.Model):
     # Image (stored in media/scouting/)
     image = models.ImageField(upload_to="scouting/", null=True, blank=True)
 
+    # Reference number
+    prospect_number = models.CharField(max_length=20, unique=True, blank=True)
+
     # Status & tracking
     status = models.CharField(
         max_length=50, choices=STATUS_CHOICES, default="Spotted"
@@ -78,6 +85,23 @@ class Prospect(models.Model):
         return f"{self.product_name} — {self.vendor_name} ({self.show_name})"
 
     def save(self, *args, **kwargs):
+        # Auto-assign prospect_number on first save
+        if not self.prospect_number:
+            last = (
+                Prospect.objects.filter(prospect_number__startswith="PRO-")
+                .order_by("prospect_number")
+                .values_list("prospect_number", flat=True)
+                .last()
+            )
+            if last:
+                try:
+                    next_num = int(last.split("-")[1]) + 1
+                except (IndexError, ValueError):
+                    next_num = 1
+            else:
+                next_num = 1
+            self.prospect_number = f"PRO-{next_num:04d}"
+
         # Compress image on first upload or when image changes
         if self.image and not self._is_existing_image():
             original_name = os.path.splitext(
