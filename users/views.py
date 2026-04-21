@@ -64,8 +64,7 @@ def user_toggle_access(request, pk):
     except (json.JSONDecodeError, KeyError):
         return JsonResponse({"ok": False, "error": "Invalid request"}, status=400)
 
-    allowed_fields = {"access_products", "access_quotes", "access_scouting",
-                      "access_shipments", "access_shipments_logistics", "is_active"}
+    allowed_fields = {"access_products", "access_quotes", "access_scouting", "is_active"}
     if field not in allowed_fields:
         return JsonResponse({"ok": False, "error": "Invalid field"}, status=400)
 
@@ -84,11 +83,9 @@ def user_create(request):
         first_name = request.POST.get("first_name", "").strip()
         last_name = request.POST.get("last_name", "").strip()
         password = request.POST.get("password", "").strip()
-        access_products             = "access_products"             in request.POST
-        access_quotes               = "access_quotes"               in request.POST
-        access_scouting             = "access_scouting"             in request.POST
-        access_shipments            = "access_shipments"            in request.POST
-        access_shipments_logistics  = "access_shipments_logistics"  in request.POST
+        access_products = "access_products" in request.POST
+        access_quotes   = "access_quotes"   in request.POST
+        access_scouting = "access_scouting" in request.POST
 
         if not email or not first_name or not last_name or not password:
             messages.error(request, "All fields are required.")
@@ -115,8 +112,6 @@ def user_create(request):
                 access_products=access_products,
                 access_quotes=access_quotes,
                 access_scouting=access_scouting,
-                access_shipments=access_shipments,
-                access_shipments_logistics=access_shipments_logistics,
                 must_change_password=True,
             )
         except Exception as e:
@@ -150,18 +145,14 @@ def user_edit(request, pk):
             return redirect("user_edit", pk=pk)
 
         # Regular edit
-        user.first_name                    = request.POST.get("first_name", user.first_name).strip()
-        user.last_name                     = request.POST.get("last_name",  user.last_name).strip()
-        user.access_products               = "access_products"               in request.POST
-        user.access_quotes                 = "access_quotes"                 in request.POST
-        user.access_scouting               = "access_scouting"               in request.POST
-        user.access_shipments              = "access_shipments"              in request.POST
-        user.access_shipments_logistics    = "access_shipments_logistics"    in request.POST
-        user.is_active                     = "is_active"                     in request.POST
+        user.first_name       = request.POST.get("first_name", user.first_name).strip()
+        user.last_name        = request.POST.get("last_name",  user.last_name).strip()
+        user.access_products  = "access_products"  in request.POST
+        user.access_quotes    = "access_quotes"    in request.POST
+        user.access_scouting  = "access_scouting"  in request.POST
+        user.is_active        = "is_active"        in request.POST
         user.save(update_fields=["first_name", "last_name", "access_products",
-                                  "access_quotes", "access_scouting",
-                                  "access_shipments", "access_shipments_logistics",
-                                  "is_active"])
+                                  "access_quotes", "access_scouting", "is_active"])
         messages.success(request, "User updated.")
         return redirect("user_manage")
 

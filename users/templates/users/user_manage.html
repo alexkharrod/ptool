@@ -29,8 +29,6 @@
             <th class="text-center">Products</th>
             <th class="text-center">Quotes</th>
             <th class="text-center">Scouting</th>
-            <th class="text-center">Shipments</th>
-            <th class="text-center">Logistics</th>
             <th class="text-center">Active</th>
             <th class="text-center">Staff</th>
             <th></th>
@@ -77,26 +75,6 @@
                        {% if u.access_scouting %}checked{% endif %}>
               {% endif %}
             </td>
-            {# Shipments (view only) #}
-            <td class="text-center">
-              {% if u.is_staff %}
-                <i class="bi bi-check-circle-fill text-success" title="Staff — full access"></i>
-              {% else %}
-                <input type="checkbox" class="form-check-input access-toggle"
-                       data-pk="{{ u.pk }}" data-field="access_shipments"
-                       {% if u.access_shipments %}checked{% endif %}>
-              {% endif %}
-            </td>
-            {# Shipments logistics (add/edit + costs) #}
-            <td class="text-center">
-              {% if u.is_staff %}
-                <i class="bi bi-check-circle-fill text-success" title="Staff — full access"></i>
-              {% else %}
-                <input type="checkbox" class="form-check-input access-toggle"
-                       data-pk="{{ u.pk }}" data-field="access_shipments_logistics"
-                       {% if u.access_shipments_logistics %}checked{% endif %}>
-              {% endif %}
-            </td>
 
             <td class="text-center">
               {% if u.is_staff %}
@@ -125,7 +103,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="10" class="text-center text-muted py-4">No users found.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4">No users found.</td></tr>
           {% endfor %}
         </tbody>
       </table>

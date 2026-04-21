@@ -221,7 +221,6 @@
         {% endif %}
 
         {% if can_edit %}
-        {# Upload form — logistics/staff only #}
         <form method="post" action="{% url 'shipment_upload_doc' shipment.pk %}"
               enctype="multipart/form-data" class="d-flex gap-2 align-items-end flex-wrap mt-2">
           {% csrf_token %}

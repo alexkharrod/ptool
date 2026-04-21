@@ -8,15 +8,7 @@ from .models import Shipment, ShipmentDocument, ShipmentItem
 
 
 def _can_access(user):
-    """Viewer or logistics or staff."""
-    return (user.is_staff
-            or getattr(user, "access_shipments", False)
-            or getattr(user, "access_shipments_logistics", False))
-
-
-def _can_edit(user):
-    """Logistics or staff only — can add/edit shipments and see unit costs."""
-    return user.is_staff or getattr(user, "access_shipments_logistics", False)
+    return user.is_staff or getattr(user, "access_shipments", False)
 
 
 @login_required
@@ -73,13 +65,12 @@ def shipment_detail(request, pk):
     return render(request, "shipments/shipment_detail.html", {
         "shipment": shipment,
         "doc_form": doc_form,
-        "can_edit": _can_edit(request.user),
     })
 
 
 @login_required
 def shipment_add(request):
-    if not _can_edit(request.user):
+    if not _can_access(request.user):
         return redirect("home")
 
     if request.method == "POST":
@@ -103,7 +94,7 @@ def shipment_add(request):
 
 @login_required
 def shipment_edit(request, pk):
-    if not _can_edit(request.user):
+    if not _can_access(request.user):
         return redirect("home")
 
     shipment = get_object_or_404(Shipment, pk=pk)
@@ -129,7 +120,7 @@ def shipment_edit(request, pk):
 @login_required
 def shipment_upload_doc(request, pk):
     """AJAX or form POST — attach a document to a shipment."""
-    if not _can_edit(request.user):
+    if not _can_access(request.user):
         return redirect("home")
 
     shipment = get_object_or_404(Shipment, pk=pk)
@@ -145,7 +136,7 @@ def shipment_upload_doc(request, pk):
 
 @login_required
 def shipment_delete_doc(request, pk, doc_pk):
-    if not _can_edit(request.user):
+    if not _can_access(request.user):
         return redirect("home")
     doc = get_object_or_404(ShipmentDocument, pk=doc_pk, shipment__pk=pk)
     if request.method == "POST":

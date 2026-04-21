@@ -35,8 +35,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     access_products  = models.BooleanField(default=False, help_text="Can access Products section")
     access_quotes    = models.BooleanField(default=False, help_text="Can access Quotes section")
     access_scouting  = models.BooleanField(default=False, help_text="Can access Scouting section")
-    access_shipments = models.BooleanField(default=False, help_text="Can view Shipments (no costs, no add/edit)")
-    access_shipments_logistics = models.BooleanField(default=False, help_text="Logistics: can add/edit shipments and see unit costs")
+    access_shipments = models.BooleanField(default=False, help_text="Can access Shipments section")
 
     # Legacy fields (kept for compatibility during migration)
     role = models.CharField(
@@ -78,8 +77,4 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     @property
     def can_access_shipments(self):
-        return self.is_staff or self.access_shipments or self.access_shipments_logistics
-
-    @property
-    def can_access_shipments_logistics(self):
-        return self.is_staff or self.access_shipments_logistics
+        return self.is_staff or self.access_shipments
