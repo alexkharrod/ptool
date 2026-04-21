@@ -60,6 +60,22 @@
             </div>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Shipments Access</label>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="access_shipments" id="ashp"
+                  {% if edited_user.access_shipments %}checked{% endif %}>
+                <label class="form-check-label" for="ashp">View only <small class="text-muted">(no costs)</small></label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="access_shipments_logistics" id="asl"
+                  {% if edited_user.access_shipments_logistics %}checked{% endif %}>
+                <label class="form-check-label" for="asl">Logistics <small class="text-muted">(add/edit + costs)</small></label>
+              </div>
+            </div>
+          </div>
+
           <div class="mb-4">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="is_active" id="ia"

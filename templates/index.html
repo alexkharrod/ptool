@@ -34,6 +34,20 @@
                 </div>
             </div>
         </div>
+        {% if request.user.can_access_shipments %}
+        <div class="col-md-4 mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-ship me-2 text-primary"></i>Shipments</h5>
+                    <p class="card-text">Track inbound air and ocean freight shipments</p>
+                    <a href="{% url 'shipment_list' %}" class="btn btn-primary me-2">View Shipments</a>
+                    {% if request.user.can_access_shipments_logistics %}
+                    <a href="{% url 'shipment_add' %}" class="btn btn-success">New Shipment</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
