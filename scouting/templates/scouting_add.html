@@ -125,28 +125,105 @@
         </div>
 
         <div class="d-grid gap-2 d-md-flex">
-            <button type="submit" class="btn btn-success btn-lg">
-                <i class="bi bi-plus-circle me-1"></i>Save Prospect
+            <button type="submit" id="save-btn" class="btn btn-success btn-lg">
+                <i class="bi bi-plus-circle me-1" id="save-icon"></i>
+                <span class="spinner-border spinner-border-sm d-none me-1" id="save-spinner" role="status"></span>
+                <span id="save-label">Save Prospect</span>
             </button>
             <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+        <!-- Error recovery bar (hidden by default) -->
+        <div id="save-error-bar" class="alert alert-danger mt-3 d-none">
+            <strong>⚠ Save failed.</strong> <span id="save-error-msg"></span>
+            <div class="mt-2 d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-danger btn-sm" onclick="retrySubmit()">Try Again</button>
+                <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary btn-sm">Back to Scouting</a>
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary btn-sm">Home</a>
+            </div>
         </div>
     </form>
 </div>
 
 <script src="{% load static %}{% static 'js/scout-offline.js' %}"></script>
 <script>
+const saveBtn    = document.getElementById('save-btn');
+const saveIcon   = document.getElementById('save-icon');
+const saveSpinner= document.getElementById('save-spinner');
+const saveLabel  = document.getElementById('save-label');
+const errorBar   = document.getElementById('save-error-bar');
+const errorMsg   = document.getElementById('save-error-msg');
+
+function setSaving(on) {
+    saveBtn.disabled = on;
+    saveIcon.classList.toggle('d-none', on);
+    saveSpinner.classList.toggle('d-none', !on);
+    saveLabel.textContent = on ? 'Saving…' : 'Save Prospect';
+}
+
+function showError(msg) {
+    setSaving(false);
+    errorMsg.textContent = msg;
+    errorBar.classList.remove('d-none');
+    errorBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function doSubmit(form) {
+    setSaving(true);
+    errorBar.classList.add('d-none');
+
+    const fd = new FormData(form);
+
+    try {
+        const resp = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            headers: { 'X-Async-Submit': '1' },
+            body: fd,
+        });
+
+        if (!resp.ok) {
+            let errText = `Server error (${resp.status})`;
+            try {
+                const j = await resp.json();
+                if (j.errors) errText = Object.values(j.errors).flat().join(' · ');
+            } catch(_) {}
+            showError(errText);
+            return;
+        }
+
+        const data = await resp.json();
+        if (data.ok) {
+            // Success — navigate to the new prospect detail
+            saveLabel.textContent = 'Saved! ✓';
+            window.location.href = '/scouting/' + data.pk + '/';
+        } else {
+            showError('Validation error — please check required fields.');
+            setSaving(false);
+        }
+    } catch (err) {
+        // Network failure (offline / timeout / connection dropped)
+        showError('Could not reach the server. Check your connection and try again, or use the offline save below.');
+        setSaving(false);
+    }
+}
+
+function retrySubmit() {
+    doSubmit(document.getElementById('prospect-form'));
+}
+
 // ── Offline intercept ────────────────────────────────────────────────────────
 document.getElementById('prospect-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
 
     if (navigator.onLine) {
-        // Online — submit normally
-        form.submit();
+        // Online — AJAX submit with feedback
+        await doSubmit(form);
         return;
     }
 
     // Offline — collect fields and image, save to IndexedDB
+    setSaving(true);
     const fd = new FormData(form);
     const fields = {};
     let imageFile = null;
@@ -167,7 +244,7 @@ document.getElementById('prospect-form').addEventListener('submit', async functi
         document.getElementById('offline-saved-msg').classList.remove('d-none');
         await scoutUpdateBanner();
     } catch (err) {
-        alert('Could not save offline: ' + err);
+        showError('Could not save offline: ' + err);
     }
 });
 
