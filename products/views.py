@@ -65,12 +65,18 @@ def edit_product(request, pk):
             return redirect("view_product", pk=product.pk)
     else:
         form = CreateProductForm(instance=product)
-    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    all_hts = list(HtsCode.objects.prefetch_related("categories").all())
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in all_hts}
+    hts_by_category = {}
+    for h in all_hts:
+        for cat in h.categories.all():
+            hts_by_category.setdefault(cat.code, []).append(h.pk)
     imprint_methods_data = list(ImprintMethod.objects.values("name", "setup_fee", "run_charge"))
     return render(request, "edit_product.html", {
         "form": form,
         "product": product,
         "hts_data": json.dumps(hts_data),
+        "hts_by_category": json.dumps(hts_by_category),
         "imprint_methods_data": imprint_methods_data,
     })
 
@@ -150,11 +156,17 @@ def add_product(request):
                     form.add_error(None, f"Could not save product: {e}")
     else:
         form = CreateProductForm()
-    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in HtsCode.objects.all()}
+    all_hts = list(HtsCode.objects.prefetch_related("categories").all())
+    hts_data = {h.pk: {"duty": float(h.duty_percent), "section301": float(h.section_301_percent), "extra": float(h.extra_tariff_percent), "total": float(h.total_percent)} for h in all_hts}
+    hts_by_category = {}
+    for h in all_hts:
+        for cat in h.categories.all():
+            hts_by_category.setdefault(cat.code, []).append(h.pk)
     imprint_methods_data = list(ImprintMethod.objects.values("name", "setup_fee", "run_charge"))
     return render(request, "add_product.html", {
         "form": form,
         "hts_data": json.dumps(hts_data),
+        "hts_by_category": json.dumps(hts_by_category),
         "imprint_methods_data": imprint_methods_data,
     })
 

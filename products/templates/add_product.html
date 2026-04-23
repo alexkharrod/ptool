@@ -300,8 +300,29 @@
 
 <script>
 const htsData = {{ hts_data|safe }};
+const htsByCategory = {{ hts_by_category|safe }};
 const htsSelect = document.getElementById('id_hts_code');
 const htsSummary = document.getElementById('hts-summary');
+
+// Store all original options so we can restore them
+const allHtsOptions = Array.from(htsSelect.options).map(o => o.cloneNode(true));
+
+function filterHtsByCategory(categoryCode) {
+    const pks = htsByCategory[categoryCode];
+    const currentVal = htsSelect.value;
+    htsSelect.innerHTML = '';
+    const opts = (!pks || pks.length === 0)
+        ? allHtsOptions  // no tags yet — show everything
+        : allHtsOptions.filter(o => !o.value || pks.includes(parseInt(o.value)));
+    opts.forEach(o => htsSelect.appendChild(o.cloneNode(true)));
+    // Restore selection if still available, otherwise reset
+    if ([...htsSelect.options].some(o => o.value === currentVal)) {
+        htsSelect.value = currentVal;
+    } else {
+        htsSelect.value = '';
+    }
+    htsSelect.dispatchEvent(new Event('change'));
+}
 
 htsSelect.addEventListener('change', function() {
     const pk = this.value;
@@ -314,6 +335,13 @@ htsSelect.addEventListener('change', function() {
         htsSummary.textContent = '';
     }
 });
+
+// Filter HTS dropdown when category changes
+document.getElementById('id_category').addEventListener('change', function() {
+    filterHtsByCategory(this.value);
+});
+// Apply on page load if category already selected
+filterHtsByCategory(document.getElementById('id_category').value);
 
 // ── Mold Fee row visibility ───────────────────────────────────────────────────
 (function () {
@@ -462,7 +490,6 @@ async function applyHts(mode) {
                     duty_percent: d.duty_percent,
                     section_301_percent: d.section_301_percent,
                     extra_tariff_percent: d.extra_tariff_percent,
-                    category_hint: '',
                     _ajax: '1',
                 })
             });

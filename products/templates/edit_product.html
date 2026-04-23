@@ -336,8 +336,28 @@
 
 <script>
 const htsData = {{ hts_data|safe }};
+const htsByCategory = {{ hts_by_category|safe }};
 const htsSelect = document.getElementById('id_hts_code');
 const htsSummary = document.getElementById('hts-summary');
+
+// Store all original options for filtering
+const allHtsOptions = Array.from(htsSelect.options).map(o => o.cloneNode(true));
+
+function filterHtsByCategory(categoryCode) {
+    const pks = htsByCategory[categoryCode];
+    const currentVal = htsSelect.value;
+    htsSelect.innerHTML = '';
+    const opts = (!pks || pks.length === 0)
+        ? allHtsOptions
+        : allHtsOptions.filter(o => !o.value || pks.includes(parseInt(o.value)));
+    opts.forEach(o => htsSelect.appendChild(o.cloneNode(true)));
+    if ([...htsSelect.options].some(o => o.value === currentVal)) {
+        htsSelect.value = currentVal;
+    } else {
+        htsSelect.value = '';
+    }
+    updateSummary();
+}
 
 // Show summary for already-selected HTS on load
 function updateSummary() {
@@ -356,12 +376,16 @@ htsSelect.addEventListener('change', function() {
         const h = htsData[pk];
         document.getElementById('id_duty_percent').value = h.duty;
         document.getElementById('id_tariff_percent').value = h.section301;
-        updateSummary();
-    } else {
-        htsSummary.textContent = '';
     }
+    updateSummary();
 });
 
+// Filter when category changes
+document.getElementById('id_category').addEventListener('change', function() {
+    filterHtsByCategory(this.value);
+});
+// Apply filter on load (preserves current HTS selection if it matches)
+filterHtsByCategory(document.getElementById('id_category').value);
 updateSummary();
 
 // ── Mold Fee row visibility ───────────────────────────────────────────────────
@@ -481,7 +505,6 @@ async function applyHts(mode) {
                     duty_percent: d.duty_percent,
                     section_301_percent: d.section_301_percent,
                     extra_tariff_percent: d.extra_tariff_percent,
-                    category_hint: '',
                     _ajax: '1',
                 })
             });
