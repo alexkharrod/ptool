@@ -16,7 +16,7 @@
         <th class="text-center">Section 301 %</th>
         <th class="text-center">Extra Tariff %</th>
         <th class="text-center">Total %</th>
-        <th>Category Hint</th>
+        <th>Categories</th>
         <th class="text-center">Products</th>
         <th></th>
       </tr>
@@ -35,7 +35,11 @@
         <td class="text-center">{{ hts.section_301_percent }}%</td>
         <td class="text-center">{{ hts.extra_tariff_percent }}%</td>
         <td class="text-center fw-bold">{{ hts.total_percent }}%</td>
-        <td>{{ hts.category_hint|default:"—" }}</td>
+        <td>
+          {% for cat in hts.categories.all %}
+            <span class="badge bg-secondary me-1">{{ cat.code }}</span>
+          {% empty %}—{% endfor %}
+        </td>
         <td class="text-center">
           {% if hts.product_count %}
             <span class="badge bg-secondary">{{ hts.product_count }}</span>

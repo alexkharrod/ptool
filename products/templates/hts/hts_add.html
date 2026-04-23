@@ -45,14 +45,17 @@
           <span class="input-group-text">%</span>
         </div>
       </div>
-      <div class="col-md-4">
-        <label class="form-label fw-bold">Category Hint</label>
-        <select name="category_hint" class="form-select">
-          <option value="">— None —</option>
-          {% for code, label in category_choices %}
-          <option value="{{ code }}" {% if post.category_hint == code %}selected{% endif %}>{{ label }}</option>
+      <div class="col-12">
+        <label class="form-label fw-bold">Categories <span class="text-muted fw-normal">(which product categories use this HTS code?)</span></label>
+        <div class="d-flex flex-wrap gap-3">
+          {% for cat in all_categories %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="categories" value="{{ cat.pk }}" id="cat_{{ cat.pk }}"
+              {% if cat.pk in selected_cat_ids %}checked{% endif %}>
+            <label class="form-check-label" for="cat_{{ cat.pk }}">{{ cat.code }} — {{ cat.description }}</label>
+          </div>
           {% endfor %}
-        </select>
+        </div>
       </div>
       <div class="col-12">
         <label class="form-label fw-bold">Notes <span class="text-muted fw-normal">(tariff conditions, exemptions, copper content rules, etc.)</span></label>

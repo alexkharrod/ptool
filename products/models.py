@@ -70,25 +70,16 @@ class Vendor(models.Model):
 
 
 class HtsCode(models.Model):
-    CATEGORY_CHOICES = [
-        ("Audio Tech", "Audio Tech"),
-        ("Charging Tech", "Charging Tech"),
-        ("Drinkware", "Drinkware"),
-        ("Lanyards", "Lanyards"),
-        ("Mobile Tech", "Mobile Tech"),
-        ("Office Tech", "Office Tech"),
-        ("Personal Tech", "Personal Tech"),
-        ("USB Drives", "USB Drives"),
-        ("Other", "Other"),
-    ]
-
     code = models.CharField(max_length=20, unique=True)
     description = models.CharField(max_length=200)
     duty_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     section_301_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     extra_tariff_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Extra/RT tariff rate (additional tariff beyond duty and Section 301)")
     other_tariff_notes = models.TextField(blank=True, help_text="Notes on additional tariffs, exemptions, or conditions (e.g. copper content rules)")
-    category_hint = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, help_text="Suggested product category for auto-suggest")
+    categories = models.ManyToManyField(
+        "Category", blank=True, related_name="hts_codes",
+        help_text="Product categories this HTS code applies to (used for auto-suggest on product forms).",
+    )
     date_added = models.DateTimeField(default=now)
     rates_verified_date = models.DateField(
         null=True, blank=True,

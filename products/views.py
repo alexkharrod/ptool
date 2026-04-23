@@ -513,7 +513,7 @@ def report_published(request):
 
 @login_required
 def hts_list(request):
-    codes = HtsCode.objects.annotate(product_count=models.Count("products")).order_by("code")
+    codes = HtsCode.objects.prefetch_related("categories").annotate(product_count=models.Count("products")).order_by("code")
     return render(request, "hts/hts_list.html", {"codes": codes})
 
 
@@ -527,7 +527,7 @@ def hts_add(request):
         s301 = request.POST.get("section_301_percent", "0")
         extra = request.POST.get("extra_tariff_percent", "0")
         notes = request.POST.get("other_tariff_notes", "").strip()
-        category_hint = request.POST.get("category_hint", "")
+        category_ids = request.POST.getlist("categories")
         if not code or not description:
             error = "HTS code and description are required."
         elif HtsCode.objects.filter(code=code).exists():
@@ -537,16 +537,19 @@ def hts_add(request):
                 code=code, description=description,
                 duty_percent=duty, section_301_percent=s301,
                 extra_tariff_percent=extra,
-                other_tariff_notes=notes, category_hint=category_hint,
+                other_tariff_notes=notes,
             )
+            if category_ids:
+                hts.categories.set(Category.objects.filter(pk__in=category_ids))
             # AJAX request from HTS AI suggest — return JSON instead of redirecting
             if request.POST.get("_ajax") or request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"ok": True, "id": hts.pk, "code": hts.code})
             return redirect("hts_list")
     return render(request, "hts/hts_add.html", {
         "error": error,
-        "category_choices": HtsCode.CATEGORY_CHOICES,
+        "all_categories": Category.objects.all(),
         "post": request.POST,
+        "selected_cat_ids": [int(i) for i in request.POST.getlist("categories") if i.isdigit()],
     })
 
 
@@ -561,7 +564,7 @@ def hts_edit(request, pk):
         s301 = request.POST.get("section_301_percent", "0")
         extra = request.POST.get("extra_tariff_percent", "0")
         notes = request.POST.get("other_tariff_notes", "").strip()
-        category_hint = request.POST.get("category_hint", "")
+        category_ids = request.POST.getlist("categories")
         rates_verified_date = request.POST.get("rates_verified_date", "").strip() or None
         if not code or not description:
             error = "HTS code and description are required."
@@ -574,14 +577,19 @@ def hts_edit(request, pk):
             hts.section_301_percent = s301
             hts.extra_tariff_percent = extra
             hts.other_tariff_notes = notes
-            hts.category_hint = category_hint
             hts.rates_verified_date = rates_verified_date
             hts.save()
+            hts.categories.set(Category.objects.filter(pk__in=category_ids))
             return redirect("hts_list")
+    selected_cat_ids = (
+        [int(i) for i in request.POST.getlist("categories") if i.isdigit()]
+        if request.POST else list(hts.categories.values_list("pk", flat=True))
+    )
     return render(request, "hts/hts_edit.html", {
         "hts": hts,
         "error": error,
-        "category_choices": HtsCode.CATEGORY_CHOICES,
+        "all_categories": Category.objects.all(),
+        "selected_cat_ids": selected_cat_ids,
         "post": request.POST,
     })
 
@@ -593,7 +601,7 @@ def hts_suggest(request):
     category = request.GET.get("category", "").strip()
     qs = HtsCode.objects.all()
     if category:
-        qs = qs.filter(category_hint=category)
+        qs = qs.filter(categories__code=category)
     if q:
         qs = qs.filter(
             models.Q(code__icontains=q) | models.Q(description__icontains=q)
