@@ -89,6 +89,7 @@ def shipment_add(request):
     return render(request, "shipments/shipment_add.html", {
         "form": form,
         "formset": formset,
+        "can_edit": _can_edit(request.user),
     })
 
 
@@ -114,6 +115,7 @@ def shipment_edit(request, pk):
         "form": form,
         "formset": formset,
         "shipment": shipment,
+        "can_edit": _can_edit(request.user),
     })
 
 
