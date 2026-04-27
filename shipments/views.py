@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .forms import ShipmentDocumentForm, ShipmentForm, ShipmentItemFormSet
 from .models import Shipment, ShipmentDocument, ShipmentItem
@@ -148,6 +149,23 @@ def shipment_delete_doc(request, pk, doc_pk):
     if request.method == "POST":
         doc.delete()
     return redirect("shipment_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def shipment_parse_doc(request):
+    """AJAX POST — parse an uploaded XLS/XLSX packing list or CI."""
+    if not _can_edit(request.user):
+        return JsonResponse({"ok": False, "error": "Access denied"}, status=403)
+
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return JsonResponse({"ok": False, "error": "No file uploaded"}, status=400)
+
+    from .parse_doc import parse_shipment_doc
+    result = parse_shipment_doc(uploaded)
+    result["ok"] = True
+    return JsonResponse(result)
 
 
 @login_required
