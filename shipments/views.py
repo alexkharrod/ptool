@@ -8,7 +8,11 @@ from .models import Shipment, ShipmentDocument, ShipmentItem
 
 
 def _can_access(user):
-    return user.is_staff or getattr(user, "access_shipments", False)
+    return user.is_staff or getattr(user, "access_shipments", False) or getattr(user, "access_shipments_logistics", False)
+
+
+def _can_edit(user):
+    return user.is_staff or getattr(user, "access_shipments_logistics", False)
 
 
 @login_required
