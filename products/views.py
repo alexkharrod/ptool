@@ -830,6 +830,8 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
     # Parse into list, enforce per-phrase and total character limits
     phrases = [p.strip() for p in raw.split(",") if p.strip()]
     phrases = [p for p in phrases if len(p) <= 30]
+    # Vendor requirement: Title Case every word in every keyword phrase
+    phrases = [" ".join(w[:1].upper() + w[1:] if w else w for w in p.split(" ")) for p in phrases]
 
     # Enforce 200-char total limit (joined as "phrase1, phrase2, ...")
     final = []
