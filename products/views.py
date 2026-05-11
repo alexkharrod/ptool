@@ -725,19 +725,16 @@ Follow this exact structure (copy the format precisely):
   ... (all relevant specs)
 </ul>
 
-<p>PRODUCTION TIME<br>{product.production_time}</p>
-
 PRODUCT DATA:
 Name: {product.name}
 Raw description / notes: {product.description}
-Production Time: {product.production_time}
 
 Rules:
 - Return ONLY the raw HTML — no markdown, no code fences, no explanation
 - Keep marketing language professional but enthusiastic
 - If specs are sparse, expand sensibly from the product name and notes
 - Do not invent specs you have no basis for
-- Do NOT include SKU, colors, MOQ, imprint methods, imprint location, or packaging — these are listed separately on the website
+- Do NOT include SKU, colors, MOQ, production time, imprint methods, imprint location, or packaging — these are listed separately on the website
 - The entire output MUST be 800 characters or fewer (including all HTML tags) — write tightly, use short phrases, limit KEY FEATURES to 3 items and SPECIFICATIONS to 3–4 items
 {retail_instructions}"""
 
