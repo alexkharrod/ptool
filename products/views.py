@@ -799,6 +799,7 @@ Generate keyword phrases for the product below following these strict rules:
 7. Focus on words distributors would actually search for — use type, function, material, use case, audience
 8. No keyword spamming — every phrase must be genuinely relevant
 9. Prioritize the most important keywords first — if the list must be trimmed to fit 200 characters, keep the best ones
+10. No word may appear more than once across the entire list — use single words or tight two-word combos but never repeat a word (e.g. use "microphone, wireless, lavalier" NOT "wireless microphone, lavalier microphone")
 
 PRODUCT DATA:
 Name: {product.name}
@@ -824,6 +825,15 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
     phrases = [p for p in phrases if len(p) <= 30]
     # Vendor requirement: Title Case every word in every keyword phrase
     phrases = [" ".join(w[:1].upper() + w[1:] if w else w for w in p.split(" ")) for p in phrases]
+    # Remove any phrase that reuses a word already seen in an earlier phrase
+    seen_words: set[str] = set()
+    deduped: list[str] = []
+    for p in phrases:
+        words = {w.lower() for w in p.split()}
+        if not words & seen_words:
+            deduped.append(p)
+            seen_words |= words
+    phrases = deduped
 
     # Enforce 200-char total limit (joined as "phrase1, phrase2, ...")
     final = []
