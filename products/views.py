@@ -725,25 +725,20 @@ Follow this exact structure (copy the format precisely):
   ... (all relevant specs)
 </ul>
 
-<p>MOQ<br>{product.moq}</p>
 <p>PRODUCTION TIME<br>{product.production_time}</p>
 
 PRODUCT DATA:
 Name: {product.name}
-SKU: {product.sku}
 Raw description / notes: {product.description}
-Available Colors: {product.colors}
-MOQ: {product.moq}
 Production Time: {product.production_time}
-Imprint Location: {product.imprint_location}
-Imprint Methods: {methods_text}
-Package: {product.package}
 
 Rules:
 - Return ONLY the raw HTML — no markdown, no code fences, no explanation
 - Keep marketing language professional but enthusiastic
 - If specs are sparse, expand sensibly from the product name and notes
 - Do not invent specs you have no basis for
+- Do NOT include SKU, colors, MOQ, imprint methods, imprint location, or packaging — these are listed separately on the website
+- The entire output must be 800 characters or fewer (including HTML tags)
 {retail_instructions}"""
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -757,6 +752,10 @@ Rules:
         messages=[{"role": "user", "content": prompt}],
     )
     html_output = message.content[0].text.strip()
+
+    # Hard cap at 800 characters
+    if len(html_output) > 800:
+        html_output = html_output[:800]
 
     # Save to database
     product.website_description = html_output
