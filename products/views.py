@@ -738,7 +738,7 @@ Rules:
 - If specs are sparse, expand sensibly from the product name and notes
 - Do not invent specs you have no basis for
 - Do NOT include SKU, colors, MOQ, imprint methods, imprint location, or packaging — these are listed separately on the website
-- The entire output must be 800 characters or fewer (including HTML tags)
+- The entire output MUST be 800 characters or fewer (including all HTML tags) — write tightly, use short phrases, limit KEY FEATURES to 3 items and SPECIFICATIONS to 3–4 items
 {retail_instructions}"""
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -748,14 +748,10 @@ Rules:
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
+        max_tokens=350,
         messages=[{"role": "user", "content": prompt}],
     )
     html_output = message.content[0].text.strip()
-
-    # Hard cap at 800 characters
-    if len(html_output) > 800:
-        html_output = html_output[:800]
 
     # Save to database
     product.website_description = html_output
