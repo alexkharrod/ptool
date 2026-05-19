@@ -78,6 +78,7 @@ typing_extensions==4.15.0
 urllib3==2.3.0
 w3lib==2.3.1
 weasyprint==63.1
+xlrd==2.0.1
 webencodings==0.5.1
 whitenoise==6.8.2
 zeep==4.3.2
