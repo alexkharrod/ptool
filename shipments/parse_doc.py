@@ -347,8 +347,13 @@ def parse_shipment_doc(file_obj) -> dict:
         warnings.append("No commercial invoice sheet detected — unit costs not imported.")
 
     # Convert Decimal totals to strings for JSON
+    # nw_kg and gw_kg are 2 d.p. fields; cbm is 4 d.p.
+    _dp = {"nw_kg": Decimal("0.01"), "gw_kg": Decimal("0.01"), "cbm": Decimal("0.0001")}
     totals_out = {}
     for k, v in totals.items():
-        totals_out[k] = str(v) if isinstance(v, Decimal) else v
+        if isinstance(v, Decimal):
+            totals_out[k] = str(v.quantize(_dp.get(k, Decimal("0.01"))))
+        else:
+            totals_out[k] = v
 
     return {"items": items, "totals": totals_out, "warnings": warnings}
