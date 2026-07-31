@@ -42,13 +42,24 @@ from typing import Any
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _safe_dec(val) -> Decimal | None:
+def _safe_dec(val, places: int = 4) -> Decimal | None:
+    """Parse a value to Decimal, quantized to `places` decimal places.
+
+    IMPORTANT: nw_kg / gw_kg on both Shipment and ShipmentItem are
+    decimal_places=2. Emitting 4 d.p. here makes the formset silently
+    fail validation, so callers must pass the right precision.
+    """
     if val is None or val == "":
         return None
     try:
-        return Decimal(str(val)).quantize(Decimal("0.0001"))
+        return Decimal(str(val)).quantize(Decimal(1).scaleb(-places))
     except (InvalidOperation, ValueError):
         return None
+
+
+def _dec_str(val, places: int = 4) -> str | None:
+    d = _safe_dec(val, places)
+    return str(d) if d is not None else None
 
 
 def _safe_int(val) -> int | None:
@@ -98,114 +109,166 @@ def _col_idx(header_vals: list[str], *candidates: str) -> int | None:
 
 # ── packing list parser ───────────────────────────────────────────────────────
 
+_TOTAL_LABELS = {"total", "totals", "grand total", "sub", "sub total", "subtotal"}
+
+# Markers that identify a second (sub) header row rather than a data row.
+_SUB_MARKERS = ("sub", "total", "/ctn", "cbm", "size", "per ctn", "pcs/ctn")
+
+
+def _build_header_map(sheet, header_row: int) -> tuple[list[str], int]:
+    """
+    Combine the main header row with an optional sub-header row underneath it.
+
+    Packing lists commonly use a two-row header with merged group cells:
+
+        PO# | P/N | Cartons | Qty. (pcs)      | N.W. (kgs)      | Measurement (cm)
+            |     |         | PCS/CTN | Total | N.W/CTN | Total | Size (cm) | CBM
+
+    Merged group titles only occupy their first column, so we forward-fill the
+    main row, then join it with the sub row. That gives each column an
+    unambiguous label like "n.w. (kgs) total" vs "n.w. (kgs) n.w/ctn" —
+    which is what lets us pick the per-line TOTAL column instead of the
+    per-carton one.
+
+    Returns (combined_headers, data_start_row).
+    """
+    ncols = sheet.ncols
+    main = [_norm(_cell_str(sheet, header_row, c)) for c in range(ncols)]
+
+    # Forward-fill merged group titles across blank cells
+    filled: list[str] = []
+    last = ""
+    for h in main:
+        if h:
+            last = h
+        filled.append(last if h == "" else h)
+
+    sub_row = header_row + 1
+    has_sub = False
+    sub: list[str] = [""] * ncols
+    if sub_row < sheet.nrows:
+        candidate = [_norm(_cell_str(sheet, sub_row, c)) for c in range(ncols)]
+        hits = sum(1 for h in candidate if any(m in h for m in _SUB_MARKERS))
+        if hits >= 2:
+            has_sub = True
+            sub = candidate
+
+    combined = [f"{filled[c]} {sub[c]}".strip() for c in range(ncols)]
+    data_start = sub_row + 1 if has_sub else header_row + 1
+    return combined, data_start
+
+
+def _pick_col(headers: list[str], must: tuple[str, ...],
+              prefer: tuple[str, ...] = (), exclude: tuple[str, ...] = ()) -> int | None:
+    """
+    Choose a column whose combined header contains any term in `must`.
+
+    If several match, one containing a `prefer` term wins (e.g. the "total"
+    column over the "/ctn" column). Columns matching `exclude` are skipped.
+    """
+    candidates = [
+        i for i, h in enumerate(headers)
+        if any(m in h for m in must) and not any(x in h for x in exclude)
+    ]
+    if not candidates:
+        return None
+    for i in candidates:
+        if any(p in headers[i] for p in prefer):
+            return i
+    return candidates[0]
+
+
 def _parse_pl_sheet(sheet) -> tuple[list[dict], dict, list[str]]:
     """
     Return (items, totals, warnings) from a packing-list-style sheet.
 
     Items contain everything except unit_cost_usd (filled later from CI).
-    Totals are detected from the last summary row.
+    Totals come from the summary row (labelled "TOTAL" or with a blank PO#).
     """
     warnings: list[str] = []
 
-    # Find the first header row that has PO + cartons + qty
     header_row = _find_header_row(sheet, {"po", "carton", "qty"})
     if header_row is None:
         warnings.append("Could not locate packing list header row.")
         return [], {}, warnings
 
-    # There's often a second sub-header row (e.g. PCS/CTN / SUB / N.W/CTN / SUB …)
-    # We want the main header, so skip subsequent sub-header rows.
-    # Read the main header row columns.
-    hdrs = [_cell_str(sheet, header_row, c) for c in range(sheet.ncols)]
+    hdrs, data_start = _build_header_map(sheet, header_row)
 
-    # Column mapping
-    col_po    = _col_idx(hdrs, "po#", "po #", "po")
-    col_pn    = _col_idx(hdrs, "p/n", "pn", "item no", "product no", "sku", "p/n")
-    col_desc  = _col_idx(hdrs, "description", "product desc", "desc")
-    col_ctn   = _col_idx(hdrs, "carton")
-    col_qty   = _col_idx(hdrs, "qty.(pcs)", "qty(pcs)", "qty", "pcs", "quantity")
-    col_cbm   = _col_idx(hdrs, "cbm")
-    col_dims  = _col_idx(hdrs, "size", "measurement", "dimension", "meas")
-
-    # NW and GW: look for sub-header row to find "SUB" columns
-    # The main header may say "NW(kgs)" with merged cells above the sub-row.
-    # Strategy: in the sub-header row (header_row+1), look for the second
-    # "sub" column for GW total, and first "sub" for NW total.
-    sub_row = header_row + 1
-    nw_sub_col = None
-    gw_sub_col = None
-    if sub_row < sheet.nrows:
-        sub_hdrs = [_norm(_cell_str(sheet, sub_row, c)) for c in range(sheet.ncols)]
-        sub_indices = [i for i, h in enumerate(sub_hdrs) if "sub" in h]
-        if len(sub_indices) >= 1:
-            nw_sub_col = sub_indices[0]
-        if len(sub_indices) >= 2:
-            gw_sub_col = sub_indices[1]
-
-    # Fallback: look for NW/GW columns in main header
-    if nw_sub_col is None:
-        nw_sub_col = _col_idx(hdrs, "nw(kgs)", "nw (kgs)", "nw(kg)", "n.w", "nw")
-    if gw_sub_col is None:
-        gw_sub_col = _col_idx(hdrs, "gw(kgs)", "gw (kgs)", "gw(kg)", "g.w", "gw")
-
-    data_start = sub_row + 1 if sub_row < sheet.nrows and any(
-        "sub" in _norm(_cell_str(sheet, sub_row, c)) for c in range(sheet.ncols)
-    ) else header_row + 1
+    col_po   = _pick_col(hdrs, ("po#", "po #", "po"))
+    col_pn   = _pick_col(hdrs, ("p/n", "item no", "product no", "sku", "pn"))
+    col_desc = _pick_col(hdrs, ("description", "product desc", "desc"))
+    col_ctn  = _pick_col(hdrs, ("carton", "ctns"), exclude=("/ctn", "pcs/ctn"))
+    # Prefer the per-line TOTAL column over the per-carton column
+    col_qty  = _pick_col(hdrs, ("qty", "pcs", "quantity"),
+                         prefer=("total", "sub"), exclude=("carton",))
+    col_nw   = _pick_col(hdrs, ("n.w", "nw"), prefer=("total", "sub"))
+    col_gw   = _pick_col(hdrs, ("g.w", "gw"), prefer=("total", "sub"))
+    col_cbm  = _pick_col(hdrs, ("cbm",))
+    col_dims = _pick_col(hdrs, ("size", "measurement", "dimension", "meas"),
+                         exclude=("cbm",))
 
     items: list[dict] = []
     totals: dict = {}
 
     for r in range(data_start, sheet.nrows):
-        # Skip blank rows
         row_vals = [_cell_str(sheet, r, c) for c in range(sheet.ncols)]
         if not any(v.strip() for v in row_vals):
             continue
 
-        # Detect totals row: first col is blank and cartons col is a large-ish number
-        po_val = row_vals[col_po] if col_po is not None else ""
-        ctn_val = row_vals[col_ctn] if col_ctn is not None else ""
+        po_val  = row_vals[col_po].strip()  if col_po  is not None else ""
+        pn_val  = row_vals[col_pn].strip()  if col_pn  is not None else ""
+        ctn_val = row_vals[col_ctn].strip() if col_ctn is not None else ""
 
-        # Totals row has no PO and a carton count in the right column
-        if not po_val and ctn_val:
-            try:
-                tot_ctns = int(float(ctn_val))
-                if tot_ctns > 1:
-                    totals["cartons"] = tot_ctns
-                    if col_qty is not None:
-                        totals["pieces"] = _safe_int(row_vals[col_qty]) or _safe_int(
-                            _cell_str(sheet, r, col_qty)
-                        )
-                    if nw_sub_col is not None:
-                        totals["nw_kg"] = _safe_dec(row_vals[nw_sub_col])
-                    if gw_sub_col is not None:
-                        totals["gw_kg"] = _safe_dec(row_vals[gw_sub_col])
-                    if col_cbm is not None:
-                        totals["cbm"] = _safe_dec(row_vals[col_cbm])
-            except (ValueError, TypeError):
-                pass
+        # ── Totals row: PO cell says "TOTAL" (or is blank) + a carton count ──
+        if _norm(po_val) in _TOTAL_LABELS or (not po_val and ctn_val):
+            tot_ctns = _safe_int(ctn_val)
+            if tot_ctns and tot_ctns > 1:
+                totals["cartons"] = tot_ctns
+                if col_qty is not None:
+                    totals["pieces"] = _safe_int(row_vals[col_qty])
+                if col_nw is not None:
+                    totals["nw_kg"] = _safe_dec(row_vals[col_nw], 2)
+                if col_gw is not None:
+                    totals["gw_kg"] = _safe_dec(row_vals[col_gw], 2)
+                if col_cbm is not None:
+                    totals["cbm"] = _safe_dec(row_vals[col_cbm], 4)
             continue
 
-        # Skip if no PO value and no P/N — likely a sub-total / note row
-        pn_val = row_vals[col_pn] if col_pn is not None else ""
-        if not po_val and not pn_val:
+        # ── Skip pallet-summary lines, "Notes:", bullets and other prose ─────
+        # These land in the PO# column and blow past its 50-char DB limit,
+        # which would otherwise fail formset validation with no visible error.
+        if not pn_val and not ctn_val:
+            continue
+        if len(po_val) > 50 or po_val.startswith(("•", "-", "*")):
             continue
 
-        item: dict[str, Any] = {
-            "po_number":    po_val,
-            "sku":          pn_val,
-            "description":  (row_vals[col_desc].strip() if col_desc is not None else ""),
-            "cartons":      _safe_int(ctn_val),
-            "qty":          _safe_int(row_vals[col_qty]) if col_qty is not None else None,
-            "nw_kg":        str(_safe_dec(row_vals[nw_sub_col])) if nw_sub_col is not None and _safe_dec(row_vals[nw_sub_col]) else None,
-            "gw_kg":        str(_safe_dec(row_vals[gw_sub_col])) if gw_sub_col is not None and _safe_dec(row_vals[gw_sub_col]) else None,
-            "dimensions_cm": (row_vals[col_dims].replace("*", "×") if col_dims is not None else ""),
-            "cbm":          str(_safe_dec(row_vals[col_cbm])) if col_cbm is not None and _safe_dec(row_vals[col_cbm]) else None,
+        items.append({
+            "po_number":     po_val,
+            "sku":           pn_val,
+            "description":   (row_vals[col_desc].strip() if col_desc is not None else "")[:200],
+            "cartons":       _safe_int(ctn_val),
+            "qty":           _safe_int(row_vals[col_qty]) if col_qty is not None else None,
+            # 2 d.p. — matches ShipmentItem.nw_kg / gw_kg
+            "nw_kg":         _dec_str(row_vals[col_nw], 2) if col_nw is not None else None,
+            "gw_kg":         _dec_str(row_vals[col_gw], 2) if col_gw is not None else None,
+            "cbm":           _dec_str(row_vals[col_cbm], 4) if col_cbm is not None else None,
+            "dimensions_cm": (row_vals[col_dims].replace("*", "×").strip()[:50]
+                              if col_dims is not None else ""),
             "unit_cost_usd": None,
-        }
-        items.append(item)
+        })
 
     if not items:
         warnings.append("Packing list sheet found but no data rows extracted.")
+
+    # ── Fall back to summing line items if no totals row was found ───────────
+    if items and not totals:
+        totals["cartons"] = sum(i["cartons"] or 0 for i in items) or None
+        totals["pieces"]  = sum(i["qty"] or 0 for i in items) or None
+        for key in ("nw_kg", "gw_kg", "cbm"):
+            vals = [Decimal(i[key]) for i in items if i.get(key)]
+            if vals:
+                totals[key] = sum(vals).quantize(Decimal("0.0001") if key == "cbm" else Decimal("0.01"))
+        warnings.append("No totals row found — totals calculated by summing line items.")
 
     return items, totals, warnings
 
@@ -356,4 +419,16 @@ def parse_shipment_doc(file_obj) -> dict:
         else:
             totals_out[k] = v
 
-    return {"items": items, "totals": totals_out, "warnings": warnings}
+    # Unique PO numbers, in first-seen order, for the Shipment.po_numbers field
+    po_numbers: list[str] = []
+    for item in items:
+        po = (item.get("po_number") or "").strip()
+        if po and po not in po_numbers:
+            po_numbers.append(po)
+
+    return {
+        "items": items,
+        "totals": totals_out,
+        "po_numbers": ", ".join(po_numbers)[:200],
+        "warnings": warnings,
+    }

@@ -76,6 +76,7 @@
         <td>
           <span class="fw-semibold">{{ s.carrier|default:"—" }}</span>
           {% if s.vessel %}<br><small class="text-muted">{{ s.vessel }}</small>{% endif %}
+          {% if s.tracking_number %}<br><small class="text-muted font-monospace">{{ s.tracking_number }}</small>{% endif %}
         </td>
         <td class="small">{{ s.etd|date:"M j, Y"|default:"—" }}</td>
         <td class="small">{{ s.eta_port|date:"M j, Y"|default:"—" }}</td>

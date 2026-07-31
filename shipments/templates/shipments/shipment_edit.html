@@ -52,6 +52,29 @@
   </div>
 </div>
 
+{# ── Validation errors ───────────────────────────────────────────────────── #}
+{% if form.errors or formset.errors or formset.non_form_errors %}
+<div class="alert alert-danger">
+  <h6 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle me-1"></i>This shipment could not be saved</h6>
+  <ul class="mb-0 small">
+    {% for field in form %}
+      {% for error in field.errors %}
+        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    {% for error in formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
+    {% for item_form in formset %}
+      {% for field in item_form %}
+        {% for error in field.errors %}
+          <li><strong>Row {{ forloop.parentloop.parentloop.counter }} — {{ field.label }}:</strong> {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <form method="post">
   {% csrf_token %}
 
@@ -297,6 +320,16 @@ function applyParsed() {
   if (totals.cbm)     setField('id_total_cbm',     totals.cbm);
   if (totals.nw_kg)   setField('id_total_nw_kg',   totals.nw_kg);
   if (totals.gw_kg)   setField('id_total_gw_kg',   totals.gw_kg);
+
+  // Fill PO Numbers from the unique POs on the packing list.
+  let poList = parsedData.po_numbers;
+  if (!poList) {
+    poList = [...new Set(items.map(i => (i.po_number || '').trim()).filter(Boolean))].join(', ');
+  }
+  const poField = document.getElementById('id_po_numbers');
+  if (poField && poList && !poField.value.trim()) {
+    poField.value = poList.slice(0, 200);
+  }
 
   clearPreview();
   document.querySelector('.card.mb-4:last-of-type').scrollIntoView({ behavior: 'smooth', block: 'start' });

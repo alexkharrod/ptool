@@ -1,9 +1,51 @@
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 
 from .models import Shipment, ShipmentDocument, ShipmentItem
 
 
-class ShipmentForm(forms.ModelForm):
+class RoundedDecimalField(forms.DecimalField):
+    """A DecimalField that rounds to `decimal_places` instead of erroring.
+
+    Packing lists routinely carry more precision than our columns hold
+    (e.g. 3.0000 kg into a decimal_places=2 field). Django's default
+    behaviour is a hard validation error, which — combined with a form
+    that had no error display — looked to the user like "save does nothing".
+    Rounding is the right call here: the extra digits are noise.
+    """
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        if value is None or self.decimal_places is None:
+            return value
+        try:
+            return value.quantize(Decimal(1).scaleb(-self.decimal_places))
+        except (InvalidOperation, AttributeError):
+            return value
+
+
+class RoundingModelForm(forms.ModelForm):
+    """Swaps every DecimalField on the form for a rounding version."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if isinstance(field, forms.DecimalField) and not isinstance(
+                field, RoundedDecimalField
+            ):
+                self.fields[name] = RoundedDecimalField(
+                    max_digits=field.max_digits,
+                    decimal_places=field.decimal_places,
+                    required=field.required,
+                    label=field.label,
+                    help_text=field.help_text,
+                    widget=field.widget,
+                    initial=field.initial,
+                )
+
+
+class ShipmentForm(RoundingModelForm):
     class Meta:
         model = Shipment
         fields = [
@@ -47,7 +89,7 @@ class ShipmentForm(forms.ModelForm):
         }
 
 
-class ShipmentItemForm(forms.ModelForm):
+class ShipmentItemForm(RoundingModelForm):
     class Meta:
         model = ShipmentItem
         fields = [
