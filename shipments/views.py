@@ -28,7 +28,11 @@ def shipment_list(request):
 
     qs = Shipment.objects.prefetch_related("items")
 
-    if not show_closed:
+    # Searching implies "look everywhere" — a SKU you're chasing has usually
+    # already been delivered, and silently excluding those made SKU search
+    # look broken. An explicit status filter still wins.
+    searching = bool(search)
+    if not show_closed and not searching and not status_filter:
         qs = qs.exclude(status__in=["Delivered", "Cancelled"])
 
     if mode_filter:
@@ -46,6 +50,7 @@ def shipment_list(request):
             | Q(tracking_number__icontains=search)
             | Q(notes__icontains=search)
             | Q(items__sku__icontains=search)
+            | Q(items__po_number__icontains=search)
             | Q(items__description__icontains=search)
         ).distinct()
 
@@ -55,6 +60,8 @@ def shipment_list(request):
         "mode_filter": mode_filter,
         "status_filter": status_filter,
         "show_closed": show_closed,
+        "searching": searching,
+        "result_count": qs.count(),
         "mode_choices": Shipment.MODE_CHOICES,
         "status_choices": Shipment.STATUS_CHOICES,
     }

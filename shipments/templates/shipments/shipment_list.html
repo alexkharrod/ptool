@@ -42,6 +42,15 @@
   </div>
 </form>
 
+{% if searching %}
+<p class="text-muted small">
+  <i class="bi bi-search me-1"></i>
+  {{ result_count }} shipment{{ result_count|pluralize }} matching
+  <strong>&ldquo;{{ search }}&rdquo;</strong>
+  <span class="ms-1">(searching SKU, PO#, AGS#, carrier, vessel, tracking # and notes — including delivered)</span>
+</p>
+{% endif %}
+
 {# ── Table ────────────────────────────────────────────────────────────── #}
 {% if shipments %}
 <div class="table-responsive">
@@ -90,7 +99,11 @@
         </td>
         <td class="small">
           {% for item in s.items.all %}
-            <span class="badge bg-light text-dark border me-1">{{ item.sku }}</span>
+            {% if item.sku %}
+              <a href="?search={{ item.sku|urlencode }}"
+                 class="badge bg-light text-dark border me-1 text-decoration-none"
+                 title="Find all shipments containing {{ item.sku }}">{{ item.sku }}</a>
+            {% endif %}
           {% empty %}
             {% if s.po_numbers %}<span class="text-muted">{{ s.po_numbers }}</span>{% else %}—{% endif %}
           {% endfor %}
