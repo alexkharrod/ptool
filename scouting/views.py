@@ -1,7 +1,7 @@
 import base64
 import json
 
-from django.contrib.auth.decorators import login_required
+from users.decorators import section_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,7 +18,7 @@ def _active_show(request):
     )
 
 
-@login_required
+@section_required("scouting")
 def scouting_list(request):
     search_query = request.GET.get("search", "")
     status_filter = request.GET.get("status", "")   # "" = default (exclude Rejected), "all" = everything
@@ -61,13 +61,13 @@ def scouting_list(request):
     return render(request, "scouting_list.html", context)
 
 
-@login_required
+@section_required("scouting")
 def scouting_detail(request, pk):
     prospect = get_object_or_404(Prospect, pk=pk)
     return render(request, "scouting_detail.html", {"prospect": prospect})
 
 
-@login_required
+@section_required("scouting")
 def scouting_add(request):
     if request.method == "POST":
         form = ProspectForm(request.POST, request.FILES)
@@ -102,7 +102,7 @@ def scouting_add(request):
     })
 
 
-@login_required
+@section_required("scouting")
 def scouting_edit(request, pk):
     prospect = get_object_or_404(Prospect, pk=pk)
     if request.method == "POST":
@@ -115,7 +115,7 @@ def scouting_edit(request, pk):
     return render(request, "scouting_edit.html", {"form": form, "prospect": prospect})
 
 
-@login_required
+@section_required("scouting")
 def set_active_show(request):
     """Save the active show name/date to the session."""
     if request.method == "POST":
@@ -130,7 +130,7 @@ def set_active_show(request):
     return redirect(request.POST.get("next", "scouting_list"))
 
 
-@login_required
+@section_required("scouting")
 def scouting_promote(request, pk):
     """Lean intermediate screen: pick Category + Vendor, auto-generate SKU, then create product stub."""
     import json as _json
@@ -221,7 +221,7 @@ def scouting_promote(request, pk):
     })
 
 
-@login_required
+@section_required("scouting")
 def update_prospect_status(request, pk):
     """AJAX POST — update a single prospect's status, return JSON."""
     if request.method != "POST":
@@ -237,7 +237,7 @@ def update_prospect_status(request, pk):
     return JsonResponse({"ok": True, "status": prospect.status})
 
 
-@login_required
+@section_required("scouting")
 def bulk_update_prospects(request):
     """Bulk status update from the scouting list form."""
     if request.method == "POST":
@@ -249,7 +249,7 @@ def bulk_update_prospects(request):
     return redirect(request.POST.get("next", "scouting_list"))
 
 
-@login_required
+@section_required("scouting")
 def scan_business_card(request):
     """Accepts a base64 image, calls Claude vision API, returns extracted vendor fields as JSON."""
     if request.method != "POST":

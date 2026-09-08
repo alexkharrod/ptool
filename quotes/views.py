@@ -4,7 +4,7 @@ import os
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from users.decorators import section_required
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse
@@ -17,13 +17,13 @@ from .forms import CreateQuoteForm
 from .models import Quote, CustomerQuote, QuoteLineItem, QuotePriceTier, SalesRep
 
 
-@login_required
+@section_required("quotes")
 def view_quote(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
     return render(request, "view_quote.html", {"quote": quote, "status_choices": Quote.STATUS_CHOICES})
 
 
-@login_required
+@section_required("quotes")
 def update_quote_status(request, pk):
     if request.method == "POST":
         quote = get_object_or_404(Quote, pk=pk)
@@ -38,7 +38,7 @@ def update_quote_status(request, pk):
     return redirect("view_quote", pk=pk)
 
 
-@login_required
+@section_required("quotes")
 def bulk_update_quotes(request):
     if request.method == "POST":
         quote_ids = request.POST.getlist("quote_ids")
@@ -54,7 +54,7 @@ def bulk_update_quotes(request):
     return redirect(f"/quotes/quotes/?{params}")
 
 
-@login_required
+@section_required("quotes")
 def edit_quote(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
     if request.method == "POST":
@@ -68,7 +68,7 @@ def edit_quote(request, pk):
     return render(request, "edit_quote.html", {"form": form, "quote": quote, "hts_data": json.dumps(hts_data)})
 
 
-@login_required
+@section_required("quotes")
 def quotes(request):
     search_query = request.GET.get("search", "")
     # Default to Open when browsing; search across all statuses when text search is active
@@ -118,7 +118,7 @@ def quotes(request):
     return render(request, "quotes.html", context)
 
 
-@login_required
+@section_required("quotes")
 def create_quote(request):
     if request.method == "POST":
         form = CreateQuoteForm(request.POST, request.FILES)
@@ -158,7 +158,7 @@ def create_quote(request):
     return render(request, "create_quote.html", {"form": form, "hts_data": json.dumps(hts_data)})
 
 
-@login_required
+@section_required("quotes")
 def quote_pdf(request, quote_id):
     import urllib.request
     from weasyprint import HTML  # lazy import — avoids crash if system libs missing at startup
@@ -201,7 +201,7 @@ def quote_pdf(request, quote_id):
 #  NEW QUOTE SYSTEM
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@section_required("quotes")
 def cq_list(request):
     """List all customer quotes."""
     quotes = CustomerQuote.objects.select_related('rep').prefetch_related('line_items')
@@ -219,7 +219,7 @@ def cq_list(request):
     })
 
 
-@login_required
+@section_required("quotes")
 def cq_create(request):
     """Create a new customer quote (header only; items added on edit page)."""
     if request.method == 'POST':
@@ -257,7 +257,7 @@ def cq_create(request):
     })
 
 
-@login_required
+@section_required("quotes")
 def cq_edit(request, pk):
     """Edit quote header + manage line items."""
     cq = get_object_or_404(CustomerQuote, pk=pk)
@@ -289,7 +289,7 @@ def cq_edit(request, pk):
     })
 
 
-@login_required
+@section_required("quotes")
 def cq_item_add(request, quote_pk):
     """AJAX: add a line item to a quote from a product SKU. Returns rendered item card HTML."""
     if request.method != 'POST':
@@ -338,7 +338,7 @@ def cq_item_add(request, quote_pk):
     return JsonResponse({'ok': True, 'item_pk': item.pk, 'quote_number': cq.quote_number})
 
 
-@login_required
+@section_required("quotes")
 def cq_item_save(request, item_pk):
     """AJAX: save edits to a single line item and its price tiers."""
     from django.http import JsonResponse
@@ -377,7 +377,7 @@ def cq_item_save(request, item_pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@section_required("quotes")
 def cq_item_delete(request, item_pk):
     """AJAX: delete a line item."""
     from django.http import JsonResponse
@@ -388,7 +388,7 @@ def cq_item_delete(request, item_pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@section_required("quotes")
 def cq_delete(request, pk):
     """Delete an entire quote and redirect to the list."""
     from django.http import JsonResponse
@@ -399,7 +399,7 @@ def cq_delete(request, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@section_required("quotes")
 def cq_rep_add(request):
     """AJAX: create a new sales rep. Returns {ok, pk, name}."""
     from django.http import JsonResponse
@@ -417,7 +417,7 @@ def cq_rep_add(request):
     return JsonResponse({'ok': True, 'pk': rep.pk, 'name': str(rep), 'created': True})
 
 
-@login_required
+@section_required("quotes")
 def cq_product_search(request):
     """AJAX: search products by SKU or name for the item picker."""
     from django.http import JsonResponse
@@ -441,7 +441,7 @@ def cq_product_search(request):
     return JsonResponse({'results': results})
 
 
-@login_required
+@section_required("quotes")
 def cq_view(request, pk):
     """Read-only view of a quote with download PDF button."""
     cq = get_object_or_404(CustomerQuote, pk=pk)
@@ -449,7 +449,7 @@ def cq_view(request, pk):
     return render(request, 'cq/cq_view.html', {'cq': cq, 'items': items})
 
 
-@login_required
+@section_required("quotes")
 def cq_pdf(request, pk):
     """Generate and download the quote PDF."""
     from weasyprint import HTML as WP_HTML

@@ -4,9 +4,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2><i class="bi bi-ship me-2"></i>Shipments</h2>
+  {% if can_edit %}
   <a href="{% url 'shipment_add' %}" class="btn btn-primary">
     <i class="bi bi-plus-lg me-1"></i>New Shipment
   </a>
+  {% endif %}
 </div>
 
 {# ── Filters ──────────────────────────────────────────────────────────── #}
@@ -109,17 +111,23 @@
           {% endfor %}
         </td>
         <td>
+          {% if can_edit %}
           <select class="form-select form-select-sm status-select" data-pk="{{ s.pk }}"
                   style="min-width:130px;">
             {% for val, label in status_choices %}
             <option value="{{ val }}" {% if s.status == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
+          {% else %}
+          {{ s.get_status_display }}
+          {% endif %}
         </td>
         <td>
+          {% if can_edit %}
           <a href="{% url 'shipment_edit' s.pk %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-pencil"></i>
           </a>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -130,7 +138,7 @@
 <div class="text-center text-muted py-5">
   <i class="bi bi-ship" style="font-size:3rem;"></i>
   <p class="mt-2">No shipments found.</p>
-  <a href="{% url 'shipment_add' %}" class="btn btn-primary">Add your first shipment</a>
+  {% if can_edit %}<a href="{% url 'shipment_add' %}" class="btn btn-primary">Add your first shipment</a>{% endif %}
 </div>
 {% endif %}
 

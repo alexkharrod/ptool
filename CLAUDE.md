@@ -75,14 +75,13 @@ All access is controlled via `BooleanField` flags on `CustomUser`. Staff (`is_st
 - `can_access_shipments` — True if staff OR access_shipments OR access_shipments_logistics
 - `can_access_shipments_logistics` — True if staff OR access_shipments_logistics
 
-**Shipment view helpers:**
-```python
-def _can_access(user):   # view list/detail
-    return user.is_staff or user.access_shipments or user.access_shipments_logistics
-
-def _can_edit(user):     # add/edit + unit costs
-    return user.is_staff or user.access_shipments_logistics
-```
+**Enforcement — one mechanism:** every view in products / quotes / scouting / shipments carries
+`@section_required("<section>")` from `users/decorators.py` (sections: `products`, `quotes`,
+`scouting`, `shipments`, `shipments_logistics`, `staff`). It wraps `login_required`, sends
+users without the flag home (or returns JSON 403 for fetch() calls), and staff always pass.
+Vendor / HTS / Category management and Reports are `staff`. `users/tests.py` sweeps every URL
+under those prefixes and fails if a view is missing the decorator, so add it to any new view.
+`PtoolAccessMiddleware` only handles `must_change_password` and keeps non-staff out of `/admin/`.
 
 **User management**: Admin → Users; instant-toggle checkboxes on the manage page; edit page has full access controls. Creating users: `create_user()` only accepts `email`, `password`, `first_name`, `last_name`, `must_change_password` — all other access flags must be set via a subsequent `save()` call.
 
@@ -171,6 +170,20 @@ Seeded in migration 0023. Current reps:
 `initials` field is `null=True, unique=True` — multiple NULLs allowed in Postgres unique index (safe for reps without initials set).
 
 ---
+
+## Tests
+
+```bash
+DATABASE_URL="sqlite:///test.db" SECRET_KEY=test python manage.py test
+```
+`settings.py` detects `manage.py test` (`TESTING`) and disables django-axes and the WhiteNoise
+manifest storage, both of which otherwise break the test client. Tests exist for users (access
+control + URL sweep), shipments (view-only vs logistics), and products (vendors, bulk update).
+
+## Environment variables
+
+`SECRET_KEY`, `DEBUG`, `DATABASE_URL`, `CLOUDINARY_URL`, `ANTHROPIC_API_KEY`, `ALLOWED_HOSTS`.
+Never hardcode credentials in source — read them with `os.getenv()`.
 
 ## Known issues / backlog
 - 3 products still have no image (find them by browsing products list — no image shown)
