@@ -3,6 +3,7 @@ Django settings for mysite project.
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -24,12 +25,23 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+# True when running `manage.py test` — used to switch off things that get in the way of tests
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # Trust Railway's proxy headers so HTTPS works correctly
 CSRF_TRUSTED_ORIGINS = [
     f"https://{host}" for host in ALLOWED_HOSTS if host not in ("localhost", "127.0.0.1")
 ]
+
+# Railway terminates TLS and forwards plain HTTP with X-Forwarded-Proto set.
+# Without this, request.is_secure() is always False: cookies are sent without the
+# Secure flag and build_absolute_uri() produces http:// links.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
 
 # ─── Redirect URLs ───────────────────────────────────────────────────────────
 
@@ -134,6 +146,7 @@ AXES_COOLOFF_TIME         = 1          # hours until auto-unlock
 AXES_RESET_ON_SUCCESS     = True       # reset counter on successful login
 AXES_LOCKOUT_TEMPLATE     = "lockout.html"
 AXES_LOCKOUT_PARAMETERS   = [["username", "ip_address"]]  # lock by username+IP pair — prevents Railway proxy from locking all users on one bad attempt
+AXES_ENABLED              = not TESTING   # the test client's login() has no request object, which AxesBackend requires
 
 # ─── Internationalisation ────────────────────────────────────────────────────
 
@@ -149,6 +162,9 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+if TESTING:
+    # Manifest storage needs a collectstatic run; plain storage lets templates render in tests
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 # ─── Media files ─────────────────────────────────────────────────────────────
 # Cloudinary is used in production (when CLOUDINARY_URL is set).

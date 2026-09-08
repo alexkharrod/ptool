@@ -3,7 +3,7 @@ import json
 import os
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from users.decorators import section_required
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count, Q
@@ -15,7 +15,7 @@ from .forms import CreateProductForm
 from .models import Category, ImprintMethod, Product, Vendor, HtsCode
 
 
-@login_required
+@section_required("products")
 def next_sku(request):
     """Return the next available SKU for a given category code."""
     import re
@@ -46,13 +46,13 @@ def next_sku(request):
     return JsonResponse({"sku": f"{code}{next_num}"})
 
 
-@login_required
+@section_required("products")
 def view_product(request, pk):
     product = get_object_or_404(Product, pk=pk)
     return render(request, "view_product.html", {"product": product})
 
 
-@login_required
+@section_required("products")
 def edit_product(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == "POST":
@@ -81,7 +81,7 @@ def edit_product(request, pk):
     })
 
 
-@login_required
+@section_required("products")
 def products(request):
     search_query = request.GET.get("search", "")
 
@@ -141,7 +141,7 @@ def products(request):
     return render(request, "products.html", context)
 
 
-@login_required
+@section_required("products")
 def add_product(request):
     if request.method == "POST":
         form = CreateProductForm(request.POST, request.FILES)
@@ -171,7 +171,7 @@ def add_product(request):
     })
 
 
-@login_required
+@section_required("products")
 def npds(request, product_id):
     from weasyprint import HTML  # lazy import — avoids crash if system libs missing at startup
 
@@ -215,14 +215,21 @@ def npds(request, product_id):
     return response
 
 
-@login_required
+@section_required("products")
 def bulk_update_products(request):
     if request.method == "POST":
         product_ids = request.POST.getlist("product_ids")
         new_status = request.POST.get("bulk_status")
         valid_statuses = [s[0] for s in Product.STATUS_CHOICES]
         if new_status in valid_statuses and product_ids:
-            updated = Product.objects.filter(pk__in=product_ids).update(status=new_status)
+            # Save each product individually (not queryset.update) so Product.save()
+            # runs and date_published is stamped on the first move to Published.
+            updated = 0
+            for product in Product.objects.filter(pk__in=product_ids):
+                if product.status != new_status:
+                    product.status = new_status
+                    product.save()
+                    updated += 1
             from django.contrib import messages
             messages.success(request, f"{updated} product(s) updated to {new_status}.")
         else:
@@ -234,7 +241,7 @@ def bulk_update_products(request):
 
 # ── HTS AI Suggest ────────────────────────────────────────────────────────────
 
-@login_required
+@section_required("products")
 def hts_ai_suggest(request, pk):
     """
     Call Claude with the product's name, description, category, and image
@@ -342,7 +349,7 @@ def hts_ai_suggest(request, pk):
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
 
 
-@login_required
+@section_required("products")
 def hts_ai_suggest_text(request):
     """
     Same as hts_ai_suggest but accepts name/category/description as POST text
@@ -425,12 +432,12 @@ def hts_ai_suggest_text(request):
 
 # ── Reports ───────────────────────────────────────────────────────────────────
 
-@login_required
+@section_required("staff")
 def report_index(request):
     return render(request, "reports/index.html")
 
 
-@login_required
+@section_required("staff")
 def report_show_roi(request):
     from scouting.models import Prospect
     from django.db.models import Count, Q, Min, Max
@@ -476,7 +483,7 @@ def report_show_roi(request):
     })
 
 
-@login_required
+@section_required("staff")
 def report_published(request):
     import datetime
 
@@ -523,13 +530,13 @@ def report_published(request):
     })
 
 
-@login_required
+@section_required("staff")
 def hts_list(request):
     codes = HtsCode.objects.prefetch_related("categories").annotate(product_count=models.Count("products")).order_by("code")
     return render(request, "hts/hts_list.html", {"codes": codes})
 
 
-@login_required
+@section_required("staff")
 def hts_add(request):
     error = None
     if request.method == "POST":
@@ -565,7 +572,7 @@ def hts_add(request):
     })
 
 
-@login_required
+@section_required("staff")
 def hts_edit(request, pk):
     hts = get_object_or_404(HtsCode, pk=pk)
     error = None
@@ -606,7 +613,7 @@ def hts_edit(request, pk):
     })
 
 
-@login_required
+@section_required("products")
 def hts_suggest(request):
     """AJAX endpoint: returns HTS codes matching a category or search term."""
     q = request.GET.get("q", "").strip()
@@ -622,13 +629,13 @@ def hts_suggest(request):
     return JsonResponse({"results": results})
 
 
-@login_required
+@section_required("staff")
 def vendor_list(request):
     vendors = Vendor.objects.annotate(product_count=models.Count("products")).order_by("name")
     return render(request, "vendors/vendor_list.html", {"vendors": vendors})
 
 
-@login_required
+@section_required("staff")
 def vendor_add(request):
     error = None
     if request.method == "POST":
@@ -647,7 +654,7 @@ def vendor_add(request):
     })
 
 
-@login_required
+@section_required("staff")
 def vendor_edit(request, pk):
     vendor = get_object_or_404(Vendor, pk=pk)
     error = None
@@ -670,7 +677,7 @@ def vendor_edit(request, pk):
     })
 
 
-@login_required
+@section_required("products")
 def generate_description(request, pk):
     """Call Claude to generate a website-ready HTML product description."""
     import anthropic, os
@@ -757,7 +764,7 @@ Rules:
     return JsonResponse({"html": html_output})
 
 
-@login_required
+@section_required("products")
 def generate_keywords(request, pk):
     """Call Claude to generate PromoStandards-compliant product keywords."""
     import anthropic, os
@@ -854,7 +861,7 @@ Example format: wireless charger, power bank, tech gift, desk accessory, fast ch
     return JsonResponse({"keywords": phrases, "raw": ", ".join(phrases)})
 
 
-@login_required
+@section_required("products")
 def product_web_content(request, pk):
     """Return saved website description and keywords as JSON (for the product list modal)."""
     product = get_object_or_404(Product, pk=pk)
@@ -866,7 +873,7 @@ def product_web_content(request, pk):
     })
 
 
-@login_required
+@section_required("products")
 def quick_publish(request, pk):
     """
     AJAX endpoint for the inline 'Set URL & Publish' panel on the product view page.
@@ -902,7 +909,7 @@ def quick_publish(request, pk):
     return JsonResponse({"ok": True, "status": product.status, "website_url": product.website_url})
 
 
-@login_required
+@section_required("products")
 def toggle_product_flag(request, pk):
     import json
     if request.method == "POST":
@@ -924,13 +931,13 @@ def toggle_product_flag(request, pk):
 
 # ── Category management ────────────────────────────────────────────────────────
 
-@login_required
+@section_required("staff")
 def category_list(request):
     categories = Category.objects.all()
     return render(request, "categories/category_list.html", {"categories": categories})
 
 
-@login_required
+@section_required("staff")
 def category_add(request):
     error = None
     if request.method == "POST":
@@ -946,7 +953,7 @@ def category_add(request):
     return render(request, "categories/category_add.html", {"error": error, "post": request.POST})
 
 
-@login_required
+@section_required("staff")
 def category_edit(request, pk):
     category = get_object_or_404(Category, pk=pk)
     error = None

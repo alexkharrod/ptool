@@ -19,13 +19,16 @@ Usage:
     pricing = client.get_pricing("EC18", "EC18_Black")
 """
 
+import os
 import xml.etree.ElementTree as ET
 
 import requests
 
 # ── Credentials ────────────────────────────────────────────────────────────────
-PS_USERNAME = "alexkharrod@gmail.com"
-PS_PASSWORD = "REDACTED"
+# Read from the environment (.env locally, Railway variables in production).
+# Never put the real values in this file — it is committed to git.
+PS_USERNAME = os.getenv("PS_USERNAME", "")
+PS_PASSWORD = os.getenv("PS_PASSWORD", "")
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 PRODUCT_DATA_URL = "https://productdata.logoincluded.com/ProductData.svc"
@@ -95,6 +98,10 @@ class PromoStandardsClient:
     """
 
     def __init__(self, username: str = PS_USERNAME, password: str = PS_PASSWORD):
+        if not username or not password:
+            raise RuntimeError(
+                "PromoStandards credentials missing — set PS_USERNAME and PS_PASSWORD in the environment."
+            )
         self.username = username
         self.password = password
 

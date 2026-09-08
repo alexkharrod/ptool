@@ -14,6 +14,9 @@ DATABASES = {
     }
 }
 
+# django-axes requires a request object that the test client login() does not supply
+AXES_ENABLED = False
+
 # Speed up password hashing in tests
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 

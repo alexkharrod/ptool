@@ -10,14 +10,6 @@
     </a>
   </div>
 
-  {% if messages %}
-    {% for msg in messages %}
-    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
-      {{ msg }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-  {% endif %}
 
   <div class="card shadow-sm">
     <div class="table-responsive">

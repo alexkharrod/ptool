@@ -1,4 +1,4 @@
-from django.contrib.auth.decorators import login_required
+from users.decorators import section_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,19 +8,8 @@ from .forms import ShipmentDocumentForm, ShipmentForm, ShipmentItemFormSet
 from .models import Shipment, ShipmentDocument, ShipmentItem
 
 
-def _can_access(user):
-    return user.is_staff or getattr(user, "access_shipments", False) or getattr(user, "access_shipments_logistics", False)
-
-
-def _can_edit(user):
-    return user.is_staff or getattr(user, "access_shipments_logistics", False)
-
-
-@login_required
+@section_required("shipments")
 def shipment_list(request):
-    if not _can_access(request.user):
-        return redirect("home")
-
     search = request.GET.get("search", "")
     mode_filter = request.GET.get("mode", "")
     status_filter = request.GET.get("status", "")
@@ -64,27 +53,24 @@ def shipment_list(request):
         "result_count": qs.count(),
         "mode_choices": Shipment.MODE_CHOICES,
         "status_choices": Shipment.STATUS_CHOICES,
+        "can_edit": request.user.can_access_shipments_logistics,
     }
     return render(request, "shipments/shipment_list.html", context)
 
 
-@login_required
+@section_required("shipments")
 def shipment_detail(request, pk):
-    if not _can_access(request.user):
-        return redirect("home")
     shipment = get_object_or_404(Shipment, pk=pk)
     doc_form = ShipmentDocumentForm()
     return render(request, "shipments/shipment_detail.html", {
         "shipment": shipment,
         "doc_form": doc_form,
+        "can_edit": request.user.can_access_shipments_logistics,
     })
 
 
-@login_required
+@section_required("shipments_logistics")
 def shipment_add(request):
-    if not _can_access(request.user):
-        return redirect("home")
-
     if request.method == "POST":
         form = ShipmentForm(request.POST)
         formset = ShipmentItemFormSet(request.POST)
@@ -101,15 +87,12 @@ def shipment_add(request):
     return render(request, "shipments/shipment_add.html", {
         "form": form,
         "formset": formset,
-        "can_edit": _can_edit(request.user),
+        "can_edit": request.user.can_access_shipments_logistics,
     })
 
 
-@login_required
+@section_required("shipments_logistics")
 def shipment_edit(request, pk):
-    if not _can_access(request.user):
-        return redirect("home")
-
     shipment = get_object_or_404(Shipment, pk=pk)
 
     if request.method == "POST":
@@ -127,16 +110,13 @@ def shipment_edit(request, pk):
         "form": form,
         "formset": formset,
         "shipment": shipment,
-        "can_edit": _can_edit(request.user),
+        "can_edit": request.user.can_access_shipments_logistics,
     })
 
 
-@login_required
+@section_required("shipments_logistics")
 def shipment_upload_doc(request, pk):
     """AJAX or form POST — attach a document to a shipment."""
-    if not _can_access(request.user):
-        return redirect("home")
-
     shipment = get_object_or_404(Shipment, pk=pk)
 
     if request.method == "POST":
@@ -148,23 +128,18 @@ def shipment_upload_doc(request, pk):
     return redirect("shipment_detail", pk=shipment.pk)
 
 
-@login_required
+@section_required("shipments_logistics")
 def shipment_delete_doc(request, pk, doc_pk):
-    if not _can_access(request.user):
-        return redirect("home")
     doc = get_object_or_404(ShipmentDocument, pk=doc_pk, shipment__pk=pk)
     if request.method == "POST":
         doc.delete()
     return redirect("shipment_detail", pk=pk)
 
 
-@login_required
+@section_required("shipments_logistics")
 @require_POST
 def shipment_parse_doc(request):
     """AJAX POST — parse an uploaded XLS/XLSX packing list or CI."""
-    if not _can_edit(request.user):
-        return JsonResponse({"ok": False, "error": "Access denied"}, status=403)
-
     uploaded = request.FILES.get("file")
     if not uploaded:
         return JsonResponse({"ok": False, "error": "No file uploaded"}, status=400)
@@ -175,12 +150,9 @@ def shipment_parse_doc(request):
     return JsonResponse(result)
 
 
-@login_required
+@section_required("shipments_logistics")
 def shipment_update_status(request, pk):
     """AJAX POST — quick status update from the list view."""
-    if not _can_access(request.user):
-        return JsonResponse({"ok": False, "error": "Access denied"}, status=403)
-
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required"}, status=405)
 
