@@ -2,6 +2,7 @@ import base64
 import json
 
 from users.decorators import section_required
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,11 +19,15 @@ def _active_show(request):
     )
 
 
+PAGE_SIZE = 24
+
+
 @section_required("scouting")
 def scouting_list(request):
     search_query = request.GET.get("search", "")
     status_filter = request.GET.get("status", "")   # "" = default (exclude Rejected), "all" = everything
     show_filter = request.GET.get("show", "")
+    needs_details = request.GET.get("needs") == "1"
 
     queryset = Prospect.objects.all()
 
@@ -36,6 +41,9 @@ def scouting_list(request):
     if show_filter:
         queryset = queryset.filter(show_name__icontains=show_filter)
 
+    if needs_details:
+        queryset = queryset.filter(Prospect.needs_details_q()).exclude(promoted=True)
+
     if search_query:
         queryset = queryset.filter(
             Q(product_name__icontains=search_query)
@@ -47,12 +55,24 @@ def scouting_list(request):
     # Unique show names for filter dropdown
     shows = Prospect.objects.values_list("show_name", flat=True).distinct().order_by("show_name")
 
+    paginator = Paginator(queryset, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Query string without `page`, so pagination links keep the current filters
+    params = request.GET.copy()
+    params.pop("page", None)
+    base_qs = params.urlencode()
+
     active_show_name, active_show_date = _active_show(request)
     context = {
-        "prospects": queryset,
+        "prospects": page_obj,
+        "page_obj": page_obj,
+        "total_count": paginator.count,
+        "base_qs": base_qs,
         "search_query": search_query,
         "status_filter": status_filter,
         "show_filter": show_filter,
+        "needs_details": needs_details,
         "shows": shows,
         "status_choices": Prospect.STATUS_CHOICES,
         "active_show_name": active_show_name,
@@ -75,12 +95,16 @@ def scouting_add(request):
         if form.is_valid():
             prospect = form.save()
             if is_async:
-                from django.http import JsonResponse as JR
-                return JR({"ok": True, "pk": prospect.pk})
+                return JsonResponse({
+                    "ok": True,
+                    "pk": prospect.pk,
+                    "prospect_number": prospect.prospect_number,
+                    "product_name": prospect.product_name,
+                    "vendor_name": prospect.vendor_name,
+                })
             return redirect("scouting_detail", pk=prospect.pk)
         elif is_async:
-            from django.http import JsonResponse as JR
-            return JR({"ok": False, "errors": form.errors}, status=400)
+            return JsonResponse({"ok": False, "errors": form.errors}, status=400)
     else:
         # Pre-populate from query params (same vendor flow or business card scan)
         initial = {}

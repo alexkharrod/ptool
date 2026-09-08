@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.core.files.base import ContentFile
 from django.db import models
+from django.db.models import Q
 
 
 def compress_image(image_field, max_width=800, quality=72):
@@ -78,11 +79,32 @@ class Prospect(models.Model):
     promoted = models.BooleanField(default=False)
     promoted_sku = models.CharField(max_length=20, blank=True)
 
+    # Fields a quick floor capture usually leaves blank; the list's "Needs details"
+    # filter and the card badge are driven by this one definition.
+    DETAIL_FIELDS = ("unit_cost", "lead_time", "vendor_contact")
+
     class Meta:
         ordering = ["-date_added"]
 
     def __str__(self):
         return f"{self.product_name} — {self.vendor_name} ({self.show_name})"
+
+    @classmethod
+    def needs_details_q(cls):
+        """Q object matching prospects with any DETAIL_FIELDS still blank."""
+        q = Q()
+        for f in cls.DETAIL_FIELDS:
+            q |= Q(**{f: ""})
+        return q
+
+    @property
+    def needs_details(self):
+        return any(not getattr(self, f) for f in self.DETAIL_FIELDS)
+
+    @property
+    def missing_details(self):
+        labels = {"unit_cost": "cost", "lead_time": "lead time", "vendor_contact": "contact"}
+        return [labels[f] for f in self.DETAIL_FIELDS if not getattr(self, f)]
 
     def save(self, *args, **kwargs):
         # Auto-assign prospect_number on first save
