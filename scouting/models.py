@@ -79,6 +79,10 @@ class Prospect(models.Model):
     promoted = models.BooleanField(default=False)
     promoted_sku = models.CharField(max_length=20, blank=True)
 
+    # The "show" used for anything not found on a show floor: online finds, vendor
+    # emails, samples in the mail. Selectable with one tap in the show banner.
+    OFF_SHOW = "Off-Show"
+
     # Fields a quick floor capture usually leaves blank; the list's "Needs details"
     # filter and the card badge are driven by this one definition.
     DETAIL_FIELDS = ("unit_cost", "lead_time", "vendor_contact")

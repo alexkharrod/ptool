@@ -140,3 +140,38 @@ class AddTests(ScoutingBase):
         )
         p = Prospect.objects.get()
         self.assertRedirects(r, reverse("scouting_detail", args=[p.pk]))
+
+
+class OffShowTests(ScoutingBase):
+    def test_not_at_a_show_button_sets_off_show(self):
+        r = self.client.post(reverse("set_active_show"), {"show_name": Prospect.OFF_SHOW, "show_date": "2026-09-08"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.client.session["scouting_show_name"], Prospect.OFF_SHOW)
+        self.assertEqual(self.client.session["scouting_show_date"], "", "Off-Show never carries a date")
+
+    def test_add_prefills_off_show(self):
+        self.client.post(reverse("set_active_show"), {"show_name": Prospect.OFF_SHOW})
+        r = self.client.get(reverse("scouting_add"))
+        self.assertEqual(r.context["form"].initial["show_name"], Prospect.OFF_SHOW)
+        # Off-Show counts as an active show: details stay collapsed for quick capture
+        self.assertContains(r, 'class="collapse " id="more-details"')
+
+    def test_banner_offers_button_until_selected(self):
+        r = self.client.get(reverse("scouting_list"))
+        self.assertContains(r, "Not at a show")
+        self.client.post(reverse("set_active_show"), {"show_name": Prospect.OFF_SHOW})
+        r = self.client.get(reverse("scouting_list"))
+        self.assertNotContains(r, "Not at a show")
+        self.assertContains(r, "online finds, samples")
+
+    def test_show_roi_report_lists_off_show_last(self):
+        staff = User.objects.create_user(email="staff@t.com", password=PW)
+        staff.is_staff = True
+        staff.save()
+        self.client.login(email="staff@t.com", password=PW)
+        make_prospect(1, show_name=Prospect.OFF_SHOW, show_date=None)
+        make_prospect(2, show_name="PPAI 2026", show_date="2026-01-13")
+        make_prospect(3, show_name="ASI Chicago 2025", show_date="2025-07-22")
+        r = self.client.get(reverse("report_show_roi"))
+        names = [s["show_name"] for s in r.context["shows"]]
+        self.assertEqual(names, ["PPAI 2026", "ASI Chicago 2025", Prospect.OFF_SHOW])
