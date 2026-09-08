@@ -458,6 +458,10 @@ def report_show_roi(request):
     )
 
     shows = list(shows)
+    # Off-Show (online finds etc.) has no date; keep it at the bottom rather than
+    # letting NULL-date ordering float it to the top.
+    shows = [s for s in shows if s["show_name"] != Prospect.OFF_SHOW] + \
+            [s for s in shows if s["show_name"] == Prospect.OFF_SHOW]
     total_prospects = sum(s["total"] for s in shows)
     total_promoted = sum(s["promoted"] for s in shows)
     overall_rate = round(total_promoted / total_prospects * 100, 1) if total_prospects else 0

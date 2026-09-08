@@ -65,6 +65,7 @@ def scouting_list(request):
 
     active_show_name, active_show_date = _active_show(request)
     context = {
+        "off_show": Prospect.OFF_SHOW,
         "prospects": page_obj,
         "page_obj": page_obj,
         "total_count": paginator.count,
@@ -121,6 +122,7 @@ def scouting_add(request):
     active_show_name, active_show_date = _active_show(request)
     return render(request, "scouting_add.html", {
         "form": form,
+        "off_show": Prospect.OFF_SHOW,
         "active_show_name": active_show_name,
         "active_show_date": active_show_date,
     })
@@ -145,6 +147,8 @@ def set_active_show(request):
     if request.method == "POST":
         show_name = request.POST.get("show_name", "").strip()
         show_date = request.POST.get("show_date", "").strip()
+        if show_name == Prospect.OFF_SHOW:
+            show_date = ""  # not an event — no date
         if show_name:
             request.session["scouting_show_name"] = show_name
             request.session["scouting_show_date"] = show_date

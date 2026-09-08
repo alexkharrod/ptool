@@ -63,6 +63,10 @@ required. After a save the page stays put and offers "Add Another — Same Vendo
 (`?needs=1`) and the yellow badge on cards, for finishing entries later. The list is paginated
 (`PAGE_SIZE = 24` in `scouting/views.py`).
 
+**Off-Show:** `Prospect.OFF_SHOW` ("Off-Show") is the show name for anything not from a floor —
+online finds, vendor emails, samples. The show banner's "Not at a show" button sets it as the active
+show (never with a date); it sorts last in the Show ROI report.
+
 **Offline:** `static/js/scout-offline.js` queues saves in IndexedDB when offline (or via the
 "Save Offline" button after a failed save) and auto-syncs on any scouting page load / `online`
 event, guarded so two overlapping syncs can't double-post. Pages react to the `scout-synced` event.
