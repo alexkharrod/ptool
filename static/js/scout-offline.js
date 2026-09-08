@@ -91,22 +91,52 @@ async function scoutSubmitOne(record) {
 
 // ── Sync all pending ──────────────────────────────────────────────────────────
 
+// One sync at a time. Two overlapping runs (e.g. the page's own sync and the
+// auto-sync below both firing on load) would both POST the same record before
+// either deleted it — creating duplicate prospects.
+let _scoutSyncInFlight = null;
+
 async function scoutSync() {
     if (!navigator.onLine) return 0;
-    const pending = await scoutGetPending();
-    let synced = 0;
-    for (const record of pending) {
-        try {
-            if (await scoutSubmitOne(record)) {
-                await scoutRemovePending(record.id);
-                synced++;
+    if (_scoutSyncInFlight) return _scoutSyncInFlight;
+    _scoutSyncInFlight = (async () => {
+        const pending = await scoutGetPending();
+        let synced = 0;
+        for (const record of pending) {
+            try {
+                if (await scoutSubmitOne(record)) {
+                    await scoutRemovePending(record.id);
+                    synced++;
+                }
+            } catch (e) {
+                console.warn('[scout-offline] sync failed for id', record.id, e);
             }
-        } catch (e) {
-            console.warn('[scout-offline] sync failed for id', record.id, e);
         }
+        return synced;
+    })();
+    try {
+        return await _scoutSyncInFlight;
+    } finally {
+        _scoutSyncInFlight = null;
     }
+}
+
+// ── Auto-sync on any page that loads this script ─────────────────────────────
+// Previously only the list page synced, so an offline save made from the add
+// page sat in IndexedDB until the user happened to visit the list.
+
+async function scoutAutoSync() {
+    if (!navigator.onLine) { await scoutUpdateBanner(); return 0; }
+    const count = await scoutPendingCount();
+    if (count === 0) { await scoutUpdateBanner(); return 0; }
+    const synced = await scoutSync();
+    await scoutUpdateBanner();
+    document.dispatchEvent(new CustomEvent('scout-synced', { detail: { synced } }));
     return synced;
 }
+
+window.addEventListener('load', () => { scoutAutoSync(); });
+window.addEventListener('online', () => { scoutAutoSync(); });
 
 // ── Banner update (call on any scouting page) ─────────────────────────────────
 

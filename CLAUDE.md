@@ -56,6 +56,17 @@ Tool for tracking products spotted at trade shows. Alex uses this to photograph 
 2. Review and evaluate
 3. Promote to a full Product record when ready
 
+**Floor capture (phone):** the add form is ordered photo → vendor (Scan Card) → product name → cost;
+everything else sits under a collapsed "More details". Only vendor, product name and show are
+required. After a save the page stays put and offers "Add Another — Same Vendor" / "New Vendor".
+`Prospect.DETAIL_FIELDS` (cost, lead time, contact) drives the list's **Needs details** filter
+(`?needs=1`) and the yellow badge on cards, for finishing entries later. The list is paginated
+(`PAGE_SIZE = 24` in `scouting/views.py`).
+
+**Offline:** `static/js/scout-offline.js` queues saves in IndexedDB when offline (or via the
+"Save Offline" button after a failed save) and auto-syncs on any scouting page load / `online`
+event, guarded so two overlapping syncs can't double-post. Pages react to the `scout-synced` event.
+
 ---
 
 ## Users & Permissions

@@ -58,10 +58,21 @@
             <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
             <a href="{% url 'scouting_list' %}" class="btn btn-secondary">Reset</a>
         </div>
+        <div class="col-12">
+            <input type="checkbox" class="btn-check" id="needs-toggle" name="needs" value="1"
+                   {% if needs_details %}checked{% endif %} onchange="this.form.submit()">
+            <label class="btn btn-sm btn-outline-warning" for="needs-toggle">
+                <i class="bi bi-pencil-square me-1"></i>Needs details
+                <span class="d-none d-sm-inline">— missing cost, lead time or contact</span>
+            </label>
+        </div>
     </form>
 
     <!-- Results count -->
-    <p class="text-muted mb-2">{{ prospects|length }} prospect{{ prospects|length|pluralize }} found</p>
+    <p class="text-muted mb-2">
+        {{ total_count }} prospect{{ total_count|pluralize }} found{% if page_obj.paginator.num_pages > 1 %}
+        &middot; page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endif %}
+    </p>
 
     <!-- Bulk action bar -->
     <form method="post" action="{% url 'bulk_update_prospects' %}" id="bulk-form">
@@ -90,7 +101,7 @@
                                class="prospect-checkbox form-check-input position-absolute"
                                style="top:8px; left:8px; z-index:10; width:1.3em; height:1.3em;">
                         {% if prospect.image %}
-                        <img src="{{ prospect.image.url }}" class="card-img-top"
+                        <img src="{{ prospect.image.url }}" class="card-img-top" loading="lazy"
                              alt="{{ prospect.product_name }}"
                              style="height: 200px; object-fit: cover;">
                         {% else %}
@@ -124,6 +135,10 @@
                         <div class="alert alert-success py-1 px-2 mb-0 mt-2 small">
                             <i class="bi bi-check-circle me-1"></i>Promoted → {{ prospect.promoted_sku }}
                         </div>
+                        {% elif prospect.needs_details %}
+                        <a href="{% url 'scouting_edit' prospect.pk %}" class="badge bg-warning text-dark text-decoration-none mt-1">
+                            <i class="bi bi-pencil-square me-1"></i>Needs {{ prospect.missing_details|join:", " }}
+                        </a>
                         {% endif %}
                     </div>
                     <div class="card-footer bg-transparent">
@@ -155,6 +170,20 @@
             {% endfor %}
         </div>
     </form>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="mt-4" aria-label="Prospect pages">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="?{{ base_qs }}{% if base_qs %}&amp;{% endif %}page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}">&laquo; Prev</a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link" href="?{{ base_qs }}{% if base_qs %}&amp;{% endif %}page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}">Next &raquo;</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 <script>
@@ -205,41 +234,26 @@ deselectBtn.addEventListener('click', () => {
 <script src="{% static 'js/scout-offline.js' %}"></script>
 <script>
 async function scoutManualSync() {
-    await doSync();
-}
-
-async function doSync() {
-    const banner = document.getElementById('scout-offline-banner');
     const statusEl = document.getElementById('scout-sync-status');
-
     if (!navigator.onLine) {
         statusEl.textContent = 'No connection yet — will retry automatically.';
         return;
     }
-
     statusEl.textContent = 'Syncing…';
-    const synced = await scoutSync();
-
-    if (synced > 0) {
-        banner.style.display = 'none';
-        const msg = document.getElementById('scout-synced-msg');
-        document.getElementById('scout-synced-count').textContent = synced;
-        msg.style.display = '';
-        // Reload after short delay so new prospects appear in the list
-        setTimeout(() => window.location.reload(), 1500);
-    } else {
-        await scoutUpdateBanner();
-        statusEl.textContent = 'will sync when connected.';
-    }
+    await scoutAutoSync();
 }
 
-window.addEventListener('load', async () => {
-    await scoutUpdateBanner();
-    if (navigator.onLine) await doSync();
-});
-
-window.addEventListener('online', async () => {
-    await doSync();
+// scout-offline.js syncs on load and when the connection returns; when it
+// finishes, show the count and reload so the new prospects appear.
+document.addEventListener('scout-synced', e => {
+    if (e.detail.synced > 0) {
+        document.getElementById('scout-offline-banner').style.display = 'none';
+        document.getElementById('scout-synced-count').textContent = e.detail.synced;
+        document.getElementById('scout-synced-msg').style.display = '';
+        setTimeout(() => window.location.reload(), 1500);
+    } else {
+        document.getElementById('scout-sync-status').textContent = 'will sync when connected.';
+    }
 });
 </script>
 

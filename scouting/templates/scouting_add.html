@@ -3,143 +3,198 @@
 {% block title %}Add Prospect{% endblock %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 800px;">
-    <a href="{% url 'scouting_list' %}" class="text-muted small">
-        <i class="bi bi-arrow-left me-1"></i>Back to Scouting
-    </a>
-    <h2 class="mt-2 mb-3">Add New Prospect</h2>
+<style>
+  /* Floor-capture layout: big tap targets, save bar pinned to the bottom on phones */
+  #photo-drop { border: 2px dashed #adb5bd; border-radius: .5rem; min-height: 180px; cursor: pointer; }
+  #photo-drop.has-photo { border-style: solid; border-color: #198754; }
+  #photo-preview { max-height: 320px; width: 100%; object-fit: contain; border-radius: .4rem; }
+  #save-bar { position: sticky; bottom: 0; z-index: 20; background: #fff;
+              padding: .6rem 0 max(.6rem, env(safe-area-inset-bottom)); border-top: 1px solid #dee2e6; }
+  @media (min-width: 768px) { #save-bar { position: static; border-top: none; background: none; } }
+</style>
 
+<div class="container mt-2 mt-md-4" style="max-width: 800px;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <a href="{% url 'scouting_list' %}" class="text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Scouting
+        </a>
+        <h4 class="mb-0">Add Prospect</h4>
+        <span class="text-muted small">{% if active_show_name %}{{ active_show_name }}{% else %}&nbsp;{% endif %}</span>
+    </div>
+
+    {% if not active_show_name %}
     {% include "_active_show_banner.html" %}
+    {% endif %}
 
     <!-- Offline saved confirmation (hidden by default) -->
     <div id="offline-saved-msg" class="alert alert-warning d-none">
         <strong>📦 Saved offline.</strong> This prospect will sync automatically when you're back online.
-        <a href="{% url 'scouting_add' %}" class="btn btn-sm btn-warning ms-3">Add Another</a>
-        <a href="{% url 'scouting_list' %}" class="btn btn-sm btn-outline-secondary ms-1">Back to List</a>
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+            <a href="{% url 'scouting_add' %}" class="btn btn-sm btn-warning">Add Another</a>
+            <a href="{% url 'scouting_list' %}" class="btn btn-sm btn-outline-secondary">Back to List</a>
+        </div>
     </div>
 
     <!-- Offline pending banner -->
-    <div id="scout-offline-banner" class="alert alert-info py-2 d-none" style="display:none!important">
+    <div id="scout-offline-banner" class="alert alert-info py-2" style="display:none;">
         <i class="bi bi-cloud-upload me-1"></i>
         <span id="scout-pending-count">0</span> prospect(s) saved offline — will sync when connected.
+    </div>
+
+    <!-- Saved confirmation (hidden by default) — keeps you on this page for the next booth -->
+    <div id="saved-card" class="card border-success shadow-sm mb-3 d-none">
+        <div class="card-body">
+            <h5 class="text-success mb-1"><i class="bi bi-check-circle-fill me-1"></i>Saved <span id="saved-number"></span></h5>
+            <p class="mb-3"><strong id="saved-name"></strong> <span class="text-muted">— <span id="saved-vendor"></span></span></p>
+            <div class="d-grid gap-2 d-md-flex">
+                <button type="button" class="btn btn-success" onclick="resetForm(true)">
+                    <i class="bi bi-plus-circle me-1"></i>Add Another — Same Vendor
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="resetForm(false)">
+                    <i class="bi bi-building me-1"></i>New Vendor
+                </button>
+                <a id="saved-view-link" href="#" class="btn btn-outline-secondary">View</a>
+            </div>
+        </div>
     </div>
 
     <form id="prospect-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
-        <!-- Show Info -->
+        <!-- 1. Photo — first, because it's the one thing you can't add later -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-primary text-white fw-semibold">
-                <i class="bi bi-geo-alt me-1"></i>Show / Event
-            </div>
-            <div class="card-body row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">{{ form.show_name.label }}</label>
-                    {{ form.show_name|add_class:"form-control" }}
+            <div class="card-body">
+                <div id="photo-drop" class="d-flex flex-column align-items-center justify-content-center text-center p-3"
+                     onclick="openCamera()">
+                    <div id="photo-placeholder">
+                        <i class="bi bi-camera text-muted" style="font-size:3rem;"></i>
+                        <div class="fw-semibold mt-1">Tap to take a photo</div>
+                        <div class="text-muted small">Product photo</div>
+                    </div>
+                    <img id="photo-preview" class="d-none" alt="Product photo preview">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">{{ form.show_date.label }}</label>
-                    {{ form.show_date }}
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" onclick="openLibrary()">
+                        <i class="bi bi-images me-1"></i>Choose from library
+                    </button>
+                    <button type="button" id="photo-clear" class="btn btn-sm btn-link text-danger text-decoration-none p-0 d-none" onclick="clearPhoto()">
+                        <i class="bi bi-x-circle me-1"></i>Remove
+                    </button>
+                </div>
+                {{ form.image|attr:"accept:image/*"|attr:"class:d-none" }}
+            </div>
+        </div>
+
+        <!-- 2. Vendor -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-end gap-2 mb-2">
+                    <label class="form-label mb-0 fw-semibold">{{ form.vendor_name.label }} <span class="text-danger">*</span></label>
+                    <button type="button" id="scan-card-btn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-credit-card me-1"></i>Scan Card
+                    </button>
+                </div>
+                <input type="file" id="card-camera-input" accept="image/*" capture="environment" style="display:none;">
+                <div id="scan-status" class="mb-2" style="display:none;">
+                    <div class="d-flex align-items-center gap-2 text-muted small">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        Reading business card…
+                    </div>
+                </div>
+                {{ form.vendor_name|add_class:"form-control form-control-lg"|attr:"autocomplete:organization"|attr:"placeholder:Company on the booth sign" }}
+
+                <a class="d-inline-block mt-2 small text-decoration-none" data-bs-toggle="collapse" href="#vendor-contact" role="button">
+                    <i class="bi bi-chevron-down me-1"></i>Contact details
+                </a>
+                <div class="collapse {% if form.vendor_contact.value or form.vendor_email.value or form.vendor_website.value %}show{% endif %}" id="vendor-contact">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1">{{ form.vendor_contact.label }}</label>
+                            {{ form.vendor_contact|add_class:"form-control"|attr:"autocomplete:name" }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1">{{ form.vendor_email.label }}</label>
+                            {{ form.vendor_email|add_class:"form-control"|attr:"inputmode:email"|attr:"autocomplete:email" }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small mb-1">{{ form.vendor_website.label }}</label>
+                            {{ form.vendor_website|add_class:"form-control"|attr:"inputmode:url" }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Vendor Info -->
+        <!-- 3. Product -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-building me-1"></i>Vendor</span>
-                <button type="button" id="scan-card-btn" class="btn btn-sm btn-light">
-                    <i class="bi bi-credit-card me-1"></i>Scan Business Card
-                </button>
-            </div>
-            <!-- Hidden camera input for business card -->
-            <input type="file" id="card-camera-input" accept="image/*" capture="environment" style="display:none;">
-            <div id="scan-status" class="px-3 pt-2" style="display:none;">
-                <div class="d-flex align-items-center gap-2 text-muted small">
-                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                    Reading business card…
-                </div>
-            </div>
-            <div class="card-body row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.vendor_name.label }} <span class="text-danger">*</span></label>
-                    {{ form.vendor_name|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.vendor_contact.label }}</label>
-                    {{ form.vendor_contact|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.vendor_email.label }}</label>
-                    {{ form.vendor_email|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.vendor_website.label }}</label>
-                    {{ form.vendor_website|add_class:"form-control" }}
-                </div>
+            <div class="card-body">
+                <label class="form-label fw-semibold">{{ form.product_name.label }} <span class="text-danger">*</span></label>
+                {{ form.product_name|add_class:"form-control form-control-lg"|attr:"placeholder:What is it?" }}
+                <label class="form-label mt-3 mb-1">{{ form.unit_cost.label }}</label>
+                {{ form.unit_cost|add_class:"form-control"|attr:"placeholder:e.g. $2.50 @ 500 pcs" }}
             </div>
         </div>
 
-        <!-- Product Info -->
+        <!-- 4. Everything else — collapsed on the floor, fill in at the hotel -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-info text-dark fw-semibold">
-                <i class="bi bi-box-seam me-1"></i>Product
+            <div class="card-header bg-white">
+                <a class="text-decoration-none d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#more-details" role="button">
+                    <span><i class="bi bi-list-ul me-1"></i>More details</span>
+                    <i class="bi bi-chevron-down"></i>
+                </a>
             </div>
-            <div class="card-body row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">{{ form.product_name.label }} <span class="text-danger">*</span></label>
-                    {{ form.product_name|add_class:"form-control" }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">{{ form.unit_cost.label }}</label>
-                    {{ form.unit_cost|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.colors.label }}</label>
-                    {{ form.colors|add_class:"form-control" }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.lead_time.label }}</label>
-                    {{ form.lead_time|add_class:"form-control" }}
-                </div>
-                <div class="col-12">
-                    <label class="form-label">{{ form.description.label }}</label>
-                    {{ form.description }}
-                </div>
-                <div class="col-12">
-                    <label class="form-label">{{ form.notes.label }}</label>
-                    {{ form.notes }}
-                </div>
-                <div class="col-12">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-camera me-1"></i>{{ form.image.label }}
-                    </label>
-                    {{ form.image|add_class:"form-control form-control-lg"|attr:"accept:image/*"|attr:"capture:environment" }}
-                    <div class="form-text">Tap to open camera and take a photo of the product.</div>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">{{ form.status.label }}</label>
-                    {{ form.status|add_class:"form-select" }}
+            <div class="collapse {% if not form.show_name.value %}show{% endif %}" id="more-details">
+                <div class="card-body row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.show_name.label }} <span class="text-danger">*</span></label>
+                        {{ form.show_name|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.show_date.label }}</label>
+                        {{ form.show_date }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.lead_time.label }}</label>
+                        {{ form.lead_time|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.colors.label }}</label>
+                        {{ form.colors|add_class:"form-control" }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.status.label }}</label>
+                        {{ form.status|add_class:"form-select" }}
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="d-grid gap-2 d-md-flex">
-            <button type="submit" id="save-btn" class="btn btn-success btn-lg">
-                <i class="bi bi-plus-circle me-1" id="save-icon"></i>
-                <span class="spinner-border spinner-border-sm d-none me-1" id="save-spinner" role="status"></span>
-                <span id="save-label">Save Prospect</span>
-            </button>
-            <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary">Cancel</a>
         </div>
 
         <!-- Error recovery bar (hidden by default) -->
-        <div id="save-error-bar" class="alert alert-danger mt-3 d-none">
+        <div id="save-error-bar" class="alert alert-danger d-none">
             <strong>⚠ Save failed.</strong> <span id="save-error-msg"></span>
             <div class="mt-2 d-flex gap-2 flex-wrap">
                 <button type="button" class="btn btn-danger btn-sm" onclick="retrySubmit()">Try Again</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="saveOffline()">Save Offline</button>
                 <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary btn-sm">Back to Scouting</a>
-                <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">Home</a>
+            </div>
+        </div>
+
+        <div id="save-bar">
+            <div class="d-grid gap-2 d-md-flex">
+                <button type="submit" id="save-btn" class="btn btn-success btn-lg flex-md-grow-1">
+                    <i class="bi bi-check-lg me-1" id="save-icon"></i>
+                    <span class="spinner-border spinner-border-sm d-none me-1" id="save-spinner" role="status"></span>
+                    <span id="save-label">Save Prospect</span>
+                </button>
+                <a href="{% url 'scouting_list' %}" class="btn btn-outline-secondary d-none d-md-inline-block">Cancel</a>
             </div>
         </div>
     </form>
@@ -147,13 +202,46 @@
 
 <script src="{% load static %}{% static 'js/scout-offline.js' %}"></script>
 <script>
+const form       = document.getElementById('prospect-form');
 const saveBtn    = document.getElementById('save-btn');
 const saveIcon   = document.getElementById('save-icon');
 const saveSpinner= document.getElementById('save-spinner');
 const saveLabel  = document.getElementById('save-label');
 const errorBar   = document.getElementById('save-error-bar');
 const errorMsg   = document.getElementById('save-error-msg');
+const savedCard  = document.getElementById('saved-card');
 
+// ── Photo ────────────────────────────────────────────────────────────────────
+const photoInput = document.getElementById('id_image');
+const photoDrop  = document.getElementById('photo-drop');
+const photoPrev  = document.getElementById('photo-preview');
+const photoPh    = document.getElementById('photo-placeholder');
+const photoClear = document.getElementById('photo-clear');
+
+function openCamera()  { photoInput.setAttribute('capture', 'environment'); photoInput.click(); }
+function openLibrary() { photoInput.removeAttribute('capture'); photoInput.click(); }
+function clearPhoto()  { photoInput.value = ''; renderPhoto(); }
+
+function renderPhoto() {
+    const file = photoInput.files && photoInput.files[0];
+    if (file) {
+        photoPrev.src = URL.createObjectURL(file);
+        photoPrev.classList.remove('d-none');
+        photoPh.classList.add('d-none');
+        photoClear.classList.remove('d-none');
+        photoDrop.classList.add('has-photo');
+    } else {
+        photoPrev.classList.add('d-none');
+        photoPh.classList.remove('d-none');
+        photoClear.classList.add('d-none');
+        photoDrop.classList.remove('has-photo');
+    }
+}
+photoInput.addEventListener('change', renderPhoto);
+// Stop the drop-zone click from re-opening the picker when tapping the Remove link
+photoClear.addEventListener('click', e => e.stopPropagation());
+
+// ── Save state ───────────────────────────────────────────────────────────────
 function setSaving(on) {
     saveBtn.disabled = on;
     saveIcon.classList.toggle('d-none', on);
@@ -168,92 +256,92 @@ function showError(msg) {
     errorBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-async function doSubmit(form) {
+function showSaved(data) {
+    setSaving(false);
+    document.getElementById('saved-number').textContent = data.prospect_number || '';
+    document.getElementById('saved-name').textContent   = data.product_name || '';
+    document.getElementById('saved-vendor').textContent = data.vendor_name || '';
+    document.getElementById('saved-view-link').href     = '/scouting/' + data.pk + '/';
+    form.classList.add('d-none');
+    savedCard.classList.remove('d-none');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Back to a blank form for the next item. keepVendor=true keeps vendor + show
+// (same booth, next product); false clears everything but the show.
+function resetForm(keepVendor) {
+    const keep = ['show_name', 'show_date'];
+    if (keepVendor) keep.push('vendor_name', 'vendor_contact', 'vendor_email', 'vendor_website');
+    const kept = {};
+    keep.forEach(n => { const el = form.elements[n]; if (el) kept[n] = el.value; });
+    form.reset();
+    Object.entries(kept).forEach(([n, v]) => { form.elements[n].value = v; });
+    clearPhoto();
+    savedCard.classList.add('d-none');
+    errorBar.classList.add('d-none');
+    form.classList.remove('d-none');
+    window.scrollTo({ top: 0 });
+    if (!keepVendor) document.getElementById('id_vendor_name').focus();
+}
+
+async function doSubmit() {
     setSaving(true);
     errorBar.classList.add('d-none');
-
     const fd = new FormData(form);
-
     try {
         const resp = await fetch(form.action || window.location.href, {
             method: 'POST',
             headers: { 'X-Async-Submit': '1' },
             body: fd,
         });
-
         if (!resp.ok) {
             let errText = `Server error (${resp.status})`;
             try {
                 const j = await resp.json();
-                if (j.errors) errText = Object.values(j.errors).flat().join(' · ');
+                if (j.errors) errText = Object.entries(j.errors).map(([f, e]) => f + ': ' + e.join(' ')).join(' · ');
+                else if (j.error) errText = j.error;
             } catch(_) {}
             showError(errText);
             return;
         }
-
         const data = await resp.json();
-        if (data.ok) {
-            // Success — navigate to the new prospect detail
-            saveLabel.textContent = 'Saved! ✓';
-            window.location.href = '/scouting/' + data.pk + '/';
-        } else {
-            showError('Validation error — please check required fields.');
-            setSaving(false);
-        }
+        if (data.ok) showSaved(data);
+        else showError('Validation error — please check required fields.');
     } catch (err) {
-        // Network failure (offline / timeout / connection dropped)
-        showError('Could not reach the server. Check your connection and try again, or use the offline save below.');
-        setSaving(false);
+        // Network failure (offline / timeout / show-floor Wi-Fi)
+        showError('Could not reach the server. Your entry is still here — Try Again when you have signal, or Save Offline and it will sync later.');
     }
 }
 
-function retrySubmit() {
-    doSubmit(document.getElementById('prospect-form'));
-}
+function retrySubmit() { doSubmit(); }
 
-// ── Offline intercept ────────────────────────────────────────────────────────
-document.getElementById('prospect-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const form = this;
-
-    if (navigator.onLine) {
-        // Online — AJAX submit with feedback
-        await doSubmit(form);
-        return;
-    }
-
-    // Offline — collect fields and image, save to IndexedDB
+// Queue the entry in IndexedDB; scout-offline.js pushes it up when the connection returns.
+async function saveOffline() {
+    if (!form.reportValidity()) return;
     setSaving(true);
+    errorBar.classList.add('d-none');
     const fd = new FormData(form);
     const fields = {};
     let imageFile = null;
-
     for (const [key, val] of fd.entries()) {
         if (key === 'csrfmiddlewaretoken') continue;
-        if (val instanceof File && val.size > 0) {
-            imageFile = val;
-        } else {
-            fields[key] = val;
-        }
+        if (val instanceof File) { if (val.size > 0) imageFile = val; }
+        else fields[key] = val;
     }
-
     try {
         await scoutSavePending(fields, imageFile);
-        // Hide form, show confirmation
-        form.style.display = 'none';
+        form.classList.add('d-none');
         document.getElementById('offline-saved-msg').classList.remove('d-none');
         await scoutUpdateBanner();
     } catch (err) {
         showError('Could not save offline: ' + err);
     }
-});
+}
 
-// Show pending banner on load
-window.addEventListener('load', async () => {
-    await scoutUpdateBanner();
-    // Fix banner visibility (override d-none set inline above)
-    const banner = document.getElementById('scout-offline-banner');
-    if (banner) banner.style.removeProperty('display');
+form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (navigator.onLine) await doSubmit();
+    else await saveOffline();
 });
 
 // ── Business card scanner ────────────────────────────────────────────────────
@@ -286,8 +374,7 @@ cardInput.addEventListener('change', function() {
     URL.revokeObjectURL(objectUrl);
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-    const [header, b64] = dataUrl.split(',');
-    const mediaType = 'image/jpeg';
+    const b64 = dataUrl.split(',')[1];
 
     fetch("{% url 'scan_business_card' %}", {
       method: 'POST',
@@ -295,20 +382,22 @@ cardInput.addEventListener('change', function() {
         'Content-Type': 'application/json',
         'X-CSRFToken': '{{ csrf_token }}',
       },
-      body: JSON.stringify({ image: b64, media_type: mediaType }),
+      body: JSON.stringify({ image: b64, media_type: 'image/jpeg' }),
     })
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
+        let filledContact = false;
         if (data.vendor_name)    document.getElementById('id_vendor_name').value    = data.vendor_name;
-        if (data.vendor_contact) document.getElementById('id_vendor_contact').value = data.vendor_contact;
-        if (data.vendor_email)   document.getElementById('id_vendor_email').value   = data.vendor_email;
-        if (data.vendor_website) document.getElementById('id_vendor_website').value = data.vendor_website;
+        if (data.vendor_contact) { document.getElementById('id_vendor_contact').value = data.vendor_contact; filledContact = true; }
+        if (data.vendor_email)   { document.getElementById('id_vendor_email').value   = data.vendor_email;   filledContact = true; }
+        if (data.vendor_website) { document.getElementById('id_vendor_website').value = data.vendor_website; filledContact = true; }
+        if (filledContact) new bootstrap.Collapse(document.getElementById('vendor-contact'), { show: true });
       } else {
-        alert('Could not read card: ' + (data.error || 'unknown error'));
+        showError('Could not read card: ' + (data.error || 'unknown error'));
       }
     })
-    .catch(() => alert('Network error scanning card.'))
+    .catch(() => showError('Network error scanning card — you can type the vendor in by hand.'))
     .finally(() => {
       scanStatus.style.display = 'none';
       scanBtn.disabled = false;
