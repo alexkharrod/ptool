@@ -154,10 +154,9 @@ Two quote systems currently coexist in this app.
 - PDF: no cover page, one item per page, logo and contact block in the header,
   disclaimer and rep thank-you on the final page
 
-**Legacy system**, URLs under `/quotes/quotes/`, `/quotes/create-quote/` etc.:
-the original flat `Quote` model, which stores pricing as 15 repeated columns
-(`quantity1`–`quantity5`, `qty1_cost`…`qty5_price_ocean`) rather than tier rows.
-Its views, templates and URLs are all still wired up and reachable.
+**Legacy system** (retired September 2026): the original flat `Quote` model, 15 repeated
+pricing columns. Views, URLs, form and templates were removed; the model, table and Django-admin
+registration remain as read-only history, and `manage.py export_legacy_quotes` renders them to PDF.
 
 ### Shipments (`/shipments/`)
 
@@ -205,9 +204,9 @@ Promotion to a real product (`/scouting/<pk>/promote/`) sets `promoted=True` and
 records `promoted_sku` as **text** — there is no ForeignKey from `Prospect` to
 `Product`, so the link is by SKU string only.
 
-Image handling here is the reference implementation: `compress_image()` applies EXIF
-orientation (so phone photos aren't sideways), converts to RGB, resizes to 800px wide
-and saves as JPEG before upload.
+Image handling is shared: `products/images.py` provides `compress_image()` (EXIF
+orientation, RGB, 800px wide, JPEG) and `CompressedImageMixin`, mixed into `Product`,
+`Prospect` and legacy `Quote`.
 
 ---
 
@@ -338,11 +337,6 @@ CLAUDE.md        working notes and conventions for AI-assisted development
 
 Things a reviewer should know are true right now, stated plainly:
 
-- The **legacy `Quote` model and its views/URLs run in parallel** with the newer
-  `CustomerQuote` system. Both are reachable.
-- **`compress_image()` is defined three times** — in `products/models.py`,
-  `quotes/models.py` and `scouting/models.py`. The products and scouting copies apply
-  EXIF transposition; the quotes copy does not.
 - **Local dev and production share one Postgres database.** There is no staging
   environment.
 - **A few products have no image**, and `newsku`/`newskuaa` are placeholder SKUs left

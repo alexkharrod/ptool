@@ -28,7 +28,7 @@ def home(request):
     if user.access_products:
         return redirect("products")
     if user.access_quotes:
-        return redirect("quotes")
+        return redirect("cq_list")
     if user.access_scouting:
         return redirect("scouting_list")
     if user.access_shipments:
