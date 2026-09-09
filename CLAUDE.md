@@ -11,7 +11,11 @@ This is an internal Django web app for managing promotional products, quotes, an
 Full product catalog for LogoIncluded's line. Each product has SKU, specs, carton info, imprint details, freight/tariff costs, and an image. From a product page you can download a **NPDS (New Product Data Sheet)** as a PDF.
 
 ### Quotes (`/quotes/`)
-Customer quote builder. Fully redesigned (April 2026). Key features:
+Customer quote builder (`/quotes/cq/`). The original single-product `Quote` system was retired in
+September 2026: its views, URLs, forms and templates are gone. The `Quote` model and table remain
+(registered in Django admin, read-only history) and `manage.py export_legacy_quotes` renders every
+record to `YYYY-MM-DD - rep - quote#.pdf` (idempotent; `--dry-run`, `--out`, `--overwrite`).
+Key features:
 - **SalesRep model** (separate from Django users) — name + initials, used in quote numbers and PDFs
 - **Quote number format**: `MMDD-REP-SKU-NN` (e.g. `0409-PM-AT01-01`) — assigned when first item is added; shows "Draft" until then
 - **Pricing tiers**: default 1, up to 5 per item; empty tiers are not saved
@@ -115,6 +119,11 @@ Migrations:
 - **Image storage**: Cloudinary — all product and quote images upload there automatically via `ImageField`
 - **Static files**: served via `whitenoise` from `staticfiles/`
 - **PDF generation**: WeasyPrint (lazy-imported to avoid startup crashes)
+
+### Images
+`products/images.py` owns `compress_image()` (EXIF-rotate, RGB, ≤800px wide, JPEG) and
+`CompressedImageMixin`, which `Product`, `Prospect` and legacy `Quote` mix in so a new or changed
+`image` is compressed in `save()`. Do not copy the function into another app — import it.
 
 ### Local development
 Requires a `.env` file in the project root (never committed — in `.gitignore`):

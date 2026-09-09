@@ -25,7 +25,8 @@ import shutil
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from scouting.models import Prospect, compress_image
+from scouting.models import Prospect
+from products.images import compress_image
 from django.core.files.base import ContentFile
 
 

@@ -1,14 +1,8 @@
-import os
-from io import BytesIO
-
 from django.apps import apps
-from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from django.utils.timezone import now
 
+from products.images import CompressedImageMixin
 from products.models import HtsCode, Vendor
 
 
@@ -131,30 +125,10 @@ class QuotePriceTier(models.Model):
         return f"Tier {self.tier_number}: qty {self.quantity}"
 
 
-def compress_image(image_field, max_width=800, quality=72):
-    """Resize and compress an image in-place. Converts to JPEG."""
-    from PIL import Image
-
-    img = Image.open(image_field)
-
-    if img.mode in ("RGBA", "P", "LA"):
-        img = img.convert("RGB")
-    elif img.mode != "RGB":
-        img = img.convert("RGB")
-
-    if img.width > max_width:
-        ratio = max_width / img.width
-        new_height = int(img.height * ratio)
-        img = img.resize((max_width, new_height), Image.LANCZOS)
-
-    output = BytesIO()
-    img.save(output, format="JPEG", quality=quality, optimize=True)
-    output.seek(0)
-    return output.read()
 
 
 # Create your models here.
-class Quote(models.Model):
+class Quote(CompressedImageMixin, models.Model):
     quote_num = models.CharField(max_length=20, unique=True, null=False)
     name = models.CharField(max_length=150, default="Product Name")
     vendor = models.CharField(max_length=50, default="Vendor Name")
@@ -248,23 +222,3 @@ class Quote(models.Model):
     def __str__(self):
         return self.quote_num
 
-    def save(self, *args, **kwargs):
-        # Compress image on first upload or when image changes
-        if self.image and not self._is_existing_image():
-            original_name = os.path.splitext(
-                os.path.basename(self.image.name)
-            )[0]
-            compressed = compress_image(self.image)
-            new_name = f"{original_name}.jpg"
-            self.image.save(new_name, ContentFile(compressed), save=False)
-        super().save(*args, **kwargs)
-
-    def _is_existing_image(self):
-        """Returns True if this image is already stored (no re-compression needed)."""
-        if not self.pk:
-            return False
-        try:
-            old = Quote.objects.get(pk=self.pk)
-            return old.image == self.image
-        except Quote.DoesNotExist:
-            return False
