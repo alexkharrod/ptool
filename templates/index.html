@@ -1,53 +1,170 @@
 {% extends "base.html" %}
+{% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="display-4">Product Tool Dashboard</h1>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Products</h5>
-                    <p class="card-text">Manage product catalog and specifications</p>
-                    <a href="{% url 'products' %}" class="btn btn-primary me-2">View Products</a>
-                    <a href="{% url 'add_product' %}" class="btn btn-success">Add Product</a>
-                </div>
-            </div>
+<style>
+  .dash-card .list-group-item { padding: .45rem .75rem; }
+  .dash-card .card-header { background: #fff; }
+  .dash-empty { color: #6c757d; font-size: .9rem; padding: .75rem; }
+  .dash-num { font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="container-fluid mt-3" style="max-width: 1200px;">
+
+  <!-- Quick actions -->
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h4 class="mb-0 me-2">Today</h4>
+    <span class="text-muted small me-auto">{{ today|date:"l, N j" }}</span>
+    <a href="{% url 'scouting_add' %}" class="btn btn-sm btn-success"><i class="bi bi-camera me-1"></i>Add Prospect</a>
+    <a href="{% url 'cq_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-file-earmark-plus me-1"></i>New Quote</a>
+    <a href="{% url 'add_product' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-seam me-1"></i>Add Product</a>
+    {% if request.user.can_access_shipments_logistics %}
+    <a href="{% url 'shipment_add' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-ship me-1"></i>New Shipment</a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ── Shipments ─────────────────────────────────────────────────── -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm dash-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="bi bi-ship me-1 text-primary"></i>Shipments</span>
+          <a href="{% url 'shipment_list' %}" class="small text-decoration-none">{{ shipments.open_count }} open →</a>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Quotes</h5>
-                    <p class="card-text">Create and manage customer quotes</p>
-                    <a href="{% url 'cq_list' %}" class="btn btn-primary me-2">View Quotes</a>
-                    <a href="{% url 'cq_create' %}" class="btn btn-success">New Quote</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Scouting</h5>
-                    <p class="card-text">Track prospective products from trade shows</p>
-                    <a href="{% url 'scouting_list' %}" class="btn btn-primary me-2">View Scouting</a>
-                    <a href="{% url 'scouting_add' %}" class="btn btn-success">Add Prospect</a>
-                </div>
-            </div>
-        </div>
-        {% if request.user.can_access_shipments %}
-        <div class="col-md-4 mt-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-ship me-2 text-primary"></i>Shipments</h5>
-                    <p class="card-text">Track inbound air and ocean freight shipments</p>
-                    <a href="{% url 'shipment_list' %}" class="btn btn-primary me-2">View Shipments</a>
-                    {% if request.user.can_access_shipments_logistics %}
-                    <a href="{% url 'shipment_add' %}" class="btn btn-success">New Shipment</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+
+        {% if shipments.overdue %}
+        <div class="px-3 pt-2 small fw-semibold text-danger">Past ETA</div>
+        <ul class="list-group list-group-flush">
+          {% for s in shipments.overdue %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'shipment_detail' s.pk %}" class="text-decoration-none">
+              #{{ s.shipment_number }} <span class="text-muted">{{ s.carrier|default:s.mode }}{% if s.po_numbers %} · PO {{ s.po_numbers }}{% endif %}</span>
+            </a>
+            <span class="badge bg-danger dash-num">{{ s.days_late }}d late · {{ s.status }}</span>
+          </li>
+          {% endfor %}
+        </ul>
         {% endif %}
+
+        {% if shipments.arriving %}
+        <div class="px-3 pt-2 small fw-semibold text-success">Arriving in the next {{ shipments.window_days }} days</div>
+        <ul class="list-group list-group-flush">
+          {% for s in shipments.arriving %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'shipment_detail' s.pk %}" class="text-decoration-none">
+              #{{ s.shipment_number }} <span class="text-muted">{{ s.carrier|default:s.mode }}{% if s.po_numbers %} · PO {{ s.po_numbers }}{% endif %}</span>
+            </a>
+            <span class="text-nowrap small dash-num">{% if s.days_out == 0 %}<strong>today</strong>{% else %}{{ s.eta_warehouse|date:"D N j" }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if shipments.in_customs %}
+        <div class="px-3 pt-2 small fw-semibold text-warning">In customs</div>
+        <ul class="list-group list-group-flush">
+          {% for s in shipments.in_customs %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'shipment_detail' s.pk %}" class="text-decoration-none">#{{ s.shipment_number }} <span class="text-muted">{{ s.carrier|default:s.mode }}</span></a>
+            <span class="text-muted small">port ETA {{ s.eta_port|date:"N j"|default:"—" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if not shipments.overdue and not shipments.arriving and not shipments.in_customs %}
+        <div class="dash-empty"><i class="bi bi-check-circle me-1 text-success"></i>Nothing overdue, nothing arriving this week.</div>
+        {% endif %}
+        {% if shipments.no_eta %}
+        <div class="card-footer small text-muted">{{ shipments.no_eta }} open shipment{{ shipments.no_eta|pluralize }} with no warehouse ETA</div>
+        {% endif %}
+      </div>
     </div>
+
+    <!-- ── Quotes ────────────────────────────────────────────────────── -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm dash-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="bi bi-file-text me-1 text-primary"></i>Quotes</span>
+          <a href="{% url 'cq_list' %}?status=sent" class="small text-decoration-none">{{ quotes.stale_count }} to follow up →</a>
+        </div>
+        {% if quotes.stale %}
+        <div class="px-3 pt-2 small fw-semibold text-warning">Sent {{ quotes.stale_days }}+ days ago, no update</div>
+        <ul class="list-group list-group-flush">
+          {% for q in quotes.stale %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'cq_edit' q.pk %}" class="text-decoration-none text-truncate me-2">
+              {{ q.customer_name }} <span class="text-muted">{{ q.quote_number|default:"Draft" }}{% if q.rep %} · {{ q.rep.initials|default:q.rep.name }}{% endif %}</span>
+            </a>
+            <span class="badge bg-warning text-dark dash-num text-nowrap">{{ q.days_old }}d</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="dash-empty"><i class="bi bi-check-circle me-1 text-success"></i>No sent quotes older than {{ quotes.stale_days }} days.</div>
+        {% endif %}
+        {% if quotes.draft_count %}
+        <div class="card-footer small text-muted"><a href="{% url 'cq_list' %}?status=draft" class="text-decoration-none">{{ quotes.draft_count }} draft{{ quotes.draft_count|pluralize }}</a> not yet sent</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Scouting ──────────────────────────────────────────────────── -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm dash-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="bi bi-binoculars me-1 text-primary"></i>Scouting</span>
+          <a href="{% url 'scouting_list' %}" class="small text-decoration-none">{{ scouting.deciding_count }} awaiting a decision →</a>
+        </div>
+        {% if scouting.deciding %}
+        <ul class="list-group list-group-flush">
+          {% for p in scouting.deciding %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'scouting_detail' p.pk %}" class="text-decoration-none text-truncate me-2">
+              {{ p.product_name }} <span class="text-muted">{{ p.vendor_name }}</span>
+            </a>
+            <span class="text-nowrap small">
+              <span class="badge {% if p.status == 'Sample Ordered' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">{{ p.status }}</span>
+              <span class="{% if p.is_stale %}text-danger fw-semibold{% else %}text-muted{% endif %} dash-num ms-1">{{ p.days_waiting }}d</span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="dash-empty"><i class="bi bi-check-circle me-1 text-success"></i>No samples or evaluations pending.</div>
+        {% endif %}
+        {% if scouting.needs_details_count %}
+        <div class="card-footer small text-muted"><a href="{% url 'scouting_list' %}?needs=1" class="text-decoration-none">{{ scouting.needs_details_count }} prospect{{ scouting.needs_details_count|pluralize }}</a> missing cost, lead time or contact</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Products — launch checklist ───────────────────────────────── -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm dash-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="bi bi-box-seam me-1 text-primary"></i>Product launch checklist</span>
+          <a href="{% url 'products' %}?status=Open" class="small text-decoration-none">{{ products.open_count }} open →</a>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for row in products.checklist %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <a href="{% url 'products' %}{{ row.filter }}" class="text-decoration-none">{{ row.label }}</a>
+              <span class="badge {% if row.count %}bg-secondary{% else %}bg-light text-muted{% endif %} dash-num">{{ row.count }}</span>
+            </div>
+            {% if row.count %}
+            <div class="small text-muted mt-1">
+              {% for p in row.sample %}<a href="{% url 'view_product' p.pk %}" class="text-decoration-none">{{ p.sku }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% if row.count > row.sample|length %}, …{% endif %}
+            </div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+  </div>
 </div>
 {% endblock %}

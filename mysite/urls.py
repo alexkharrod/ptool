@@ -23,7 +23,8 @@ def home(request):
     # Staff see the full dashboard
     if user.is_staff:
         from django.shortcuts import render
-        return render(request, "index.html")
+        from mysite.dashboard import build_dashboard
+        return render(request, "index.html", build_dashboard())
     # Non-staff: route to their first accessible section
     if user.access_products:
         return redirect("products")
