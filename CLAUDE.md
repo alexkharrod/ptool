@@ -77,6 +77,13 @@ event, guarded so two overlapping syncs can't double-post. Pages react to the `s
 
 ---
 
+## Home page (staff dashboard)
+`mysite/dashboard.py::build_dashboard()` feeds `templates/index.html` for staff: shipments past
+ETA / arriving within 7 days / in customs, quotes sent 14+ days ago with no update, prospects in
+Sample Ordered / Evaluating (30+ days flagged), and the product launch checklist (NPDS done but not
+in QB, no NPDS, no HTS, no image, published without URL). Thresholds are constants at the top of
+that file. Read-only. Non-staff users are still redirected to their first accessible section.
+
 ## Users & Permissions
 
 All access is controlled via `BooleanField` flags on `CustomUser`. Staff (`is_staff=True`) bypass all flags and always have full access.
